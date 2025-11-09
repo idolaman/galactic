@@ -146,10 +146,10 @@ export const ProjectDetail = ({
                 <div className="flex gap-2">
                   <Button 
                     onClick={() => onOpenInEditor(branch.workspace!)}
-                    className="flex-1 bg-primary hover:bg-primary-glow"
+                    className="flex-1 bg-primary hover:bg-primary/90"
                   >
                     <FolderOpen className="mr-2 h-4 w-4" />
-                    Open
+                    Move to
                   </Button>
                   
                   <Button 

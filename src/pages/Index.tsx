@@ -125,10 +125,11 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex flex-col h-screen bg-background">
       <Header user={user} onLogout={handleLogout} />
       
-      <main className="container mx-auto px-4 py-8 space-y-8">
+      <main className="flex-1 overflow-auto">
+        <div className="container mx-auto px-4 py-8 space-y-8">
         {!selectedEditor ? (
           <EditorSelector 
             onSelect={handleEditorSelect} 
@@ -152,6 +153,7 @@ const Index = () => {
             onViewProject={handleViewProject}
           />
         )}
+        </div>
       </main>
     </div>
   );
