@@ -21,7 +21,7 @@ interface Project {
 
 interface Branch {
   name: string;
-  worktree?: string;
+  workspace?: string;
 }
 
 const Index = () => {
@@ -49,11 +49,15 @@ const Index = () => {
   ]);
 
   const mockBranches: Branch[] = [
-    { name: "feature/new-ui", worktree: "~/Projects/my-app-worktrees/feature-new-ui" },
-    { name: "bugfix/login", worktree: "~/Projects/my-app-worktrees/bugfix-login" },
+    { name: "feature/new-ui", workspace: "~/Projects/my-app-workspaces/feature-new-ui" },
+    { name: "bugfix/login", workspace: "~/Projects/my-app-workspaces/bugfix-login" },
     { name: "feature/payments" },
     { name: "refactor/database" },
+    { name: "feature/api-integration" },
+    { name: "hotfix/security-patch" },
   ];
+
+  const mockEnvironments = ["Development", "Staging", "Production"];
 
   const handleAuthSuccess = (userData: User) => {
     setUser(userData);
@@ -82,18 +86,24 @@ const Index = () => {
     setSelectedProject(project);
   };
 
-  const handleCreateWorktree = (branch: string) => {
+  const handleCreateWorkspace = (branch: string) => {
     toast({
-      title: "Creating worktree",
-      description: `Setting up worktree for ${branch}`,
+      title: "Creating workspace",
+      description: `Setting up workspace for ${branch}`,
     });
   };
 
-  const handleConvertToBase = (worktree: string) => {
+  const handleDebugInMain = (workspace: string, branch: string) => {
     toast({
-      title: "Converting worktree",
-      description: "Merging changes and cleaning up worktree",
-      variant: "destructive",
+      title: "Debug in Main",
+      description: `Pushing changes from ${branch} and switching main codebase`,
+    });
+  };
+
+  const handleEnvironmentChange = (workspace: string, env: string) => {
+    toast({
+      title: "Environment Changed",
+      description: `Switched to ${env} for this workspace`,
     });
   };
 
@@ -128,10 +138,12 @@ const Index = () => {
           <ProjectDetail
             project={selectedProject}
             branches={mockBranches}
+            environments={mockEnvironments}
             onBack={() => setSelectedProject(null)}
-            onCreateWorktree={handleCreateWorktree}
-            onConvertToBase={handleConvertToBase}
+            onCreateWorkspace={handleCreateWorkspace}
+            onDebugInMain={handleDebugInMain}
             onOpenInEditor={handleOpenInEditor}
+            onEnvironmentChange={handleEnvironmentChange}
           />
         ) : (
           <ProjectList 

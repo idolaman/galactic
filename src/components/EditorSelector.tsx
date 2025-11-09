@@ -2,6 +2,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, XCircle, Code2 } from "lucide-react";
+import cursorIcon from "@/assets/cursor-icon.svg";
+import vscodeIcon from "@/assets/vscode-icon.png";
 
 interface Editor {
   name: string;
@@ -16,8 +18,8 @@ interface EditorSelectorProps {
 
 export const EditorSelector = ({ onSelect, selectedEditor }: EditorSelectorProps) => {
   const editors: Editor[] = [
-    { name: "Cursor", installed: true, icon: "⚡" },
-    { name: "VSCode", installed: false, icon: "💻" }
+    { name: "Cursor", installed: true, icon: cursorIcon },
+    { name: "VSCode", installed: false, icon: vscodeIcon }
   ];
 
   return (
@@ -42,7 +44,7 @@ export const EditorSelector = ({ onSelect, selectedEditor }: EditorSelectorProps
             }`}
           >
             <div className="flex items-start justify-between mb-2">
-              <span className="text-3xl">{editor.icon}</span>
+              <img src={editor.icon} alt={editor.name} className="w-12 h-12 object-contain" />
               {editor.installed ? (
                 <CheckCircle2 className="h-5 w-5 text-success" />
               ) : (

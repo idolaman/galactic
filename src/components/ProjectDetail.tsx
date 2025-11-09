@@ -1,12 +1,15 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, GitBranch, GitMerge, Trash2, FolderOpen, AlertTriangle } from "lucide-react";
+import { ArrowLeft, GitBranch, GitMerge, Trash2, FolderOpen, AlertTriangle, Bug } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState } from "react";
 
 interface Branch {
   name: string;
-  worktree?: string;
+  workspace?: string;
 }
 
 interface ProjectDetailProps {
@@ -16,22 +19,47 @@ interface ProjectDetailProps {
     currentBranch: string;
   };
   branches: Branch[];
+  environments: string[];
   onBack: () => void;
-  onCreateWorktree: (branch: string) => void;
-  onConvertToBase: (worktree: string) => void;
+  onCreateWorkspace: (branch: string) => void;
+  onDebugInMain: (workspace: string, branch: string) => void;
   onOpenInEditor: (path: string) => void;
+  onEnvironmentChange: (workspace: string, env: string) => void;
 }
 
 export const ProjectDetail = ({ 
   project, 
   branches, 
+  environments,
   onBack, 
-  onCreateWorktree,
-  onConvertToBase,
-  onOpenInEditor 
+  onCreateWorkspace,
+  onDebugInMain,
+  onOpenInEditor,
+  onEnvironmentChange
 }: ProjectDetailProps) => {
-  const worktrees = branches.filter(b => b.worktree);
-  const availableBranches = branches.filter(b => !b.worktree);
+  const [branchInput, setBranchInput] = useState("");
+  const [filteredBranches, setFilteredBranches] = useState<Branch[]>([]);
+  
+  const workspaces = branches.filter(b => b.workspace);
+  const availableBranches = branches.filter(b => !b.workspace);
+
+  const handleBranchInputChange = (value: string) => {
+    setBranchInput(value);
+    if (value) {
+      const filtered = availableBranches.filter(b => 
+        b.name.toLowerCase().includes(value.toLowerCase())
+      );
+      setFilteredBranches(filtered);
+    } else {
+      setFilteredBranches([]);
+    }
+  };
+
+  const handleCreateWorkspace = (branchName: string) => {
+    onCreateWorkspace(branchName);
+    setBranchInput("");
+    setFilteredBranches([]);
+  };
 
   return (
     <div className="space-y-6">
@@ -74,18 +102,18 @@ export const ProjectDetail = ({
         </div>
       </Card>
 
-      {/* Active Worktrees */}
+      {/* Active Workspaces */}
       <div className="space-y-4">
         <h2 className="text-2xl font-bold flex items-center gap-2">
           <GitMerge className="h-6 w-6 text-primary" />
-          Active Worktrees
+          Active Workspaces
         </h2>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {worktrees.map((branch) => (
+          {workspaces.map((branch) => (
             <Card 
-              key={branch.worktree}
-              className="p-6 bg-gradient-card border-primary/30 shadow-glow"
+              key={branch.workspace}
+              className="p-6 bg-card border-primary/30"
             >
               <div className="space-y-4">
                 <div className="flex items-start justify-between">
@@ -94,81 +122,96 @@ export const ProjectDetail = ({
                       {branch.name}
                     </Badge>
                     <code className="text-xs text-muted-foreground block">
-                      {branch.worktree}
+                      {branch.workspace}
                     </code>
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <label className="text-xs text-muted-foreground">Environment</label>
+                  <Select onValueChange={(value) => onEnvironmentChange(branch.workspace!, value)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select environment" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {environments.map((env) => (
+                        <SelectItem key={env} value={env}>
+                          {env}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="flex gap-2">
                   <Button 
-                    onClick={() => onOpenInEditor(branch.worktree!)}
-                    className="flex-1 bg-primary hover:bg-primary-glow transition-all duration-300"
+                    onClick={() => onOpenInEditor(branch.workspace!)}
+                    className="flex-1 bg-primary hover:bg-primary-glow"
                   >
                     <FolderOpen className="mr-2 h-4 w-4" />
                     Open
                   </Button>
                   
                   <Button 
-                    variant="destructive"
-                    size="icon"
-                    onClick={() => {
-                      if (confirm("Convert this worktree back to base code?")) {
-                        onConvertToBase(branch.worktree!);
-                      }
-                    }}
+                    variant="secondary"
+                    onClick={() => onDebugInMain(branch.workspace!, branch.name)}
+                    className="flex-1"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Bug className="mr-2 h-4 w-4" />
+                    Debug in Main
                   </Button>
                 </div>
-
-                <Alert className="bg-warning/10 border-warning/30">
-                  <AlertTriangle className="h-4 w-4 text-warning" />
-                  <AlertDescription className="text-xs text-warning">
-                    Converting to base will merge changes and remove worktree
-                  </AlertDescription>
-                </Alert>
               </div>
             </Card>
           ))}
         </div>
 
-        {worktrees.length === 0 && (
+        {workspaces.length === 0 && (
           <Card className="p-8 bg-secondary/50 border-border text-center">
             <GitMerge className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground">No active worktrees</p>
+            <p className="text-muted-foreground">No active workspaces</p>
           </Card>
         )}
       </div>
 
-      {/* Available Branches */}
+      {/* Create New Workspace */}
       <div className="space-y-4">
         <h2 className="text-2xl font-bold flex items-center gap-2">
           <GitBranch className="h-6 w-6 text-primary" />
-          Available Branches
+          Create Workspace
         </h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {availableBranches.map((branch) => (
-            <Card 
-              key={branch.name}
-              className="p-4 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300 cursor-pointer group"
-              onClick={() => onCreateWorktree(branch.name)}
-            >
-              <div className="flex items-center justify-between">
-                <Badge variant="secondary" className="font-mono group-hover:bg-primary/20 group-hover:text-primary transition-colors">
-                  {branch.name}
-                </Badge>
-                <Button 
-                  size="sm" 
-                  variant="ghost"
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  Create Worktree
-                </Button>
-              </div>
-            </Card>
-          ))}
-        </div>
+        <Card className="p-4 bg-card border-border">
+          <div className="space-y-3">
+            <div className="relative">
+              <Input
+                placeholder="Type branch name..."
+                value={branchInput}
+                onChange={(e) => handleBranchInputChange(e.target.value)}
+                className="w-full"
+              />
+              {filteredBranches.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                  {filteredBranches.map((branch) => (
+                    <div
+                      key={branch.name}
+                      className="p-3 hover:bg-accent cursor-pointer flex items-center justify-between"
+                      onClick={() => handleCreateWorkspace(branch.name)}
+                    >
+                      <Badge variant="secondary" className="font-mono">
+                        {branch.name}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">Click to create</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Start typing to search branches, then click to create a workspace
+            </p>
+          </div>
+        </Card>
       </div>
     </div>
   );
