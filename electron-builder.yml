@@ -1,0 +1,17 @@
+appId: com.galactic.ide
+productName: Galactic IDE
+directories:
+  output: release
+  buildResources: resources
+files:
+  - dist/**
+  - dist-electron/**
+asar: true
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - dmg
+    - zip
+extraMetadata:
+  main: dist-electron/main.js
+

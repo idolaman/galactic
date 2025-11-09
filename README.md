@@ -1,73 +1,125 @@
-# Welcome to your Lovable project
+# Galactic IDE — macOS Desktop App
 
-## Project info
+Galactic IDE is a Vite + React application bundled as a native macOS desktop experience using Electron. The project ships with a streamlined development workflow, sensible production builds, and packaging via `electron-builder`.
 
-**URL**: https://lovable.dev/projects/f1f5fcdf-09be-42e9-94b5-3d8f0442c361
+---
 
-## How can I edit this code?
+## Prerequisites
 
-There are several ways of editing your application.
+- **macOS** Sonoma (or newer recommended)
+- **Node.js** ≥ 18 and npm ≥ 9  
+  Install via [nvm](https://github.com/nvm-sh/nvm#installing-and-updating) if you don't already have a compatible runtime.
+- **Apple tooling** for signed builds  
+  ```sh
+  xcode-select --install
+  ```
+  Code signing is optional for local development, but required for distributing the DMG outside your machine.
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/f1f5fcdf-09be-42e9-94b5-3d8f0442c361) and start prompting.
+## Project Structure
 
-Changes made via Lovable will be committed automatically to this repo.
+```
+galactic-ide/
+├─ electron/          # Main & preload processes (TypeScript)
+├─ src/               # React renderer (Vite)
+├─ dist/              # Renderer production build (generated)
+├─ dist-electron/     # Compiled Electron main/preload JS (generated)
+├─ release/           # Packaged macOS builds (generated)
+├─ electron-builder.yml
+└─ package.json
+```
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Installation
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+Clone the repository and install dependencies once:
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+git clone <REPO_URL> galactic-ide
+cd galactic-ide
+npm install
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+---
 
-# Step 3: Install the necessary dependencies.
-npm i
+## Development Workflow
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+Electron development runs three processes in parallel: the Vite dev server, the Electron main process compiler watcher, and Electron itself. Start everything with:
+
+```sh
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+What happens behind the scenes:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+1. `npm run build:main` performs an initial TypeScript compilation of `electron/main.ts` and `electron/preload.ts` into `dist-electron/`.
+2. `npm run dev:vite` launches Vite on `http://127.0.0.1:8080`.
+3. `npm run watch:electron` keeps the main/preload bundle in sync with your changes.
+4. `npm run start:electron` waits for Vite to become available, then opens the Electron shell pointed at the dev server.
 
-**Use GitHub Codespaces**
+Hot reload is handled by Vite on the renderer side. When you edit Electron files, the watcher recompiles and Electron restarts automatically.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+---
 
-## What technologies are used for this project?
+## Building for Production (macOS)
 
-This project is built with:
+Generate a production-ready macOS binary (DMG + ZIP) using:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```sh
+npm run build
+```
 
-## How can I deploy this project?
+This script:
 
-Simply open [Lovable](https://lovable.dev/projects/f1f5fcdf-09be-42e9-94b5-3d8f0442c361) and click on Share -> Publish.
+1. Builds the renderer with `vite build` (output in `dist/`).
+2. Compiles Electron sources into `dist-electron/`.
+3. Packages the app with `electron-builder`, producing artifacts inside `release/`.
 
-## Can I connect a custom domain to my Lovable project?
+### Running the Packaged App Locally
 
-Yes, you can!
+After a successful build, open the DMG from `release/` and drag the app to Applications, or run the unpacked app directly:
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+```sh
+open release/mac/*.app
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+---
+
+## Useful Scripts
+
+| Command                 | Description |
+| ----------------------- | ----------- |
+| `npm run dev`           | Launch Electron + Vite in development mode |
+| `npm run build`         | Build renderer, compile Electron, and package macOS binaries |
+| `npm run build:ui`      | Produce only the Vite production build |
+| `npm run build:main`    | Compile Electron main & preload TypeScript once |
+| `npm run lint`          | Run ESLint across the project |
+| `npm run preview`       | Serve the static Vite build (browser preview) |
+
+---
+
+## Troubleshooting
+
+- **Electron window stays blank in dev**  
+  Ensure nothing else is running on port 8080, then retry `npm run dev`. If it persists, clear out `dist/` and `dist-electron/`.
+
+- **Build fails with code signing errors**  
+  For internal testing, pass `--mac --dir` to `electron-builder` to skip DMG signing, or configure your Apple Developer ID certificates. Refer to the [Electron Builder macOS guide](https://www.electron.build/configuration/mac).
+
+- **Renderer assets missing in packaged app**  
+  Confirm `base` is set to `"./"` for production in `vite.config.ts`, then rebuild.
+
+- **TypeScript can't find `electronAPI`**  
+  Make sure your editor has picked up `src/types/electron.d.ts`. If not, restart TypeScript language services.
+
+---
+
+## Additional Notes
+
+- The preload script exposes a minimal `window.electronAPI` bridge (`ping()` demo) with `contextIsolation` enabled. Extend this file for additional renderer ↔ main communication.
+- All generated directories (`dist/`, `dist-electron/`, `release/`) are git-ignored by default.
+- To distribute outside your machine, you'll likely need to configure signing/notarization. Electron Builder supports automated notarization via Apple Developer credentials.
+
+Happy building!
