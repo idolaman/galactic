@@ -1,15 +1,8 @@
 import { useState } from "react";
-import { GitHubAuth } from "@/components/GitHubAuth";
-import { Header } from "@/components/Header";
 import { EditorSelector } from "@/components/EditorSelector";
 import { ProjectList } from "@/components/ProjectList";
 import { ProjectDetail } from "@/components/ProjectDetail";
 import { useToast } from "@/hooks/use-toast";
-
-interface User {
-  name: string;
-  avatar: string;
-}
 
 interface Project {
   id: string;
@@ -25,7 +18,6 @@ interface Branch {
 }
 
 const Index = () => {
-  const [user, setUser] = useState<User | null>(null);
   const [selectedEditor, setSelectedEditor] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const { toast } = useToast();
@@ -58,14 +50,6 @@ const Index = () => {
   ];
 
   const mockEnvironments = ["Development", "Staging", "Production"];
-
-  const handleAuthSuccess = (userData: User) => {
-    setUser(userData);
-    toast({
-      title: "Welcome back!",
-      description: "Successfully signed in with GitHub",
-    });
-  };
 
   const handleEditorSelect = (editor: string) => {
     setSelectedEditor(editor);
@@ -114,22 +98,9 @@ const Index = () => {
     });
   };
 
-  const handleLogout = () => {
-    setUser(null);
-    setSelectedEditor(null);
-    setSelectedProject(null);
-  };
-
-  if (!user) {
-    return <GitHubAuth onAuthSuccess={handleAuthSuccess} />;
-  }
-
   return (
-    <div className="flex flex-col h-screen bg-background">
-      <Header user={user} onLogout={handleLogout} />
-      
-      <main className="flex-1 overflow-auto">
-        <div className="container mx-auto px-4 py-8 space-y-8">
+    <div className="h-full overflow-auto">
+      <div className="container mx-auto px-4 py-8 space-y-8">
         {!selectedEditor ? (
           <EditorSelector 
             onSelect={handleEditorSelect} 
@@ -153,8 +124,7 @@ const Index = () => {
             onViewProject={handleViewProject}
           />
         )}
-        </div>
-      </main>
+      </div>
     </div>
   );
 };
