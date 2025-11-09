@@ -59,11 +59,11 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <div className="flex flex-col h-screen">
-            <Header user={user} onLogout={handleLogout} />
-            <SidebarProvider>
-              <div className="flex flex-1 w-full overflow-hidden">
-                <AppSidebar />
+          <SidebarProvider>
+            <div className="flex h-screen w-full">
+              <AppSidebar />
+              <div className="flex flex-col flex-1 overflow-hidden">
+                <Header user={user} onLogout={handleLogout} />
                 <div className="flex-1 flex flex-col">
                   <header className="h-12 flex items-center border-b border-border px-4">
                     <SidebarTrigger />
@@ -77,8 +77,8 @@ const App = () => {
                   </Routes>
                 </div>
               </div>
-            </SidebarProvider>
-          </div>
+            </div>
+          </SidebarProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
