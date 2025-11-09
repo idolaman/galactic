@@ -21,7 +21,7 @@ export function AppSidebar() {
   const { open } = useSidebar();
 
   return (
-    <Sidebar className="border-r border-border bg-background">
+    <Sidebar className="border-r border-border bg-background pt-12">
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
