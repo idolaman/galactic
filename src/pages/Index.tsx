@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { EditorSelector } from "@/components/EditorSelector";
+import { useMemo, useState } from "react";
 import { ProjectList } from "@/components/ProjectList";
 import { ProjectDetail } from "@/components/ProjectDetail";
 import { useToast } from "@/hooks/use-toast";
@@ -18,9 +17,14 @@ interface Branch {
 }
 
 const Index = () => {
-  const [selectedEditor, setSelectedEditor] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const { toast } = useToast();
+
+  const preferredEditor = useMemo(() => {
+    if (typeof window === "undefined") return "Cursor";
+    const stored = window.localStorage.getItem("preferredEditor");
+    return stored || "Cursor";
+  }, []);
 
   // Mock data
   const [projects, setProjects] = useState<Project[]>([
@@ -50,14 +54,6 @@ const Index = () => {
   ];
 
   const mockEnvironments = ["Development", "Staging", "Production"];
-
-  const handleEditorSelect = (editor: string) => {
-    setSelectedEditor(editor);
-    toast({
-      title: "Editor selected",
-      description: `${editor} is ready to use`,
-    });
-  };
 
   const handleAddProject = () => {
     toast({
@@ -94,19 +90,14 @@ const Index = () => {
   const handleOpenInEditor = (path: string) => {
     toast({
       title: "Opening in editor",
-      description: `Launching ${selectedEditor} with ${path}`,
+      description: `Launching ${preferredEditor} with ${path}`,
     });
   };
 
   return (
     <div className="h-full overflow-auto">
       <div className="container mx-auto px-4 py-8 space-y-8">
-        {!selectedEditor ? (
-          <EditorSelector 
-            onSelect={handleEditorSelect} 
-            selectedEditor={selectedEditor}
-          />
-        ) : selectedProject ? (
+        {selectedProject ? (
           <ProjectDetail
             project={selectedProject}
             branches={mockBranches}

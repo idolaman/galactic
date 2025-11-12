@@ -2,7 +2,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, XCircle, Code2 } from "lucide-react";
-import cursorIcon from "@/assets/cursor-icon.svg";
 import vscodeIcon from "@/assets/vscode-icon.png";
 
 interface Editor {
@@ -18,7 +17,7 @@ interface EditorSelectorProps {
 
 export const EditorSelector = ({ onSelect, selectedEditor }: EditorSelectorProps) => {
   const editors: Editor[] = [
-    { name: "Cursor", installed: true, icon: cursorIcon },
+    { name: "Cursor", installed: true, icon: "/cursor.jpeg" },
     { name: "VSCode", installed: false, icon: vscodeIcon }
   ];
 
