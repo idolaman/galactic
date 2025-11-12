@@ -12,10 +12,24 @@ export default function Settings() {
     return (saved === "Cursor" || saved === "VSCode") ? saved : "Cursor";
   });
   const [cursorSrc, setCursorSrc] = useState<string>("/cursor.png");
+  const [cursorInstalled, setCursorInstalled] = useState<boolean>(false);
+  const [vscodeInstalled, setVscodeInstalled] = useState<boolean>(false);
 
   useEffect(() => {
     window.localStorage.setItem("preferredEditor", preferredEditor);
   }, [preferredEditor]);
+
+  useEffect(() => {
+    const checkEditors = async () => {
+      if (window.electronAPI?.checkEditorInstalled) {
+        const cursorCheck = await window.electronAPI.checkEditorInstalled("Cursor");
+        const vscodeCheck = await window.electronAPI.checkEditorInstalled("VSCode");
+        setCursorInstalled(cursorCheck);
+        setVscodeInstalled(vscodeCheck);
+      }
+    };
+    checkEditors();
+  }, []);
 
   return (
     <div className="h-full overflow-auto">
@@ -58,7 +72,9 @@ export default function Settings() {
                   </div>
                   <div className="text-left">
                     <div className="text-sm font-medium">Cursor</div>
-                    <div className="text-[11px] text-muted-foreground">Installed</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {cursorInstalled ? "Installed" : "Not Found"}
+                    </div>
                   </div>
                 </div>
                 {preferredEditor === "Cursor" && <CheckCircle2 className="h-4 w-4 text-primary" />}
@@ -82,7 +98,9 @@ export default function Settings() {
                   </div>
                   <div className="text-left">
                     <div className="text-sm font-medium">VSCode</div>
-                    <div className="text-[11px] text-muted-foreground">Not Found</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {vscodeInstalled ? "Installed" : "Not Found"}
+                    </div>
                   </div>
                 </div>
                 {preferredEditor === "VSCode" && <CheckCircle2 className="h-4 w-4 text-primary" />}

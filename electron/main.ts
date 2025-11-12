@@ -2,6 +2,7 @@ import { app, BrowserWindow, shell, ipcMain } from "electron";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { existsSync } from "node:fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -51,6 +52,18 @@ const createWindow = async () => {
 
 ipcMain.handle("ping", () => {
   return "pong";
+});
+
+ipcMain.handle("check-editor-installed", (_event, editorName: string) => {
+  const editorPaths: Record<string, string> = {
+    Cursor: "/Applications/Cursor.app",
+    VSCode: "/Applications/Visual Studio Code.app",
+  };
+  
+  const editorPath = editorPaths[editorName];
+  if (!editorPath) return false;
+  
+  return existsSync(editorPath);
 });
 
 app.whenReady().then(() => {
