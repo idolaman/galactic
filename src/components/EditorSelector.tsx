@@ -1,8 +1,10 @@
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, XCircle, Code2 } from "lucide-react";
 import vscodeIcon from "@/assets/vscode-icon.png";
+import cursorIcon from "@/assets/cursor-icon.svg";
 
 interface Editor {
   name: string;
@@ -16,10 +18,25 @@ interface EditorSelectorProps {
 }
 
 export const EditorSelector = ({ onSelect, selectedEditor }: EditorSelectorProps) => {
-  const editors: Editor[] = [
-    { name: "Cursor", installed: true, icon: "/cursor.jpeg" },
+  const [editors, setEditors] = useState<Editor[]>([
+    { name: "Cursor", installed: false, icon: cursorIcon },
     { name: "VSCode", installed: false, icon: vscodeIcon }
-  ];
+  ]);
+
+  useEffect(() => {
+    const checkEditors = async () => {
+      if (window.electronAPI?.checkEditorInstalled) {
+        const cursorInstalled = await window.electronAPI.checkEditorInstalled("Cursor");
+        const vscodeInstalled = await window.electronAPI.checkEditorInstalled("VSCode");
+        
+        setEditors([
+          { name: "Cursor", installed: cursorInstalled, icon: cursorIcon },
+          { name: "VSCode", installed: vscodeInstalled, icon: vscodeIcon }
+        ]);
+      }
+    };
+    checkEditors();
+  }, []);
 
   return (
     <Card className="p-6 bg-gradient-card border-border shadow-card">
