@@ -1,11 +1,11 @@
-export {};
-
 declare global {
   interface Window {
-    electronAPI: {
+    electronAPI?: {
       ping: () => Promise<string>;
       checkEditorInstalled: (editorName: string) => Promise<boolean>;
     };
   }
 }
+
+export {};
 
