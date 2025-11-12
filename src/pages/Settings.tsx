@@ -12,10 +12,24 @@ export default function Settings() {
     return (saved === "Cursor" || saved === "VSCode") ? saved : "Cursor";
   });
   const [cursorSrc, setCursorSrc] = useState<string>("/cursor.png");
+  const [cursorInstalled, setCursorInstalled] = useState<boolean>(false);
+  const [vscodeInstalled, setVscodeInstalled] = useState<boolean>(false);
 
   useEffect(() => {
     window.localStorage.setItem("preferredEditor", preferredEditor);
   }, [preferredEditor]);
+
+  useEffect(() => {
+    const checkEditors = async () => {
+      if (window.electronAPI?.checkEditorInstalled) {
+        const cursorCheck = await window.electronAPI.checkEditorInstalled("Cursor");
+        const vscodeCheck = await window.electronAPI.checkEditorInstalled("VSCode");
+        setCursorInstalled(cursorCheck);
+        setVscodeInstalled(vscodeCheck);
+      }
+    };
+    checkEditors();
+  }, []);
 
   return (
     <div className="h-full overflow-auto">
@@ -40,10 +54,13 @@ export default function Settings() {
                   setPreferredEditor("Cursor");
                   toast({ title: "Default editor updated", description: "Cursor selected." });
                 }}
+                disabled={!cursorInstalled}
                 className={`group relative flex items-center justify-between gap-3 rounded-lg border px-3 py-3 transition-all text-left ${
                   preferredEditor === "Cursor"
                     ? "border-primary bg-primary/10 ring-1 ring-primary/40"
-                    : "border-border hover:border-primary/40 hover:bg-muted/40"
+                    : cursorInstalled
+                    ? "border-border hover:border-primary/40 hover:bg-muted/40"
+                    : "border-border opacity-50 cursor-not-allowed"
                 }`}
                 aria-pressed={preferredEditor === "Cursor"}
               >
@@ -58,7 +75,9 @@ export default function Settings() {
                   </div>
                   <div className="text-left">
                     <div className="text-sm font-medium">Cursor</div>
-                    <div className="text-[11px] text-muted-foreground">Installed</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {cursorInstalled ? "Installed" : "Not Found"}
+                    </div>
                   </div>
                 </div>
                 {preferredEditor === "Cursor" && <CheckCircle2 className="h-4 w-4 text-primary" />}
@@ -69,10 +88,13 @@ export default function Settings() {
                   setPreferredEditor("VSCode");
                   toast({ title: "Default editor updated", description: "VSCode selected." });
                 }}
+                disabled={!vscodeInstalled}
                 className={`group relative flex items-center justify-between gap-3 rounded-lg border px-3 py-3 transition-all text-left ${
                   preferredEditor === "VSCode"
                     ? "border-primary bg-primary/10 ring-1 ring-primary/40"
-                    : "border-border hover:border-primary/40 hover:bg-muted/40"
+                    : vscodeInstalled
+                    ? "border-border hover:border-primary/40 hover:bg-muted/40"
+                    : "border-border opacity-50 cursor-not-allowed"
                 }`}
                 aria-pressed={preferredEditor === "VSCode"}
               >
@@ -82,7 +104,9 @@ export default function Settings() {
                   </div>
                   <div className="text-left">
                     <div className="text-sm font-medium">VSCode</div>
-                    <div className="text-[11px] text-muted-foreground">Not Found</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {vscodeInstalled ? "Installed" : "Not Found"}
+                    </div>
                   </div>
                 </div>
                 {preferredEditor === "VSCode" && <CheckCircle2 className="h-4 w-4 text-primary" />}
