@@ -54,10 +54,13 @@ export default function Settings() {
                   setPreferredEditor("Cursor");
                   toast({ title: "Default editor updated", description: "Cursor selected." });
                 }}
+                disabled={!cursorInstalled}
                 className={`group relative flex items-center justify-between gap-3 rounded-lg border px-3 py-3 transition-all text-left ${
                   preferredEditor === "Cursor"
                     ? "border-primary bg-primary/10 ring-1 ring-primary/40"
-                    : "border-border hover:border-primary/40 hover:bg-muted/40"
+                    : cursorInstalled
+                    ? "border-border hover:border-primary/40 hover:bg-muted/40"
+                    : "border-border opacity-50 cursor-not-allowed"
                 }`}
                 aria-pressed={preferredEditor === "Cursor"}
               >
@@ -85,10 +88,13 @@ export default function Settings() {
                   setPreferredEditor("VSCode");
                   toast({ title: "Default editor updated", description: "VSCode selected." });
                 }}
+                disabled={!vscodeInstalled}
                 className={`group relative flex items-center justify-between gap-3 rounded-lg border px-3 py-3 transition-all text-left ${
                   preferredEditor === "VSCode"
                     ? "border-primary bg-primary/10 ring-1 ring-primary/40"
-                    : "border-border hover:border-primary/40 hover:bg-muted/40"
+                    : vscodeInstalled
+                    ? "border-border hover:border-primary/40 hover:bg-muted/40"
+                    : "border-border opacity-50 cursor-not-allowed"
                 }`}
                 aria-pressed={preferredEditor === "VSCode"}
               >
