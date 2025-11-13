@@ -1,13 +1,14 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FolderGit2, GitBranch, Plus, Eye } from "lucide-react";
+import { FolderGit2, GitBranch, Plus, Eye, Trash2 } from "lucide-react";
 
 interface Project {
   id: string;
   name: string;
   path: string;
-  currentBranch: string;
+  currentBranch?: string | null;
+  isGitRepo: boolean;
   worktrees: number;
 }
 
@@ -15,9 +16,15 @@ interface ProjectListProps {
   projects: Project[];
   onAddProject: () => void;
   onViewProject: (project: Project) => void;
+  onDeleteProject: (projectId: string) => void;
 }
 
-export const ProjectList = ({ projects, onAddProject, onViewProject }: ProjectListProps) => {
+export const ProjectList = ({
+  projects,
+  onAddProject,
+  onViewProject,
+  onDeleteProject,
+}: ProjectListProps) => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -50,22 +57,45 @@ export const ProjectList = ({ projects, onAddProject, onViewProject }: ProjectLi
                 <code className="text-xs text-muted-foreground">{project.path}</code>
               </div>
               
-              <Button 
-                size="sm" 
-                variant="ghost"
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <Eye className="h-4 w-4" />
-              </Button>
+              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onViewProject(project);
+                  }}
+                >
+                  <Eye className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 text-destructive hover:text-destructive"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onDeleteProject(project.id);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-2">
                 <GitBranch className="h-4 w-4 text-primary" />
-                <span className="text-muted-foreground">Branch:</span>
+              <span className="text-muted-foreground">Branch:</span>
+              {project.isGitRepo ? (
                 <Badge variant="secondary" className="font-mono">
-                  {project.currentBranch}
+                  {project.currentBranch ?? "HEAD"}
                 </Badge>
+              ) : (
+                <span className="text-xs italic text-muted-foreground">
+                  Git not initialized
+                </span>
+              )}
               </div>
               
               <div className="flex items-center gap-2">

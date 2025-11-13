@@ -8,6 +8,8 @@ declare global {
       listApplications: () => Promise<Array<{ name: string; path: string }>>;
       browseApplication: () => Promise<string | null>;
       openApplicationsFolder: () => Promise<boolean>;
+      chooseProjectDirectory: () => Promise<string | null>;
+      getGitInfo: (projectPath: string) => Promise<{ isGitRepo: boolean; currentBranch?: string | null }>;
     };
   }
 }
