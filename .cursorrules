@@ -17,6 +17,8 @@ Code Editing Principles
 - Use clear names (no 1–2 letter variables). Favor early returns over deep nesting.
 - Only add comments for rationale, invariants, tricky edge cases or security concerns.
 - Do not leave TODOs—implement them or open an explicit follow-up item if blocked.
+- Adhere to Single Responsibility (SRP): each module/component/function should own one clear concern; split when logic mixes concerns or grows large.
+- Prioritize readability over cleverness: keep control flow simple, limit nesting, extract small well-named functions, and favor straightforward solutions.
 
 TypeScript/React Standards
 - Explicit types for exported APIs; don’t over-annotate trivial locals.

@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import cursorIcon from "@/assets/cursor-icon.svg";
 import vscodeIcon from "@/assets/vscode-icon.png";
 
 export default function Settings() {
@@ -11,7 +10,7 @@ export default function Settings() {
     const saved = typeof window !== "undefined" ? window.localStorage.getItem("preferredEditor") : null;
     return (saved === "Cursor" || saved === "VSCode") ? saved : "Cursor";
   });
-  const [cursorSrc, setCursorSrc] = useState<string>("/cursor.png");
+  const [cursorSrc, setCursorSrc] = useState<string>("/cursor.jpeg");
   const [cursorInstalled, setCursorInstalled] = useState<boolean>(false);
   const [vscodeInstalled, setVscodeInstalled] = useState<boolean>(false);
 
@@ -45,7 +44,7 @@ export default function Settings() {
           <Card className="p-6 bg-card border-border">
             <div className="mb-4">
               <h2 className="text-lg font-semibold">Platform</h2>
-              <p className="text-xs text-muted-foreground">Choose your default editor</p>
+              <p className="text-xs text-muted-foreground">Choose your default editor from your Applications folder:</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -68,7 +67,6 @@ export default function Settings() {
                   <div className="flex h-10 w-10 items-center justify-center rounded-md bg-background border border-border shadow-sm overflow-hidden">
                     <img
                       src={cursorSrc}
-                      onError={() => setCursorSrc(cursorIcon)}
                       alt="Cursor"
                       className="h-6 w-6 object-contain"
                     />
