@@ -10,12 +10,49 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
-import { execFile } from "node:child_process";
+import { execFile, exec } from "node:child_process";
 import { promisify } from "node:util";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const execFileAsync = promisify(execFile);
+const execAsync = promisify(exec);
+
+type EditorLaunchResolver = (projectPath: string) => string;
+
+const quotePath = (value: string) => JSON.stringify(value);
+
+const cursorCommand = (projectPath: string) =>
+  `open -a "Cursor" ${quotePath(projectPath)}`;
+const vscodeOpenCommand = (projectPath: string) =>
+  `open -a "Visual Studio Code" ${quotePath(projectPath)}`;
+const cursorCli = (projectPath: string) => `cursor ${quotePath(projectPath)}`;
+const vscodeCli = (projectPath: string) => `code ${quotePath(projectPath)}`;
+
+const editorLaunchCommands: Record<
+  string,
+  Partial<Record<NodeJS.Platform, EditorLaunchResolver>>
+> = {
+  Cursor: {
+    darwin: cursorCommand,
+    win32: cursorCli,
+    linux: cursorCli,
+  },
+  VSCode: {
+    darwin: vscodeOpenCommand,
+    win32: vscodeCli,
+    linux: vscodeCli,
+  },
+};
+
+const resolveEditorCommand = (editorName: string, projectPath: string) => {
+  const editorConfig = editorLaunchCommands[editorName];
+  if (!editorConfig) {
+    return null;
+  }
+
+  return editorConfig[process.platform]?.(projectPath) ?? null;
+};
 
 const VITE_DEV_SERVER_URL =
   process.env.ELECTRON_START_URL || process.env.VITE_DEV_SERVER_URL;
@@ -145,3 +182,32 @@ ipcMain.handle("git/get-info", async (_event, projectPath: string) => {
     return { isGitRepo: true, currentBranch: "HEAD" };
   }
 });
+
+ipcMain.handle(
+  "editor/open-project",
+  async (_event, editorName: string, projectPath: string) => {
+    if (!projectPath) {
+      return { success: false, error: "No project path provided." };
+    }
+
+    if (!existsSync(projectPath)) {
+      return { success: false, error: "Project path does not exist." };
+    }
+
+    const commandString = resolveEditorCommand(editorName, projectPath);
+    if (!commandString) {
+      return { success: false, error: `Editor ${editorName} is not supported on this platform.` };
+    }
+
+    try {
+      await execAsync(commandString);
+      return { success: true };
+    } catch (error) {
+      console.error(`Failed to open ${editorName} for ${projectPath}:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  }
+);

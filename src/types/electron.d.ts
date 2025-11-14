@@ -10,7 +10,7 @@ declare global {
       openApplicationsFolder: () => Promise<boolean>;
       chooseProjectDirectory: () => Promise<string | null>;
       getGitInfo: (projectPath: string) => Promise<{ isGitRepo: boolean; currentBranch?: string | null }>;
+      openProjectInEditor: (editorName: string, projectPath: string) => Promise<{ success: boolean; error?: string }>;
     };
   }
 }
-
