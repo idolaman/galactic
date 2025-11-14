@@ -1,4 +1,11 @@
-import { app, BrowserWindow, shell, ipcMain, dialog } from "electron";
+import {
+  app,
+  BrowserWindow,
+  shell,
+  ipcMain,
+  dialog,
+  type OpenDialogOptions,
+} from "electron";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -99,7 +106,9 @@ app.on("window-all-closed", () => {
 
 ipcMain.handle("os/choose-project-directory", async () => {
   const windowRef = BrowserWindow.getFocusedWindow() ?? mainWindow ?? null;
-  const dialogOptions = { properties: ["openDirectory", "createDirectory"] as const };
+  const dialogOptions: OpenDialogOptions = {
+    properties: ["openDirectory", "createDirectory"] as OpenDialogOptions["properties"],
+  };
   const result = windowRef
     ? await dialog.showOpenDialog(windowRef, dialogOptions)
     : await dialog.showOpenDialog(dialogOptions);
@@ -116,12 +125,8 @@ ipcMain.handle("git/get-info", async (_event, projectPath: string) => {
     return { isGitRepo: false };
   }
 
-  try {
-    await execFileAsync("git", ["rev-parse", "--is-inside-work-tree"], {
-      cwd: projectPath,
-    });
-  } catch (error) {
-    console.warn(`Git repo check failed for ${projectPath}:`, error);
+  const gitDirExists = existsSync(path.join(projectPath, ".git"));
+  if (!gitDirExists) {
     return { isGitRepo: false };
   }
 
@@ -140,4 +145,3 @@ ipcMain.handle("git/get-info", async (_event, projectPath: string) => {
     return { isGitRepo: true, currentBranch: "HEAD" };
   }
 });
-
