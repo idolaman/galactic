@@ -1,15 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ProjectList } from "@/components/ProjectList";
 import { ProjectDetail } from "@/components/ProjectDetail";
 import { useToast } from "@/hooks/use-toast";
+import { chooseProjectDirectory } from "@/services/os";
+import { getGitInfo } from "@/services/git";
+import { projectStorage, type StoredProject } from "@/services/projects";
 
-interface Project {
-  id: string;
-  name: string;
-  path: string;
-  currentBranch: string;
-  worktrees: number;
-}
+type Project = StoredProject;
 
 interface Branch {
   name: string;
@@ -26,23 +23,11 @@ const Index = () => {
     return stored || "Cursor";
   }, []);
 
-  // Mock data
-  const [projects, setProjects] = useState<Project[]>([
-    {
-      id: "1",
-      name: "my-app",
-      path: "~/Projects/my-app",
-      currentBranch: "main",
-      worktrees: 2
-    },
-    {
-      id: "2",
-      name: "backend-api",
-      path: "~/Projects/backend-api",
-      currentBranch: "develop",
-      worktrees: 1
-    }
-  ]);
+  const [projects, setProjects] = useState<Project[]>([]);
+
+  useEffect(() => {
+    setProjects(projectStorage.load());
+  }, []);
 
   const mockBranches: Branch[] = [
     { name: "feature/new-ui", workspace: "~/Projects/my-app-workspaces/feature-new-ui" },
@@ -55,15 +40,61 @@ const Index = () => {
 
   const mockEnvironments = ["Development", "Staging", "Production"];
 
-  const handleAddProject = () => {
+  const handleAddProject = async () => {
+    const projectPath = await chooseProjectDirectory();
+
+    if (!projectPath) {
+      toast({
+        title: "No project selected",
+        description: "Choose a folder to import a project.",
+      });
+      return;
+    }
+
+    const normalizedPath = projectPath.replace(/\/+$/, "");
+    const pathSegments = normalizedPath.split(/[\\/]/).filter(Boolean);
+    const projectName = pathSegments[pathSegments.length - 1] || normalizedPath;
+
+    const gitInfo = await getGitInfo(normalizedPath);
+
+    const newProject: Project = {
+      id: normalizedPath,
+      name: projectName,
+      path: normalizedPath,
+      isGitRepo: gitInfo.isGitRepo,
+      currentBranch: gitInfo.currentBranch,
+      worktrees: 0,
+    };
+
+    setProjects(projectStorage.upsert(newProject));
+
+    setSelectedProject(newProject);
     toast({
-      title: "Add Project",
-      description: "Project directory picker would open here",
+      title: "Project added",
+      description: `${projectName} is ready to manage.`,
     });
   };
 
   const handleViewProject = (project: Project) => {
     setSelectedProject(project);
+  };
+
+  const handleDeleteProject = (projectId: string) => {
+    const projectToDelete = projects.find((project) => project.id === projectId);
+    if (!projectToDelete) {
+      return;
+    }
+
+    if (selectedProject?.id === projectId) {
+      setSelectedProject(null);
+    }
+
+    setProjects(projectStorage.remove(projectId));
+
+    toast({
+      title: "Project removed",
+      description: `${projectToDelete.name} deleted from your project list.`,
+    });
   };
 
   const handleCreateWorkspace = (branch: string) => {
@@ -113,6 +144,7 @@ const Index = () => {
             projects={projects}
             onAddProject={handleAddProject}
             onViewProject={handleViewProject}
+            onDeleteProject={handleDeleteProject}
           />
         )}
       </div>
