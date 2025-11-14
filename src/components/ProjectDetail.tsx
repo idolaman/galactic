@@ -2,7 +2,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, GitBranch, GitMerge, Trash2, FolderOpen, AlertTriangle, Bug } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
@@ -16,7 +15,8 @@ interface ProjectDetailProps {
   project: {
     name: string;
     path: string;
-    currentBranch: string;
+    currentBranch?: string | null;
+    isGitRepo: boolean;
   };
   branches: Branch[];
   environments: string[];
@@ -84,12 +84,19 @@ export const ProjectDetail = ({
         <div className="flex items-start justify-between">
           <div className="space-y-2">
             <h2 className="text-xl font-semibold">Main Codebase</h2>
-            <div className="flex items-center gap-2">
-              <GitBranch className="h-4 w-4 text-primary" />
-              <Badge variant="secondary" className="font-mono">
-                {project.currentBranch}
-              </Badge>
-            </div>
+            {project.isGitRepo ? (
+              <div className="flex items-center gap-2">
+                <GitBranch className="h-4 w-4 text-primary" />
+                <Badge variant="secondary" className="font-mono">
+                  {project.currentBranch ?? "HEAD"}
+                </Badge>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <AlertTriangle className="h-4 w-4 text-amber-400" />
+                <span>Git is not initialized for this folder.</span>
+              </div>
+            )}
           </div>
           
           <Button 
