@@ -3,10 +3,11 @@ import { Card } from "@/components/ui/card";
 import { CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import vscodeIcon from "@/assets/vscode-icon.png";
+import { type EditorName } from "@/services/editor";
 
 export default function Settings() {
   const { toast } = useToast();
-  const [preferredEditor, setPreferredEditor] = useState<"Cursor" | "VSCode">(() => {
+  const [preferredEditor, setPreferredEditor] = useState<EditorName>(() => {
     const saved = typeof window !== "undefined" ? window.localStorage.getItem("preferredEditor") : null;
     return (saved === "Cursor" || saved === "VSCode") ? saved : "Cursor";
   });
@@ -116,4 +117,3 @@ export default function Settings() {
     </div>
   );
 }
-

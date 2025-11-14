@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ProjectList } from "@/components/ProjectList";
 import { ProjectDetail } from "@/components/ProjectDetail";
 import { useToast } from "@/hooks/use-toast";
 import { chooseProjectDirectory } from "@/services/os";
 import { getGitInfo } from "@/services/git";
 import { projectStorage, type StoredProject } from "@/services/projects";
+import { openProjectInEditor, type EditorName } from "@/services/editor";
 
 type Project = StoredProject;
 
@@ -17,17 +18,13 @@ const Index = () => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const { toast } = useToast();
 
-  const preferredEditor = useMemo(() => {
+  const preferredEditor = useMemo<EditorName>(() => {
     if (typeof window === "undefined") return "Cursor";
     const stored = window.localStorage.getItem("preferredEditor");
-    return stored || "Cursor";
+    return stored === "VSCode" ? "VSCode" : "Cursor";
   }, []);
 
-  const [projects, setProjects] = useState<Project[]>([]);
-
-  useEffect(() => {
-    setProjects(projectStorage.load());
-  }, []);
+  const [projects, setProjects] = useState<Project[]>(() => projectStorage.load());
 
   const mockBranches: Branch[] = [
     { name: "feature/new-ui", workspace: "~/Projects/my-app-workspaces/feature-new-ui" },
@@ -118,10 +115,20 @@ const Index = () => {
     });
   };
 
-  const handleOpenInEditor = (path: string) => {
+  const handleOpenInEditor = async (path: string) => {
+    const result = await openProjectInEditor(preferredEditor, path);
+    if (result.success) {
+      toast({
+        title: `Opening in ${preferredEditor}`,
+        description: path,
+      });
+      return;
+    }
+
     toast({
-      title: "Opening in editor",
-      description: `Launching ${preferredEditor} with ${path}`,
+      title: "Failed to open editor",
+      description: result.error ?? `Unable to launch ${preferredEditor}.`,
+      variant: "destructive",
     });
   };
 
