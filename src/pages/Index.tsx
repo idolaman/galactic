@@ -1,18 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ProjectList } from "@/components/ProjectList";
 import { ProjectDetail } from "@/components/ProjectDetail";
 import { useToast } from "@/hooks/use-toast";
 import { chooseProjectDirectory } from "@/services/os";
 import { getGitInfo } from "@/services/git";
+import { projectStorage, type StoredProject } from "@/services/projects";
 
-interface Project {
-  id: string;
-  name: string;
-  path: string;
-  isGitRepo: boolean;
-  currentBranch?: string | null;
-  worktrees: number;
-}
+type Project = StoredProject;
 
 interface Branch {
   name: string;
@@ -30,6 +24,10 @@ const Index = () => {
   }, []);
 
   const [projects, setProjects] = useState<Project[]>([]);
+
+  useEffect(() => {
+    setProjects(projectStorage.load());
+  }, []);
 
   const mockBranches: Branch[] = [
     { name: "feature/new-ui", workspace: "~/Projects/my-app-workspaces/feature-new-ui" },
@@ -68,15 +66,7 @@ const Index = () => {
       worktrees: 0,
     };
 
-    setProjects((prev) => {
-      const existingIndex = prev.findIndex((project) => project.path === normalizedPath);
-      if (existingIndex >= 0) {
-        const nextProjects = [...prev];
-        nextProjects[existingIndex] = newProject;
-        return nextProjects;
-      }
-      return [newProject, ...prev];
-    });
+    setProjects(projectStorage.upsert(newProject));
 
     setSelectedProject(newProject);
     toast({
@@ -99,7 +89,7 @@ const Index = () => {
       setSelectedProject(null);
     }
 
-    setProjects((prev) => prev.filter((project) => project.id !== projectId));
+    setProjects(projectStorage.remove(projectId));
 
     toast({
       title: "Project removed",
