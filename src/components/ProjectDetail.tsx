@@ -77,11 +77,11 @@ export const ProjectDetail = ({
         </div>
       </div>
 
-      {/* Main Codebase */}
+      {/* Base Code */}
       <Card className="p-6 bg-gradient-card border-border shadow-card">
         <div className="flex items-start justify-between">
           <div className="space-y-2">
-            <h2 className="text-xl font-semibold">Main Codebase</h2>
+            <h2 className="text-xl font-semibold">Base Code</h2>
             {project.isGitRepo ? (
               <div className="flex items-center gap-2">
                 <GitBranch className="h-4 w-4 text-primary" />
@@ -173,7 +173,7 @@ export const ProjectDetail = ({
                         className="flex-1"
                       >
                         <Bug className="mr-2 h-4 w-4" />
-                        Debug in Main
+                        Debug in Base Code
                       </Button>
                     </div>
                   </div>
