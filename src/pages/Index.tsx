@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ProjectList } from "@/components/ProjectList";
 import { ProjectDetail } from "@/components/ProjectDetail";
 import { useToast } from "@/hooks/use-toast";
 import { chooseProjectDirectory } from "@/services/os";
-import { getGitInfo } from "@/services/git";
+import { getGitInfo, listBranches as listGitBranches } from "@/services/git";
 import { projectStorage, type StoredProject } from "@/services/projects";
 import { openProjectInEditor, type EditorName } from "@/services/editor";
 
@@ -25,6 +25,7 @@ const Index = () => {
   }, []);
 
   const [projects, setProjects] = useState<Project[]>(() => projectStorage.load());
+  const [projectBranches, setProjectBranches] = useState<string[]>([]);
 
   const mockBranches: Branch[] = [
     { name: "feature/new-ui", workspace: "~/Projects/my-app-workspaces/feature-new-ui" },
@@ -74,6 +75,7 @@ const Index = () => {
 
   const handleViewProject = (project: Project) => {
     setSelectedProject(project);
+    setProjectBranches([]);
   };
 
   const handleDeleteProject = (projectId: string) => {
@@ -132,13 +134,24 @@ const Index = () => {
     });
   };
 
+  const loadProjectBranches = useCallback(async () => {
+    if (!selectedProject?.path || !selectedProject.isGitRepo) {
+      setProjectBranches([]);
+      return;
+    }
+    const branches = await listGitBranches(selectedProject.path);
+    setProjectBranches(branches);
+  }, [selectedProject?.path, selectedProject?.isGitRepo]);
+
   return (
     <div className="space-y-8 p-6">
       {selectedProject ? (
         <ProjectDetail
           project={selectedProject}
           branches={mockBranches}
+          gitBranches={projectBranches}
           environments={mockEnvironments}
+          onLoadBranches={loadProjectBranches}
           onBack={() => setSelectedProject(null)}
           onCreateWorkspace={handleCreateWorkspace}
           onDebugInMain={handleDebugInMain}

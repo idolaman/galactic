@@ -191,8 +191,8 @@ ipcMain.handle(
     }
 
     if (!existsSync(projectPath)) {
-      return { success: false, error: "Project path does not exist." };
-    }
+    return { success: false, error: "Project path does not exist." };
+  }
 
     const commandString = resolveEditorCommand(editorName, projectPath);
     if (!commandString) {
@@ -211,3 +211,29 @@ ipcMain.handle(
     }
   }
 );
+
+ipcMain.handle("git/list-branches", async (_event, projectPath: string) => {
+  if (!projectPath) {
+    return [];
+  }
+
+  const gitDirExists = existsSync(path.join(projectPath, ".git"));
+  if (!gitDirExists) {
+    return [];
+  }
+
+  try {
+    const { stdout } = await execFileAsync(
+      "git",
+      ["for-each-ref", "--format=%(refname:short)", "refs/heads/"],
+      { cwd: projectPath },
+    );
+    return stdout
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+  } catch (error) {
+    console.warn(`Failed to list git branches for ${projectPath}:`, error);
+    return [];
+  }
+});
