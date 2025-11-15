@@ -133,28 +133,26 @@ const Index = () => {
   };
 
   return (
-    <div className="h-full overflow-auto">
-      <div className="container mx-auto px-4 py-8 space-y-8">
-        {selectedProject ? (
-          <ProjectDetail
-            project={selectedProject}
-            branches={mockBranches}
-            environments={mockEnvironments}
-            onBack={() => setSelectedProject(null)}
-            onCreateWorkspace={handleCreateWorkspace}
-            onDebugInMain={handleDebugInMain}
-            onOpenInEditor={handleOpenInEditor}
-            onEnvironmentChange={handleEnvironmentChange}
-          />
-        ) : (
-          <ProjectList 
-            projects={projects}
-            onAddProject={handleAddProject}
-            onViewProject={handleViewProject}
-            onDeleteProject={handleDeleteProject}
-          />
-        )}
-      </div>
+    <div className="space-y-8 p-6">
+      {selectedProject ? (
+        <ProjectDetail
+          project={selectedProject}
+          branches={mockBranches}
+          environments={mockEnvironments}
+          onBack={() => setSelectedProject(null)}
+          onCreateWorkspace={handleCreateWorkspace}
+          onDebugInMain={handleDebugInMain}
+          onOpenInEditor={handleOpenInEditor}
+          onEnvironmentChange={handleEnvironmentChange}
+        />
+      ) : (
+        <ProjectList 
+          projects={projects}
+          onAddProject={handleAddProject}
+          onViewProject={handleViewProject}
+          onDeleteProject={handleDeleteProject}
+        />
+      )}
     </div>
   );
 };

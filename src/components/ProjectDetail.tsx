@@ -109,117 +109,121 @@ export const ProjectDetail = ({
         </div>
       </Card>
 
-      {/* Active Workspaces */}
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold flex items-center gap-2">
-          <GitMerge className="h-6 w-6 text-primary" />
-          Active Workspaces
-        </h2>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {workspaces.map((branch) => (
-            <Card 
-              key={branch.workspace}
-              className="p-6 bg-card border-primary/30"
-            >
-              <div className="space-y-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <Badge className="mb-2 bg-primary/20 text-primary border-primary/30 font-mono">
-                      {branch.name}
-                    </Badge>
-                    <code className="text-xs text-muted-foreground block">
-                      {branch.workspace}
-                    </code>
+      {project.isGitRepo && (
+        <>
+          {/* Active Workspaces */}
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <GitMerge className="h-6 w-6 text-primary" />
+              Active Workspaces
+            </h2>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {workspaces.map((branch) => (
+                <Card 
+                  key={branch.workspace}
+                  className="p-6 bg-card border-primary/30"
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <Badge className="mb-2 bg-primary/20 text-primary border-primary/30 font-mono">
+                          {branch.name}
+                        </Badge>
+                        <code className="text-xs text-muted-foreground block">
+                          {branch.workspace}
+                        </code>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs text-muted-foreground">Environment</label>
+                      <Select onValueChange={(value) => onEnvironmentChange(branch.workspace!, value)}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select environment" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {environments.map((env) => (
+                            <SelectItem key={env} value={env}>
+                              {env}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={() => onOpenInEditor(branch.workspace!)}
+                        className="flex-1 bg-primary hover:bg-primary/90"
+                      >
+                        <FolderOpen className="mr-2 h-4 w-4" />
+                        Move to
+                      </Button>
+                      
+                      <Button 
+                        variant="secondary"
+                        onClick={() => onDebugInMain(branch.workspace!, branch.name)}
+                        className="flex-1"
+                      >
+                        <Bug className="mr-2 h-4 w-4" />
+                        Debug in Main
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                </Card>
+              ))}
+            </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs text-muted-foreground">Environment</label>
-                  <Select onValueChange={(value) => onEnvironmentChange(branch.workspace!, value)}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select environment" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {environments.map((env) => (
-                        <SelectItem key={env} value={env}>
-                          {env}
-                        </SelectItem>
+            {workspaces.length === 0 && (
+              <Card className="p-8 bg-secondary/50 border-border text-center">
+                <GitMerge className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground">No active workspaces</p>
+              </Card>
+            )}
+          </div>
+
+          {/* Create New Workspace */}
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <GitBranch className="h-6 w-6 text-primary" />
+              Create Workspace
+            </h2>
+            
+            <Card className="p-4 bg-card border-border">
+              <div className="space-y-3">
+                <div className="relative">
+                  <Input
+                    placeholder="Type branch name..."
+                    value={branchInput}
+                    onChange={(e) => handleBranchInputChange(e.target.value)}
+                    className="w-full"
+                  />
+                  {filteredBranches.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {filteredBranches.map((branch) => (
+                        <div
+                          key={branch.name}
+                          className="p-3 hover:bg-accent cursor-pointer flex items-center justify-between"
+                          onClick={() => handleCreateWorkspace(branch.name)}
+                        >
+                          <Badge variant="secondary" className="font-mono">
+                            {branch.name}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">Click to create</span>
+                        </div>
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </div>
+                  )}
                 </div>
-
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={() => onOpenInEditor(branch.workspace!)}
-                    className="flex-1 bg-primary hover:bg-primary/90"
-                  >
-                    <FolderOpen className="mr-2 h-4 w-4" />
-                    Move to
-                  </Button>
-                  
-                  <Button 
-                    variant="secondary"
-                    onClick={() => onDebugInMain(branch.workspace!, branch.name)}
-                    className="flex-1"
-                  >
-                    <Bug className="mr-2 h-4 w-4" />
-                    Debug in Main
-                  </Button>
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  Start typing to search branches, then click to create a workspace
+                </p>
               </div>
             </Card>
-          ))}
-        </div>
-
-        {workspaces.length === 0 && (
-          <Card className="p-8 bg-secondary/50 border-border text-center">
-            <GitMerge className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground">No active workspaces</p>
-          </Card>
-        )}
-      </div>
-
-      {/* Create New Workspace */}
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold flex items-center gap-2">
-          <GitBranch className="h-6 w-6 text-primary" />
-          Create Workspace
-        </h2>
-        
-        <Card className="p-4 bg-card border-border">
-          <div className="space-y-3">
-            <div className="relative">
-              <Input
-                placeholder="Type branch name..."
-                value={branchInput}
-                onChange={(e) => handleBranchInputChange(e.target.value)}
-                className="w-full"
-              />
-              {filteredBranches.length > 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
-                  {filteredBranches.map((branch) => (
-                    <div
-                      key={branch.name}
-                      className="p-3 hover:bg-accent cursor-pointer flex items-center justify-between"
-                      onClick={() => handleCreateWorkspace(branch.name)}
-                    >
-                      <Badge variant="secondary" className="font-mono">
-                        {branch.name}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">Click to create</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Start typing to search branches, then click to create a workspace
-            </p>
           </div>
-        </Card>
-      </div>
+        </>
+      )}
     </div>
   );
 };
