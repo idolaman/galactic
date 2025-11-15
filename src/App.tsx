@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { GitHubAuth } from "@/components/GitHubAuth";
 import { Header } from "@/components/Header";
@@ -14,6 +14,7 @@ import Settings from "./pages/Settings";
 import CodingAgents from "./pages/CodingAgents";
 import NotFound from "./pages/NotFound";
 import { useToast } from "@/hooks/use-toast";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const queryClient = new QueryClient();
 
@@ -42,47 +43,40 @@ const App = () => {
     });
   };
 
-  if (!user) {
-    return (
-      <QueryClientProvider client={queryClient}>
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider attribute="class" defaultTheme="dark" storageKey="galactic-ide-theme">
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <GitHubAuth onAuthSuccess={handleAuthSuccess} />
-        </TooltipProvider>
-      </QueryClientProvider>
-    );
-  }
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <SidebarProvider>
-            <div className="flex h-screen w-full">
-              <AppSidebar />
-              <div className="flex flex-col flex-1 overflow-hidden">
-                <Header user={user} onLogout={handleLogout} />
-                <div className="flex-1 flex flex-col">
-                  <header className="h-12 flex items-center border-b border-border px-4">
-                    <SidebarTrigger />
-                  </header>
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/environments" element={<Environments />} />
-                    <Route path="/agents" element={<CodingAgents />} />
-                    <Route path="/settings" element={<Settings />} />
-                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
+          {!user ? (
+            <GitHubAuth onAuthSuccess={handleAuthSuccess} />
+          ) : (
+            <BrowserRouter>
+              <SidebarProvider defaultOpen>
+                <div className="flex h-svh w-full bg-background">
+                  <AppSidebar />
+                  <SidebarInset>
+                    <Header user={user} onLogout={handleLogout} />
+                    <div className="flex-1 overflow-hidden">
+                      <div className="h-full overflow-auto">
+                        <Routes>
+                          <Route path="/" element={<Index />} />
+                          <Route path="/environments" element={<Environments />} />
+                          <Route path="/agents" element={<CodingAgents />} />
+                          <Route path="/settings" element={<Settings />} />
+                          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                          <Route path="*" element={<NotFound />} />
+                        </Routes>
+                      </div>
+                    </div>
+                  </SidebarInset>
                 </div>
-              </div>
-            </div>
-          </SidebarProvider>
-        </BrowserRouter>
-      </TooltipProvider>
+              </SidebarProvider>
+            </BrowserRouter>
+          )}
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };
