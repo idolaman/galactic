@@ -9,10 +9,10 @@ import {
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { execFile, exec } from "node:child_process";
 import { promisify } from "node:util";
-
+import type { ExecFileException } from "node:child_process";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const execFileAsync = promisify(execFile);
@@ -191,8 +191,8 @@ ipcMain.handle(
     }
 
     if (!existsSync(projectPath)) {
-      return { success: false, error: "Project path does not exist." };
-    }
+    return { success: false, error: "Project path does not exist." };
+  }
 
     const commandString = resolveEditorCommand(editorName, projectPath);
     if (!commandString) {
@@ -211,3 +211,89 @@ ipcMain.handle(
     }
   }
 );
+
+ipcMain.handle("git/create-worktree", async (_event, projectPath: string, branch: string) => {
+  if (!projectPath || !branch) {
+    return { success: false, error: "Project path and branch are required." };
+  }
+
+  const gitDirExists = existsSync(path.join(projectPath, ".git"));
+  if (!gitDirExists) {
+    return { success: false, error: "Git repository not found." };
+  }
+
+  const sanitizedBranch = branch.replace(/[\\/]/g, "-");
+  const worktreeRoot = path.join(projectPath, "worktrees");
+  try {
+    if (!existsSync(worktreeRoot)) {
+      mkdirSync(worktreeRoot, { recursive: true });
+    }
+  } catch (error) {
+    console.error("Failed to ensure worktree directory:", error);
+    return { success: false, error: "Unable to prepare worktree directory." };
+  }
+  const targetPath = path.join(worktreeRoot, sanitizedBranch);
+
+  try {
+    await execFileAsync("git", ["worktree", "add", targetPath, branch], { cwd: projectPath });
+    return { success: true, path: targetPath };
+  } catch (error) {
+    console.error(`Failed to create worktree for ${branch} at ${projectPath}:`, error);
+    const execError = error as ExecFileException & { stderr?: string };
+    const errorMessage = execError?.stderr || execError?.message || "Unknown error creating worktree.";
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  }
+});
+
+ipcMain.handle("git/remove-worktree", async (_event, projectPath: string, worktreePath: string) => {
+  if (!projectPath || !worktreePath) {
+    return { success: false, error: "Project path and worktree path are required." };
+  }
+
+  const gitDirExists = existsSync(path.join(projectPath, ".git"));
+  if (!gitDirExists) {
+    return { success: false, error: "Git repository not found." };
+  }
+
+  try {
+    await execFileAsync("git", ["worktree", "remove", worktreePath], { cwd: projectPath });
+    return { success: true };
+  } catch (error) {
+    console.error(`Failed to remove worktree ${worktreePath}:`, error);
+    const execError = error as ExecFileException & { stderr?: string };
+    const errorMessage = execError?.stderr || execError?.message || "Unknown error removing worktree.";
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  }
+});
+
+ipcMain.handle("git/list-branches", async (_event, projectPath: string) => {
+  if (!projectPath) {
+    return [];
+  }
+
+  const gitDirExists = existsSync(path.join(projectPath, ".git"));
+  if (!gitDirExists) {
+    return [];
+  }
+
+  try {
+    const { stdout } = await execFileAsync(
+      "git",
+      ["for-each-ref", "--format=%(refname:short)", "refs/heads/"],
+      { cwd: projectPath },
+    );
+    return stdout
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+  } catch (error) {
+    console.warn(`Failed to list git branches for ${projectPath}:`, error);
+    return [];
+  }
+});
