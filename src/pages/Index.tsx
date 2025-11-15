@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ProjectList } from "@/components/ProjectList";
 import { ProjectDetail } from "@/components/ProjectDetail";
 import { useToast } from "@/hooks/use-toast";
@@ -7,6 +7,7 @@ import { createWorktree, getGitInfo, listBranches as listGitBranches, removeWork
 import { projectStorage, type StoredProject } from "@/services/projects";
 import { openProjectInEditor, type EditorName } from "@/services/editor";
 import type { Workspace } from "@/types/workspace";
+import { copyProjectFilesToWorktree, searchProjectFiles } from "@/services/files";
 
 type Project = StoredProject;
 
@@ -29,6 +30,8 @@ const Index = () => {
       return acc;
     }, {} as Record<string, Workspace[]>);
   });
+  const [fileSearchResults, setFileSearchResults] = useState<string[]>([]);
+  const [isSearchingFiles, setIsSearchingFiles] = useState(false);
 
   const mockEnvironments = ["Development", "Staging", "Production"];
 
@@ -57,6 +60,7 @@ const Index = () => {
       currentBranch: gitInfo.currentBranch,
       worktrees: 0,
       workspaces: [],
+      configFiles: [],
     };
 
     setProjects(projectStorage.upsert(newProject));
@@ -119,6 +123,7 @@ const Index = () => {
       description: `Setting up workspace for ${branch}`,
     });
 
+    const configFiles = selectedProject.configFiles ?? [];
     const result = await createWorktree(selectedProject.path, branch);
 
     if (!result.success || !result.path) {
@@ -128,6 +133,25 @@ const Index = () => {
         variant: "destructive",
       });
       return;
+    }
+
+    if (configFiles.length > 0 && result.path) {
+      const copyResult = await copyProjectFilesToWorktree(selectedProject.path, result.path, configFiles);
+      if (!copyResult.success) {
+        const errorMessage =
+          copyResult.errors?.map((entry) => `${entry.file}: ${entry.message}`).join("\n") ??
+          "Unable to copy configuration files.";
+        toast({
+          title: "Config copy failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      } else if (copyResult.copied.length > 0) {
+        toast({
+          title: "Config files copied",
+          description: `${copyResult.copied.length} file(s) synced into the new workspace.`,
+        });
+      }
     }
 
     setProjectWorkspaces((prev) => {
@@ -220,6 +244,79 @@ const Index = () => {
     });
   };
 
+  const handleSearchProjectFiles = useCallback(
+    async (query: string) => {
+      if (!selectedProject?.path) {
+        setFileSearchResults([]);
+        setIsSearchingFiles(false);
+        return;
+      }
+
+      const trimmed = query.trim();
+      if (trimmed.length < 2) {
+        setFileSearchResults([]);
+        setIsSearchingFiles(false);
+        return;
+      }
+
+      setIsSearchingFiles(true);
+      try {
+        const files = await searchProjectFiles(selectedProject.path, trimmed);
+        setFileSearchResults(files);
+      } catch (error) {
+        console.error("File search failed:", error);
+        toast({
+          title: "File search failed",
+          description: "Unable to list configuration files for this project.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsSearchingFiles(false);
+      }
+    },
+    [selectedProject?.path, toast],
+  );
+
+  const updateSelectedProject = (next: Project) => {
+    setSelectedProject(next);
+    setProjects((prev) => {
+      const updatedProjects = prev.map((project) => (project.id === next.id ? next : project));
+      projectStorage.save(updatedProjects);
+      return updatedProjects;
+    });
+  };
+
+  const handleAddConfigFile = (filePath: string) => {
+    if (!selectedProject) return;
+    const normalized = filePath.trim();
+    if (!normalized) return;
+    const existing = selectedProject.configFiles ?? [];
+    if (existing.includes(normalized)) {
+      return;
+    }
+
+    const updatedProject: Project = {
+      ...selectedProject,
+      configFiles: [...existing, normalized],
+    };
+    updateSelectedProject(updatedProject);
+  };
+
+  const handleRemoveConfigFile = (filePath: string) => {
+    if (!selectedProject) return;
+    const existing = selectedProject.configFiles ?? [];
+    const updatedProject: Project = {
+      ...selectedProject,
+      configFiles: existing.filter((file) => file !== filePath),
+    };
+    updateSelectedProject(updatedProject);
+  };
+
+  useEffect(() => {
+    setFileSearchResults([]);
+    setIsSearchingFiles(false);
+  }, [selectedProject?.id]);
+
   const handleOpenInEditor = async (path: string) => {
     const result = await openProjectInEditor(preferredEditor, path);
     if (result.success) {
@@ -261,6 +358,12 @@ const Index = () => {
           onOpenInEditor={handleOpenInEditor}
           onEnvironmentChange={handleEnvironmentChange}
           onDeleteWorkspace={handleDeleteWorkspace}
+          configFiles={selectedProject.configFiles ?? []}
+          fileSearchResults={fileSearchResults}
+          isSearchingFiles={isSearchingFiles}
+          onSearchFiles={handleSearchProjectFiles}
+          onAddConfigFile={handleAddConfigFile}
+          onRemoveConfigFile={handleRemoveConfigFile}
         />
       ) : (
         <ProjectList 

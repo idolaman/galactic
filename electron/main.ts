@@ -10,6 +10,7 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { existsSync, mkdirSync } from "node:fs";
+import { promises as fsPromises } from "node:fs";
 import { execFile, exec } from "node:child_process";
 import { promisify } from "node:util";
 import type { ExecFileException } from "node:child_process";
@@ -223,8 +224,14 @@ ipcMain.handle("git/create-worktree", async (_event, projectPath: string, branch
   }
 
   const sanitizedBranch = branch.replace(/[\\/]/g, "-");
-  const worktreeRoot = path.join(projectPath, "worktrees");
+  const projectParent = path.resolve(projectPath, "..");
+  const projectName = path.basename(projectPath);
+  const globalWorktreeRoot = path.join(projectParent, ".worktrees");
+  const worktreeRoot = path.join(globalWorktreeRoot, projectName);
   try {
+    if (!existsSync(globalWorktreeRoot)) {
+      mkdirSync(globalWorktreeRoot, { recursive: true });
+    }
     if (!existsSync(worktreeRoot)) {
       mkdirSync(worktreeRoot, { recursive: true });
     }
@@ -258,8 +265,10 @@ ipcMain.handle("git/remove-worktree", async (_event, projectPath: string, worktr
     return { success: false, error: "Git repository not found." };
   }
 
+  const resolvedWorktreePath = resolveWorktreePath(projectPath, worktreePath);
+
   try {
-    await execFileAsync("git", ["worktree", "remove", worktreePath], { cwd: projectPath });
+    await execFileAsync("git", ["worktree", "remove", resolvedWorktreePath], { cwd: projectPath });
     return { success: true };
   } catch (error) {
     console.error(`Failed to remove worktree ${worktreePath}:`, error);
@@ -297,3 +306,156 @@ ipcMain.handle("git/list-branches", async (_event, projectPath: string) => {
     return [];
   }
 });
+
+const IGNORED_DIRECTORIES = new Set([".git", "node_modules", "worktrees"]);
+const MAX_FILE_RESULTS = 250;
+
+const normalizeRelativePath = (projectPath: string, entryPath: string) =>
+  path.relative(projectPath, entryPath).split(path.sep).join("/");
+
+const searchFilesInProject = async (projectPath: string, query: string): Promise<string[]> => {
+  const normalizedQuery = query.trim().toLowerCase();
+  const results: string[] = [];
+  const stack: string[] = [projectPath];
+
+  while (stack.length > 0 && results.length < MAX_FILE_RESULTS) {
+    const currentDir = stack.pop();
+    if (!currentDir) {
+      continue;
+    }
+
+    let entries: import("node:fs").Dirent[];
+    try {
+      entries = await fsPromises.readdir(currentDir, { withFileTypes: true });
+    } catch (error) {
+      console.warn(`Unable to read directory ${currentDir}:`, error);
+      continue;
+    }
+
+    for (const entry of entries) {
+      const entryPath = path.join(currentDir, entry.name);
+      const relativePath = normalizeRelativePath(projectPath, entryPath);
+      if (!relativePath || relativePath.startsWith("..")) {
+        continue;
+      }
+
+      if (entry.isDirectory()) {
+        if (!IGNORED_DIRECTORIES.has(entry.name)) {
+          stack.push(entryPath);
+        }
+        continue;
+      }
+
+      if (entry.isFile() || entry.isSymbolicLink()) {
+        if (!normalizedQuery || relativePath.toLowerCase().includes(normalizedQuery)) {
+          results.push(relativePath);
+          if (results.length >= MAX_FILE_RESULTS) {
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  return results;
+};
+
+ipcMain.handle("project/search-files", async (_event, projectPath: string, query: string) => {
+  if (!projectPath) {
+    return [];
+  }
+
+  try {
+    return await searchFilesInProject(path.resolve(projectPath), query ?? "");
+  } catch (error) {
+    console.error(`Failed to search files for ${projectPath}:`, error);
+    return [];
+  }
+});
+
+const copyFilesToWorktree = async (projectPath: string, worktreePath: string, files: string[]) => {
+  const projectRoot = path.resolve(projectPath);
+  const worktreeRoot = path.resolve(worktreePath);
+  const copied: string[] = [];
+  const errors: Array<{ file: string; message: string }> = [];
+
+  for (const file of files) {
+    const normalized = file.replace(/^[/\\]+/, "");
+    const relativePath = normalized.split(path.sep).join("/");
+    const sourcePath = path.resolve(projectRoot, relativePath);
+    const targetPath = path.resolve(worktreeRoot, relativePath);
+
+    if (!sourcePath.startsWith(projectRoot) || !targetPath.startsWith(worktreeRoot)) {
+      errors.push({ file: relativePath, message: "Invalid file path." });
+      continue;
+    }
+
+    try {
+      const targetDir = path.dirname(targetPath);
+      await fsPromises.mkdir(targetDir, { recursive: true });
+      await fsPromises.copyFile(sourcePath, targetPath);
+      copied.push(relativePath);
+    } catch (error) {
+      console.error(`Failed to copy ${relativePath}:`, error);
+      errors.push({
+        file: relativePath,
+        message: error instanceof Error ? error.message : "Unknown copy error.",
+      });
+    }
+  }
+
+  return {
+    success: errors.length === 0,
+    copied,
+    errors: errors.length > 0 ? errors : undefined,
+  };
+};
+
+const resolveWorktreePath = (projectPath: string, worktreePath: string) => {
+  const candidates: string[] = [];
+  if (path.isAbsolute(worktreePath)) {
+    candidates.push(worktreePath);
+  } else {
+    candidates.push(path.resolve(projectPath, worktreePath));
+  }
+
+  const normalized = worktreePath.replace(/^[/\\]+/, "");
+  candidates.push(path.join(projectPath, "worktrees", normalized));
+
+  const projectParent = path.resolve(projectPath, "..");
+  const projectName = path.basename(projectPath);
+  candidates.push(path.join(projectParent, ".worktrees", projectName, normalized));
+
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return candidates[0];
+};
+
+ipcMain.handle(
+  "project/copy-files-to-worktree",
+  async (_event, projectPath: string, worktreePath: string, files: string[]) => {
+    if (!projectPath || !worktreePath || !Array.isArray(files) || files.length === 0) {
+      return { success: false, copied: [], errors: [{ file: "", message: "Invalid copy parameters." }] };
+    }
+
+    try {
+      return await copyFilesToWorktree(projectPath, worktreePath, files);
+    } catch (error) {
+      console.error(`Failed to copy files into worktree ${worktreePath}:`, error);
+      return {
+        success: false,
+        copied: [],
+        errors: [
+          {
+            file: "*",
+            message: error instanceof Error ? error.message : "Unknown copy error.",
+          },
+        ],
+      };
+    }
+  },
+);
