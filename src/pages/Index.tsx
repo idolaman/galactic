@@ -9,11 +9,6 @@ import { openProjectInEditor, type EditorName } from "@/services/editor";
 
 type Project = StoredProject;
 
-interface Branch {
-  name: string;
-  workspace?: string;
-}
-
 const Index = () => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const { toast } = useToast();
@@ -26,15 +21,6 @@ const Index = () => {
 
   const [projects, setProjects] = useState<Project[]>(() => projectStorage.load());
   const [projectBranches, setProjectBranches] = useState<string[]>([]);
-
-  const mockBranches: Branch[] = [
-    { name: "feature/new-ui", workspace: "~/Projects/my-app-workspaces/feature-new-ui" },
-    { name: "bugfix/login", workspace: "~/Projects/my-app-workspaces/bugfix-login" },
-    { name: "feature/payments" },
-    { name: "refactor/database" },
-    { name: "feature/api-integration" },
-    { name: "hotfix/security-patch" },
-  ];
 
   const mockEnvironments = ["Development", "Staging", "Production"];
 
@@ -148,7 +134,7 @@ const Index = () => {
       {selectedProject ? (
         <ProjectDetail
           project={selectedProject}
-          branches={mockBranches}
+          workspaces={[]}
           gitBranches={projectBranches}
           environments={mockEnvironments}
           onLoadBranches={loadProjectBranches}
