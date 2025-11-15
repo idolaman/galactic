@@ -1,3 +1,5 @@
+import type { Workspace } from "@/types/workspace";
+
 export interface StoredProject {
   id: string;
   name: string;
@@ -5,6 +7,7 @@ export interface StoredProject {
   isGitRepo: boolean;
   currentBranch?: string | null;
   worktrees: number;
+  workspaces?: Workspace[];
 }
 
 const STORAGE_KEY = "galactic-ide:projects";
