@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Separator } from "@/components/ui/separator";
-import { CheckCircle2, RefreshCcw } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import vscodeIcon from "@/assets/vscode-icon.png";
 import { type EditorName } from "@/services/editor";
@@ -119,18 +117,6 @@ export default function Settings() {
             })}
           </RadioGroup>
 
-          <Separator />
-
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-medium">Need to refresh the app list?</p>
-              <p className="text-xs text-muted-foreground">Ensure the editors are installed in /Applications.</p>
-            </div>
-            <Button variant="outline" size="sm" onClick={checkEditors}>
-              <RefreshCcw className="mr-2 h-4 w-4" />
-              Rescan editors
-            </Button>
-          </div>
         </CardContent>
       </Card>
     </div>
