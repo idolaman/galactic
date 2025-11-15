@@ -1,9 +1,15 @@
-import { useEffect, useState } from "react";
-import { Card } from "@/components/ui/card";
-import { CheckCircle2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Separator } from "@/components/ui/separator";
+import { CheckCircle2, RefreshCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import vscodeIcon from "@/assets/vscode-icon.png";
 import { type EditorName } from "@/services/editor";
+import { cn } from "@/lib/utils";
 
 export default function Settings() {
   const { toast } = useToast();
@@ -11,7 +17,7 @@ export default function Settings() {
     const saved = typeof window !== "undefined" ? window.localStorage.getItem("preferredEditor") : null;
     return (saved === "Cursor" || saved === "VSCode") ? saved : "Cursor";
   });
-  const [cursorSrc, setCursorSrc] = useState<string>("/cursor.jpeg");
+  const cursorSrc = "/cursor.jpeg";
   const [cursorInstalled, setCursorInstalled] = useState<boolean>(false);
   const [vscodeInstalled, setVscodeInstalled] = useState<boolean>(false);
 
@@ -19,101 +25,114 @@ export default function Settings() {
     window.localStorage.setItem("preferredEditor", preferredEditor);
   }, [preferredEditor]);
 
-  useEffect(() => {
-    const checkEditors = async () => {
-      if (window.electronAPI?.checkEditorInstalled) {
-        const cursorCheck = await window.electronAPI.checkEditorInstalled("Cursor");
-        const vscodeCheck = await window.electronAPI.checkEditorInstalled("VSCode");
-        setCursorInstalled(cursorCheck);
-        setVscodeInstalled(vscodeCheck);
-      }
-    };
-    checkEditors();
+  const checkEditors = useCallback(async () => {
+    if (window.electronAPI?.checkEditorInstalled) {
+      const cursorCheck = await window.electronAPI.checkEditorInstalled("Cursor");
+      const vscodeCheck = await window.electronAPI.checkEditorInstalled("VSCode");
+      setCursorInstalled(cursorCheck);
+      setVscodeInstalled(vscodeCheck);
+    }
   }, []);
 
+  useEffect(() => {
+    checkEditors();
+  }, [checkEditors]);
+
+  const handleEditorChange = (value: string) => {
+    const nextValue: EditorName = value === "VSCode" ? "VSCode" : "Cursor";
+    setPreferredEditor(nextValue);
+    toast({ title: "Default editor updated", description: `${nextValue} selected.` });
+  };
+
+  const editorOptions = [
+    {
+      value: "Cursor",
+      title: "Cursor",
+      description: "AI-native editor from the Cursor team.",
+      icon: cursorSrc,
+      installed: cursorInstalled,
+    },
+    {
+      value: "VSCode",
+      title: "Visual Studio Code",
+      description: "The classic Microsoft IDE.",
+      icon: vscodeIcon,
+      installed: vscodeInstalled,
+    },
+  ] as const;
+
   return (
-    <div className="h-full overflow-auto">
-      <div className="container mx-auto px-4 py-8 space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Settings</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage your application preferences.
-          </p>
-        </div>
-
-        <div className="space-y-6">
-          <Card className="p-6 bg-card border-border">
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold">Platform</h2>
-              <p className="text-xs text-muted-foreground">Choose your default editor from your Applications folder:</p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                onClick={() => {
-                  setPreferredEditor("Cursor");
-                  toast({ title: "Default editor updated", description: "Cursor selected." });
-                }}
-                disabled={!cursorInstalled}
-                className={`group relative flex items-center justify-between gap-3 rounded-lg border px-3 py-3 transition-all text-left ${
-                  preferredEditor === "Cursor"
-                    ? "border-primary bg-primary/10 ring-1 ring-primary/40"
-                    : cursorInstalled
-                    ? "border-border hover:border-primary/40 hover:bg-muted/40"
-                    : "border-border opacity-50 cursor-not-allowed"
-                }`}
-                aria-pressed={preferredEditor === "Cursor"}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-md bg-background border border-border shadow-sm overflow-hidden">
-                    <img
-                      src={cursorSrc}
-                      alt="Cursor"
-                      className="h-6 w-6 object-contain"
-                    />
-                  </div>
-                  <div className="text-left">
-                    <div className="text-sm font-medium">Cursor</div>
-                    <div className="text-[11px] text-muted-foreground">
-                      {cursorInstalled ? "Installed" : "Not Found"}
-                    </div>
-                  </div>
-                </div>
-                {preferredEditor === "Cursor" && <CheckCircle2 className="h-4 w-4 text-primary" />}
-              </button>
-
-              <button
-                onClick={() => {
-                  setPreferredEditor("VSCode");
-                  toast({ title: "Default editor updated", description: "VSCode selected." });
-                }}
-                disabled={!vscodeInstalled}
-                className={`group relative flex items-center justify-between gap-3 rounded-lg border px-3 py-3 transition-all text-left ${
-                  preferredEditor === "VSCode"
-                    ? "border-primary bg-primary/10 ring-1 ring-primary/40"
-                    : vscodeInstalled
-                    ? "border-border hover:border-primary/40 hover:bg-muted/40"
-                    : "border-border opacity-50 cursor-not-allowed"
-                }`}
-                aria-pressed={preferredEditor === "VSCode"}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-md bg-background border border-border shadow-sm">
-                    <img src={vscodeIcon} alt="VSCode" className="h-6 w-6 object-contain" />
-                  </div>
-                  <div className="text-left">
-                    <div className="text-sm font-medium">VSCode</div>
-                    <div className="text-[11px] text-muted-foreground">
-                      {vscodeInstalled ? "Installed" : "Not Found"}
-                    </div>
-                  </div>
-                </div>
-                {preferredEditor === "VSCode" && <CheckCircle2 className="h-4 w-4 text-primary" />}
-              </button>
-            </div>
-          </Card>
-        </div>
+    <div className="space-y-8 p-6">
+      <div>
+        <p className="text-sm text-muted-foreground">Tweak how Galactic IDE integrates with your native tooling.</p>
+        <h1 className="text-3xl font-bold">Settings</h1>
       </div>
+
+      <Card className="border-border bg-card">
+        <CardHeader className="pb-4">
+          <CardTitle>Preferred Editor</CardTitle>
+          <CardDescription>Pick the editor to open projects from the sidebar.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <RadioGroup
+            value={preferredEditor}
+            onValueChange={handleEditorChange}
+            className="grid gap-4 md:grid-cols-2"
+          >
+            {editorOptions.map((option) => {
+              const isActive = preferredEditor === option.value;
+              const isDisabled = !option.installed;
+
+              return (
+                <Label
+                  key={option.value}
+                  htmlFor={`editor-${option.value}`}
+                  className={cn(
+                    "group relative flex cursor-pointer flex-col gap-4 rounded-xl border bg-background/70 p-4 transition-all",
+                    isActive && "border-primary/70 ring-2 ring-primary/20 shadow-glow",
+                    isDisabled && "cursor-not-allowed opacity-60",
+                  )}
+                >
+                  <RadioGroupItem
+                    value={option.value}
+                    id={`editor-${option.value}`}
+                    disabled={isDisabled}
+                    className="sr-only"
+                  />
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-border bg-card shadow-sm">
+                        <img src={option.icon} alt={option.title} className="h-7 w-7 object-contain" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold">{option.title}</p>
+                        <p className="text-xs text-muted-foreground">{option.description}</p>
+                      </div>
+                    </div>
+                    <Badge variant={option.installed ? "secondary" : "outline"} className="uppercase tracking-wide">
+                      {option.installed ? "Installed" : "Not found"}
+                    </Badge>
+                  </div>
+                  {isActive && <CheckCircle2 className="absolute right-4 top-4 h-4 w-4 text-primary" />}
+                </Label>
+              );
+            })}
+          </RadioGroup>
+
+          <Separator />
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium">Need to refresh the app list?</p>
+              <p className="text-xs text-muted-foreground">Ensure the editors are installed in /Applications.</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={checkEditors}>
+              <RefreshCcw className="mr-2 h-4 w-4" />
+              Rescan editors
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
