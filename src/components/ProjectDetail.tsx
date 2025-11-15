@@ -1,15 +1,18 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, GitBranch, GitMerge, Trash2, FolderOpen, AlertTriangle, Bug } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { ArrowLeft, GitBranch, GitMerge, FolderOpen, AlertTriangle, Bug, Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
-
-interface Branch {
-  name: string;
-  workspace?: string;
-}
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { useRef, useState } from "react";
+import type { Workspace } from "@/types/workspace";
 
 interface ProjectDetailProps {
   project: {
@@ -18,47 +21,42 @@ interface ProjectDetailProps {
     currentBranch?: string | null;
     isGitRepo: boolean;
   };
-  branches: Branch[];
+  workspaces: Workspace[];
+  gitBranches: string[];
   environments: string[];
   onBack: () => void;
   onCreateWorkspace: (branch: string) => void;
   onDebugInMain: (workspace: string, branch: string) => void;
   onOpenInEditor: (path: string) => void;
   onEnvironmentChange: (workspace: string, env: string) => void;
+  onLoadBranches?: () => void | Promise<void>;
+  onDeleteWorkspace: (workspacePath: string, branch: string) => void;
 }
 
-export const ProjectDetail = ({ 
-  project, 
-  branches, 
+export const ProjectDetail = ({
+  project,
+  workspaces,
+  gitBranches,
   environments,
-  onBack, 
+  onBack,
   onCreateWorkspace,
   onDebugInMain,
   onOpenInEditor,
-  onEnvironmentChange
+  onEnvironmentChange,
+  onLoadBranches,
+  onDeleteWorkspace,
 }: ProjectDetailProps) => {
   const [branchInput, setBranchInput] = useState("");
-  const [filteredBranches, setFilteredBranches] = useState<Branch[]>([]);
+  const [branchSearchActive, setBranchSearchActive] = useState(false);
+  const branchInputRef = useRef<HTMLInputElement | null>(null);
   
-  const workspaces = branches.filter(b => b.workspace);
-  const availableBranches = branches.filter(b => !b.workspace);
-
-  const handleBranchInputChange = (value: string) => {
-    setBranchInput(value);
-    if (value) {
-      const filtered = availableBranches.filter(b => 
-        b.name.toLowerCase().includes(value.toLowerCase())
-      );
-      setFilteredBranches(filtered);
-    } else {
-      setFilteredBranches([]);
-    }
-  };
+  const availableBranches = gitBranches;
 
   const handleCreateWorkspace = (branchName: string) => {
     onCreateWorkspace(branchName);
     setBranchInput("");
-    setFilteredBranches([]);
+    setBranchSearchActive(false);
+    branchInputRef.current?.blur();
   };
 
   return (
@@ -79,11 +77,11 @@ export const ProjectDetail = ({
         </div>
       </div>
 
-      {/* Main Codebase */}
+      {/* Base Code */}
       <Card className="p-6 bg-gradient-card border-border shadow-card">
         <div className="flex items-start justify-between">
           <div className="space-y-2">
-            <h2 className="text-xl font-semibold">Main Codebase</h2>
+            <h2 className="text-xl font-semibold">Base Code</h2>
             {project.isGitRepo ? (
               <div className="flex items-center gap-2">
                 <GitBranch className="h-4 w-4 text-primary" />
@@ -125,20 +123,28 @@ export const ProjectDetail = ({
                   className="p-6 bg-card border-primary/30"
                 >
                   <div className="space-y-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <Badge className="mb-2 bg-primary/20 text-primary border-primary/30 font-mono">
-                          {branch.name}
-                        </Badge>
-                        <code className="text-xs text-muted-foreground block">
-                          {branch.workspace}
-                        </code>
-                      </div>
-                    </div>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <Badge className="mb-2 bg-primary/20 text-primary border-primary/30 font-mono">
+                      {branch.name}
+                    </Badge>
+                    <code className="text-xs text-muted-foreground block">
+                      {branch.workspace}
+                    </code>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => onDeleteWorkspace(branch.workspace, branch.name)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
 
                     <div className="space-y-2">
                       <label className="text-xs text-muted-foreground">Environment</label>
-                      <Select onValueChange={(value) => onEnvironmentChange(branch.workspace!, value)}>
+                  <Select onValueChange={(value) => onEnvironmentChange(branch.workspace, value)}>
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder="Select environment" />
                         </SelectTrigger>
@@ -154,7 +160,7 @@ export const ProjectDetail = ({
 
                     <div className="flex gap-2">
                       <Button 
-                        onClick={() => onOpenInEditor(branch.workspace!)}
+                    onClick={() => onOpenInEditor(branch.workspace)}
                         className="flex-1 bg-primary hover:bg-primary/90"
                       >
                         <FolderOpen className="mr-2 h-4 w-4" />
@@ -163,11 +169,11 @@ export const ProjectDetail = ({
                       
                       <Button 
                         variant="secondary"
-                        onClick={() => onDebugInMain(branch.workspace!, branch.name)}
+                    onClick={() => onDebugInMain(branch.workspace, branch.name)}
                         className="flex-1"
                       >
                         <Bug className="mr-2 h-4 w-4" />
-                        Debug in Main
+                        Debug in Base Code
                       </Button>
                     </div>
                   </div>
@@ -192,32 +198,39 @@ export const ProjectDetail = ({
             
             <Card className="p-4 bg-card border-border">
               <div className="space-y-3">
-                <div className="relative">
-                  <Input
-                    placeholder="Type branch name..."
+                <Command className="rounded-lg border border-border bg-background">
+                  <CommandInput
+                    ref={branchInputRef}
+                    placeholder="Search branches..."
                     value={branchInput}
-                    onChange={(e) => handleBranchInputChange(e.target.value)}
-                    className="w-full"
+                    onValueChange={setBranchInput}
+                    onFocus={() => {
+                      setBranchSearchActive(true);
+                      onLoadBranches?.();
+                    }}
+                    onBlur={() => setTimeout(() => setBranchSearchActive(false), 120)}
                   />
-                  {filteredBranches.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
-                      {filteredBranches.map((branch) => (
-                        <div
-                          key={branch.name}
-                          className="p-3 hover:bg-accent cursor-pointer flex items-center justify-between"
-                          onClick={() => handleCreateWorkspace(branch.name)}
+                  <CommandList className={`max-h-60 ${branchSearchActive ? "" : "hidden"}`}>
+                    <CommandEmpty>No matching branches.</CommandEmpty>
+                    <CommandGroup heading="Available branches">
+                      {availableBranches.map((branchName) => (
+                        <CommandItem
+                          key={branchName}
+                          value={branchName}
+                          onSelect={() => handleCreateWorkspace(branchName)}
+                          className="flex items-center justify-between"
                         >
                           <Badge variant="secondary" className="font-mono">
-                            {branch.name}
+                            {branchName}
                           </Badge>
-                          <span className="text-xs text-muted-foreground">Click to create</span>
-                        </div>
+                          <span className="text-[11px] text-muted-foreground">Create workspace</span>
+                        </CommandItem>
                       ))}
-                    </div>
-                  )}
-                </div>
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
                 <p className="text-xs text-muted-foreground">
-                  Start typing to search branches, then click to create a workspace
+                  Start typing to search branches from this project, then pick one to create a workspace.
                 </p>
               </div>
             </Card>
