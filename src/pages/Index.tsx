@@ -167,7 +167,7 @@ const Index = () => {
   const handleDebugInMain = (workspace: string, branch: string) => {
     toast({
       title: "Debug in Main",
-      description: `Pushing changes from ${branch} and switching main codebase`,
+      description: `Pushing changes from ${branch} and switching base code`,
     });
   };
 
