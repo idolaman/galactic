@@ -20,6 +20,16 @@ declare global {
         worktreePath: string,
       ) => Promise<{ success: boolean; error?: string }>;
       openProjectInEditor: (editorName: string, projectPath: string) => Promise<{ success: boolean; error?: string }>;
+      searchProjectFiles: (projectPath: string, query: string) => Promise<string[]>;
+      copyProjectFilesToWorktree: (
+        projectPath: string,
+        worktreePath: string,
+        files: string[],
+      ) => Promise<{
+        success: boolean;
+        copied: string[];
+        errors?: Array<{ file: string; message: string }>;
+      }>;
     };
   }
 }

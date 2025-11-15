@@ -13,4 +13,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("git/remove-worktree", projectPath, workspacePath),
   openProjectInEditor: (editorName: string, projectPath: string) =>
     ipcRenderer.invoke("editor/open-project", editorName, projectPath),
+  searchProjectFiles: (projectPath: string, query: string) =>
+    ipcRenderer.invoke("project/search-files", projectPath, query),
+  copyProjectFilesToWorktree: (projectPath: string, worktreePath: string, files: string[]) =>
+    ipcRenderer.invoke("project/copy-files-to-worktree", projectPath, worktreePath, files),
 });

@@ -8,6 +8,7 @@ export interface StoredProject {
   currentBranch?: string | null;
   worktrees: number;
   workspaces?: Workspace[];
+  configFiles?: string[];
 }
 
 const STORAGE_KEY = "galactic-ide:projects";
