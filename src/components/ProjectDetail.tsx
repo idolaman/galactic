@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, GitBranch, GitMerge, FolderOpen, AlertTriangle, Bug } from "lucide-react";
+import { ArrowLeft, GitBranch, GitMerge, FolderOpen, AlertTriangle, Bug, Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Command,
@@ -12,11 +12,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { useRef, useState } from "react";
-
-interface Branch {
-  name: string;
-  workspace?: string;
-}
+import type { Workspace } from "@/types/workspace";
 
 interface ProjectDetailProps {
   project: {
@@ -25,7 +21,7 @@ interface ProjectDetailProps {
     currentBranch?: string | null;
     isGitRepo: boolean;
   };
-  workspaces: Branch[];
+  workspaces: Workspace[];
   gitBranches: string[];
   environments: string[];
   onBack: () => void;
@@ -34,6 +30,7 @@ interface ProjectDetailProps {
   onOpenInEditor: (path: string) => void;
   onEnvironmentChange: (workspace: string, env: string) => void;
   onLoadBranches?: () => void | Promise<void>;
+  onDeleteWorkspace: (workspacePath: string, branch: string) => void;
 }
 
 export const ProjectDetail = ({
@@ -47,6 +44,7 @@ export const ProjectDetail = ({
   onOpenInEditor,
   onEnvironmentChange,
   onLoadBranches,
+  onDeleteWorkspace,
 }: ProjectDetailProps) => {
   const [branchInput, setBranchInput] = useState("");
   const [branchSearchActive, setBranchSearchActive] = useState(false);
@@ -125,20 +123,28 @@ export const ProjectDetail = ({
                   className="p-6 bg-card border-primary/30"
                 >
                   <div className="space-y-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <Badge className="mb-2 bg-primary/20 text-primary border-primary/30 font-mono">
-                          {branch.name}
-                        </Badge>
-                        <code className="text-xs text-muted-foreground block">
-                          {branch.workspace}
-                        </code>
-                      </div>
-                    </div>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <Badge className="mb-2 bg-primary/20 text-primary border-primary/30 font-mono">
+                      {branch.name}
+                    </Badge>
+                    <code className="text-xs text-muted-foreground block">
+                      {branch.workspace}
+                    </code>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => onDeleteWorkspace(branch.workspace, branch.name)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
 
                     <div className="space-y-2">
                       <label className="text-xs text-muted-foreground">Environment</label>
-                      <Select onValueChange={(value) => onEnvironmentChange(branch.workspace!, value)}>
+                  <Select onValueChange={(value) => onEnvironmentChange(branch.workspace, value)}>
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder="Select environment" />
                         </SelectTrigger>
@@ -154,7 +160,7 @@ export const ProjectDetail = ({
 
                     <div className="flex gap-2">
                       <Button 
-                        onClick={() => onOpenInEditor(branch.workspace!)}
+                    onClick={() => onOpenInEditor(branch.workspace)}
                         className="flex-1 bg-primary hover:bg-primary/90"
                       >
                         <FolderOpen className="mr-2 h-4 w-4" />
@@ -163,7 +169,7 @@ export const ProjectDetail = ({
                       
                       <Button 
                         variant="secondary"
-                        onClick={() => onDebugInMain(branch.workspace!, branch.name)}
+                    onClick={() => onDebugInMain(branch.workspace, branch.name)}
                         className="flex-1"
                       >
                         <Bug className="mr-2 h-4 w-4" />
