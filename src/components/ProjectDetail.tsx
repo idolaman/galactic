@@ -25,7 +25,7 @@ interface ProjectDetailProps {
     currentBranch?: string | null;
     isGitRepo: boolean;
   };
-  branches: Branch[];
+  workspaces: Branch[];
   gitBranches: string[];
   environments: string[];
   onBack: () => void;
@@ -38,7 +38,7 @@ interface ProjectDetailProps {
 
 export const ProjectDetail = ({
   project,
-  branches,
+  workspaces,
   gitBranches,
   environments,
   onBack,
@@ -52,7 +52,6 @@ export const ProjectDetail = ({
   const [branchSearchActive, setBranchSearchActive] = useState(false);
   const branchInputRef = useRef<HTMLInputElement | null>(null);
   
-  const workspaces = branches.filter(b => b.workspace);
   const availableBranches = gitBranches;
 
   const handleCreateWorkspace = (branchName: string) => {
