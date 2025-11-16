@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, GitBranch, GitMerge, FolderOpen, AlertTriangle, Bug, Trash2 } from "lucide-react";
+import { ArrowLeft, GitBranch, GitMerge, FolderOpen, AlertTriangle, Bug, Trash2, FileCode, X, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Command,
@@ -11,7 +11,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Workspace } from "@/types/workspace";
 
 interface ProjectDetailProps {
@@ -31,6 +31,12 @@ interface ProjectDetailProps {
   onEnvironmentChange: (workspace: string, env: string) => void;
   onLoadBranches?: () => void | Promise<void>;
   onDeleteWorkspace: (workspacePath: string, branch: string) => void;
+  configFiles: string[];
+  fileSearchResults: string[];
+  isSearchingFiles: boolean;
+  onSearchFiles: (query: string) => void;
+  onAddConfigFile: (filePath: string) => void;
+  onRemoveConfigFile: (filePath: string) => void;
 }
 
 export const ProjectDetail = ({
@@ -45,11 +51,22 @@ export const ProjectDetail = ({
   onEnvironmentChange,
   onLoadBranches,
   onDeleteWorkspace,
+  configFiles,
+  fileSearchResults,
+  isSearchingFiles,
+  onSearchFiles,
+  onAddConfigFile,
+  onRemoveConfigFile,
 }: ProjectDetailProps) => {
   const [branchInput, setBranchInput] = useState("");
   const [branchSearchActive, setBranchSearchActive] = useState(false);
   const branchInputRef = useRef<HTMLInputElement | null>(null);
-  
+  const [fileSearchInput, setFileSearchInput] = useState("");
+  const [fileSearchActive, setFileSearchActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const fileQueryTooShort = fileSearchInput.trim().length < 2;
+  const hasConfigFiles = configFiles.length > 0;
+
   const availableBranches = gitBranches;
 
   const handleCreateWorkspace = (branchName: string) => {
@@ -58,6 +75,33 @@ export const ProjectDetail = ({
     setBranchSearchActive(false);
     branchInputRef.current?.blur();
   };
+
+  const handleConfigFileSelect = (filePath: string) => {
+    if (!filePath || configFiles.includes(filePath)) {
+      return;
+    }
+    onAddConfigFile(filePath);
+    setFileSearchInput("");
+    setFileSearchActive(false);
+    fileInputRef.current?.blur();
+  };
+
+  useEffect(() => {
+    const trimmed = fileSearchInput.trim();
+    if (trimmed.length < 2) {
+      onSearchFiles("");
+      return;
+    }
+    const timeout = setTimeout(() => {
+      onSearchFiles(trimmed);
+    }, 250);
+    return () => clearTimeout(timeout);
+  }, [fileSearchInput, onSearchFiles]);
+
+  useEffect(() => {
+    setFileSearchInput("");
+    setFileSearchActive(false);
+  }, [project.path]);
 
   return (
     <div className="space-y-6">
@@ -232,6 +276,99 @@ export const ProjectDetail = ({
                 <p className="text-xs text-muted-foreground">
                   Start typing to search branches from this project, then pick one to create a workspace.
                 </p>
+              </div>
+            </Card>
+          </div>
+
+          {/* Config file sync */}
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <FileCode className="h-6 w-6 text-primary" />
+              Workspace Config Sync
+            </h2>
+
+            <Card className="p-4 bg-card border-border">
+              <div className="space-y-3">
+                <Command className="rounded-lg border border-border bg-background">
+                  <CommandInput
+                    ref={fileInputRef}
+                    placeholder="Search files to copy..."
+                    value={fileSearchInput}
+                    onValueChange={setFileSearchInput}
+                    onFocus={() => setFileSearchActive(true)}
+                    onBlur={() => setTimeout(() => setFileSearchActive(false), 120)}
+                  />
+                  <CommandList
+                    className={`max-h-60 ${
+                      fileSearchActive && !fileQueryTooShort ? "" : "hidden"
+                    }`}
+                  >
+                    <CommandEmpty>
+                      {isSearchingFiles ? (
+                        <span className="flex items-center gap-2 text-muted-foreground text-sm">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Searching files...
+                        </span>
+                      ) : (
+                        "No matching files"
+                      )}
+                    </CommandEmpty>
+                    <CommandGroup heading="Matching files">
+                      {fileSearchResults.map((filePath) => {
+                        const alreadyAdded = configFiles.includes(filePath);
+                        return (
+                          <CommandItem
+                            key={filePath}
+                            value={filePath}
+                            onSelect={() => !alreadyAdded && handleConfigFileSelect(filePath)}
+                            className={`flex items-center justify-between ${
+                              alreadyAdded ? "opacity-50" : ""
+                            }`}
+                          >
+                            <code className="text-xs font-mono truncate max-w-[280px]">{filePath}</code>
+                            {alreadyAdded ? (
+                              <Badge variant="secondary" className="text-[11px]">
+                                Added
+                              </Badge>
+                            ) : (
+                              <span className="text-[11px] text-muted-foreground">Add file</span>
+                            )}
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+                <p className="text-xs text-muted-foreground">
+                  Choose files from the base code that should be copied into every new worktree. Type at
+                  least two characters to search.
+                </p>
+
+                {hasConfigFiles ? (
+                  <div className="flex flex-wrap gap-2">
+                    {configFiles.map((file) => (
+                      <div
+                        key={file}
+                        className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-2 py-1"
+                      >
+                        <code className="text-xs">{file}</code>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5 text-muted-foreground hover:text-foreground"
+                          onClick={() => onRemoveConfigFile(file)}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    No files selected yet. Add files above to keep local configuration in sync.
+                  </p>
+                )}
               </div>
             </Card>
           </div>
