@@ -13,21 +13,7 @@ interface Environment {
 }
 
 export default function Environments() {
-  const [environments, setEnvironments] = useState<Environment[]>([
-    {
-      id: "1",
-      name: "Development",
-      workspaces: [
-        { project: "my-app", workspace: "feature/new-ui" },
-        { project: "backend-api", workspace: "feature/auth" },
-      ],
-    },
-    {
-      id: "2",
-      name: "Testing",
-      workspaces: [{ project: "my-app", workspace: "bugfix/login" }],
-    },
-  ]);
+  const [environments, setEnvironments] = useState<Environment[]>([]);
   const [newEnvName, setNewEnvName] = useState("");
   const { toast } = useToast();
 
