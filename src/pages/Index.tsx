@@ -33,8 +33,6 @@ const Index = () => {
   const [fileSearchResults, setFileSearchResults] = useState<string[]>([]);
   const [isSearchingFiles, setIsSearchingFiles] = useState(false);
 
-  const mockEnvironments = ["Development", "Staging", "Production"];
-
   const handleAddProject = async () => {
     const projectPath = await chooseProjectDirectory();
 
@@ -195,13 +193,6 @@ const Index = () => {
     });
   };
 
-  const handleEnvironmentChange = (workspace: string, env: string) => {
-    toast({
-      title: "Environment Changed",
-      description: `Switched to ${env} for this workspace`,
-    });
-  };
-
   const handleDeleteWorkspace = async (workspacePath: string, branchName: string) => {
     if (!selectedProject) return;
 
@@ -350,13 +341,11 @@ const Index = () => {
           project={selectedProject}
           workspaces={projectWorkspaces[selectedProject.id] ?? []}
           gitBranches={projectBranches}
-          environments={mockEnvironments}
           onLoadBranches={loadProjectBranches}
           onBack={() => setSelectedProject(null)}
           onCreateWorkspace={handleCreateWorkspace}
           onDebugInMain={handleDebugInMain}
           onOpenInEditor={handleOpenInEditor}
-          onEnvironmentChange={handleEnvironmentChange}
           onDeleteWorkspace={handleDeleteWorkspace}
           configFiles={selectedProject.configFiles ?? []}
           fileSearchResults={fileSearchResults}
