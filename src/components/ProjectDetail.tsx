@@ -2,7 +2,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, GitBranch, GitMerge, FolderOpen, AlertTriangle, Bug, Trash2, FileCode, X, Loader2 } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Command,
   CommandEmpty,
@@ -23,12 +22,10 @@ interface ProjectDetailProps {
   };
   workspaces: Workspace[];
   gitBranches: string[];
-  environments: string[];
   onBack: () => void;
   onCreateWorkspace: (branch: string) => void;
   onDebugInMain: (workspace: string, branch: string) => void;
   onOpenInEditor: (path: string) => void;
-  onEnvironmentChange: (workspace: string, env: string) => void;
   onLoadBranches?: () => void | Promise<void>;
   onDeleteWorkspace: (workspacePath: string, branch: string) => void;
   configFiles: string[];
@@ -43,12 +40,10 @@ export const ProjectDetail = ({
   project,
   workspaces,
   gitBranches,
-  environments,
   onBack,
   onCreateWorkspace,
   onDebugInMain,
   onOpenInEditor,
-  onEnvironmentChange,
   onLoadBranches,
   onDeleteWorkspace,
   configFiles,
@@ -184,23 +179,7 @@ export const ProjectDetail = ({
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
-                </div>
-
-                    <div className="space-y-2">
-                      <label className="text-xs text-muted-foreground">Environment</label>
-                  <Select onValueChange={(value) => onEnvironmentChange(branch.workspace, value)}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select environment" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {environments.map((env) => (
-                            <SelectItem key={env} value={env}>
-                              {env}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  </div>
 
                     <div className="flex gap-2">
                       <Button 
