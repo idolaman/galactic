@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galactic IDE - Code at Warp Speed</title>
+    <link rel="stylesheet" href="styles.css">
+    <meta name="description"
+        content="The next-generation IDE for developers who demand power, speed, and intelligence.">
+</head>
+
+<body>
+    <div class="stars-container" id="stars"></div>
+
+    <nav>
+        <div class="container">
+            <div class="logo-container">
+                <div class="logo-icon">
+                    <div class="planet"></div>
+                    <div class="orbit"></div>
+                </div>
+                <span class="logo-text">Galactic</span>
+            </div>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#pricing">Pricing</a>
+                <a href="#blog">Blog</a>
+                <a href="#" class="btn btn-primary" style="margin-left: 2rem; padding: 0.5rem 1.5rem;">Download</a>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <h1 class="text-gradient">Become a <span class="text-gradient-accent">10x Engineer</span></h1>
+                <p>Stop waiting for single agents. The effortless way to run parallel workflows locally and turn your
+                    idle time into shipping time.</p>
+                <a href="#" class="btn btn-primary floating">Download for Mac</a>
+
+                <div class="hero-visual">
+                    <div class="ide-mockup">
+                        <pre><code>
+// Idle detected... triggering background agents
+const tasks = await Jira.getBacklog();
+
+tasks.forEach(async (task) => {
+    const agent = await Galactic.spawn('fixer');
+    
+    // 1. Create isolated sandbox
+    await agent.isolate(); 
+    
+    // 2. Solve task in parallel
+    await agent.solve(task);
+    
+    // 3. Verify and PR
+    await agent.verify();
+});
+                        </code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="features" id="features">
+            <div class="container">
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">📦</div>
+                        <h3>Isolated Environments</h3>
+                        <p>Spin up sandboxed environments in milliseconds. Test risky changes or run complex migrations
+                            without breaking your main setup. It's effortless.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">⚡</div>
+                        <h3>Background Agents</h3>
+                        <p>Have static time? Galactic automatically triggers local agents to solve your Jira backlog.
+                            Wake up to finished PRs, not just to-do lists.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">✨</div>
+                        <h3>Zero Friction</h3>
+                        <p>Designed for regular engineers who just want to build. No complex prompting, no waiting on a
+                            single slow agent. Just seamless, parallel power.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Galactic IDE. Crafted among the stars.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
