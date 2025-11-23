@@ -11,7 +11,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { existsSync, mkdirSync } from "node:fs";
 import { promises as fsPromises } from "node:fs";
-import { execFile, exec } from "node:child_process";
+import { execFile, exec, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import type { ExecFileException } from "node:child_process";
 const __filename = fileURLToPath(import.meta.url);
@@ -455,6 +455,69 @@ ipcMain.handle(
             message: error instanceof Error ? error.message : "Unknown copy error.",
           },
         ],
+      };
+    }
+  },
+);
+
+const LOOPBACK_PATTERN = /^127\.0\.0\.\d{1,3}$/;
+
+const runPrivilegedIfconfig = async (args: string[]) => {
+  if (process.platform !== "darwin") {
+    return { success: false, output: "", error: "Environment networking is only supported on macOS." };
+  }
+
+  // Uses AppleScript to request elevation through the system dialog, keeping credentials out of JS.
+  // Example: do shell script "ifconfig lo0 alias 127.0.0.2/32 up" with administrator privileges
+  const command = `ifconfig ${args.map((part) => part.replace(/"/g, '\\"')).join(" ")}`;
+  const appleScript = `do shell script "${command.replace(/"/g, '\\"')}" with administrator privileges`;
+
+  return await new Promise<{ success: boolean; output: string; error?: string }>((resolve) => {
+    const child = spawn("osascript", ["-e", appleScript]);
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", (data) => {
+      stdout += data.toString();
+    });
+
+    child.stderr.on("data", (data) => {
+      stderr += data.toString();
+    });
+
+    child.on("error", (error) => {
+      resolve({ success: false, output: stdout, error: error.message });
+    });
+
+    child.on("close", (code) => {
+      resolve({
+        success: code === 0,
+        output: stdout.trim(),
+        error: code === 0 ? undefined : (stderr.trim() || "Command failed."),
+      });
+    });
+  });
+};
+
+ipcMain.handle(
+  "network/configure-environment-interface",
+  async (_event, action: "add" | "remove", address: string) => {
+    if (!LOOPBACK_PATTERN.test(address)) {
+      return { success: false, error: "Invalid loopback address. Expected 127.0.0.x" };
+    }
+
+    const args =
+      action === "add"
+        ? ["lo0", "alias", `${address}/32`, "up"]
+        : ["lo0", "-alias", address];
+
+    try {
+      return await runPrivilegedIfconfig(args);
+    } catch (error) {
+      return {
+        success: false,
+        output: "",
+        error: error instanceof Error ? error.message : "Failed to configure environment interface.",
       };
     }
   },

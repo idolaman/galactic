@@ -17,4 +17,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("project/search-files", projectPath, query),
   copyProjectFilesToWorktree: (projectPath: string, worktreePath: string, files: string[]) =>
     ipcRenderer.invoke("project/copy-files-to-worktree", projectPath, worktreePath, files),
+  configureEnvironmentInterface: (action: "add" | "remove", address: string) =>
+    ipcRenderer.invoke("network/configure-environment-interface", action, address),
 });
