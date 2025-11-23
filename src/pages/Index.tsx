@@ -8,6 +8,8 @@ import { projectStorage, type StoredProject } from "@/services/projects";
 import { openProjectInEditor, type EditorName } from "@/services/editor";
 import type { Workspace } from "@/types/workspace";
 import { copyProjectFilesToWorktree, searchProjectFiles } from "@/services/files";
+import { useEnvironmentManager } from "@/hooks/use-environment-manager";
+import type { EnvironmentBinding } from "@/types/environment";
 
 type Project = StoredProject;
 
@@ -32,6 +34,7 @@ const Index = () => {
   });
   const [fileSearchResults, setFileSearchResults] = useState<string[]>([]);
   const [isSearchingFiles, setIsSearchingFiles] = useState(false);
+  const { environments, assignTarget, unassignTarget, environmentForTarget } = useEnvironmentManager();
 
   const handleAddProject = async () => {
     const projectPath = await chooseProjectDirectory();
@@ -235,6 +238,46 @@ const Index = () => {
     });
   };
 
+  const handleEnvironmentChange = (environmentId: string | null, binding: EnvironmentBinding) => {
+    const previousProjectEnvironment = environments.find((env) =>
+      env.bindings.some((entry) => entry.projectId === binding.projectId),
+    );
+
+    if (!environmentId) {
+      unassignTarget(binding.targetPath);
+      toast({
+        title: "Environment detached",
+        description: `${binding.targetLabel} is no longer isolated.`,
+      });
+      return;
+    }
+
+    const result = assignTarget(environmentId, binding);
+    if (!result.success) {
+      toast({
+        title: "Unable to attach environment",
+        description: result.error ?? "Unknown environment error.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Environment attached",
+      description:
+        `${binding.targetLabel} now uses ${
+          environments.find((env) => env.id === environmentId)?.name ?? "environment"
+        }.` +
+        (result.reassigned && previousProjectEnvironment
+          ? ` Moved from ${previousProjectEnvironment.name} to keep one workspace per project.`
+          : ""),
+    });
+  };
+
+  const getEnvironmentIdForTarget = (targetPath: string) => {
+    return environmentForTarget(targetPath)?.id ?? null;
+  };
+
   const handleSearchProjectFiles = useCallback(
     async (query: string) => {
       if (!selectedProject?.path) {
@@ -353,6 +396,9 @@ const Index = () => {
           onSearchFiles={handleSearchProjectFiles}
           onAddConfigFile={handleAddConfigFile}
           onRemoveConfigFile={handleRemoveConfigFile}
+          environments={environments}
+          getEnvironmentIdForTarget={getEnvironmentIdForTarget}
+          onEnvironmentChange={handleEnvironmentChange}
         />
       ) : (
         <ProjectList 

@@ -12,9 +12,12 @@ import {
 } from "@/components/ui/command";
 import { useEffect, useRef, useState } from "react";
 import type { Workspace } from "@/types/workspace";
+import type { Environment, EnvironmentBinding } from "@/types/environment";
+import { EnvironmentSelector } from "@/components/EnvironmentSelector";
 
 interface ProjectDetailProps {
   project: {
+    id: string;
     name: string;
     path: string;
     currentBranch?: string | null;
@@ -34,6 +37,9 @@ interface ProjectDetailProps {
   onSearchFiles: (query: string) => void;
   onAddConfigFile: (filePath: string) => void;
   onRemoveConfigFile: (filePath: string) => void;
+  environments: Environment[];
+  getEnvironmentIdForTarget: (targetPath: string) => string | null;
+  onEnvironmentChange: (environmentId: string | null, binding: EnvironmentBinding) => void;
 }
 
 export const ProjectDetail = ({
@@ -52,6 +58,9 @@ export const ProjectDetail = ({
   onSearchFiles,
   onAddConfigFile,
   onRemoveConfigFile,
+  environments,
+  getEnvironmentIdForTarget,
+  onEnvironmentChange,
 }: ProjectDetailProps) => {
   const [branchInput, setBranchInput] = useState("");
   const [branchSearchActive, setBranchSearchActive] = useState(false);
@@ -118,31 +127,50 @@ export const ProjectDetail = ({
 
       {/* Base Code */}
       <Card className="p-6 bg-gradient-card border-border shadow-card">
-        <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <h2 className="text-xl font-semibold">Base Code</h2>
-            {project.isGitRepo ? (
-              <div className="flex items-center gap-2">
-                <GitBranch className="h-4 w-4 text-primary" />
-                <Badge variant="secondary" className="font-mono">
-                  {project.currentBranch ?? "HEAD"}
-                </Badge>
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-3 flex-1">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-2">
+                <h2 className="text-xl font-semibold">Base Code</h2>
+                {project.isGitRepo ? (
+                  <div className="flex items-center gap-2">
+                    <GitBranch className="h-4 w-4 text-primary" />
+                    <Badge variant="secondary" className="font-mono">
+                      {project.currentBranch ?? "HEAD"}
+                    </Badge>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <AlertTriangle className="h-4 w-4 text-amber-400" />
+                    <span>Git is not initialized for this folder.</span>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <AlertTriangle className="h-4 w-4 text-amber-400" />
-                <span>Git is not initialized for this folder.</span>
-              </div>
-            )}
+              
+              <Button 
+                onClick={() => onOpenInEditor(project.path)}
+                className="bg-primary hover:bg-primary-glow transition-all duration-300"
+              >
+                <FolderOpen className="mr-2 h-4 w-4" />
+                Open in Editor
+              </Button>
+            </div>
+
+            <EnvironmentSelector
+              environments={environments}
+              value={getEnvironmentIdForTarget(project.path)}
+              targetLabel="the base code"
+              onChange={(environmentId) =>
+                onEnvironmentChange(environmentId, {
+                  projectId: project.id,
+                  projectName: project.name,
+                  targetPath: project.path,
+                  targetLabel: "Base Code",
+                  kind: "base",
+                })
+              }
+            />
           </div>
-          
-          <Button 
-            onClick={() => onOpenInEditor(project.path)}
-            className="bg-primary hover:bg-primary-glow transition-all duration-300"
-          >
-            <FolderOpen className="mr-2 h-4 w-4" />
-            Open in Editor
-          </Button>
         </div>
       </Card>
 
@@ -199,6 +227,21 @@ export const ProjectDetail = ({
                         Debug in Base Code
                       </Button>
                     </div>
+
+                    <EnvironmentSelector
+                      environments={environments}
+                      value={getEnvironmentIdForTarget(branch.workspace)}
+                      targetLabel={`${branch.name} workspace`}
+                      onChange={(environmentId) =>
+                        onEnvironmentChange(environmentId, {
+                          projectId: project.id,
+                          projectName: project.name,
+                          targetPath: branch.workspace,
+                          targetLabel: branch.name,
+                          kind: "workspace",
+                        })
+                      }
+                    />
                   </div>
                 </Card>
               ))}

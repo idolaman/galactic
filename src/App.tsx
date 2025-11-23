@@ -15,6 +15,7 @@ import CodingAgents from "./pages/CodingAgents";
 import NotFound from "./pages/NotFound";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeProvider } from "@/components/theme-provider";
+import { EnvironmentProvider } from "@/hooks/use-environment-manager";
 
 const queryClient = new QueryClient();
 
@@ -46,36 +47,38 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="dark" storageKey="galactic-ide-theme">
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          {!user ? (
-            <GitHubAuth onAuthSuccess={handleAuthSuccess} />
-          ) : (
-            <BrowserRouter>
-              <SidebarProvider defaultOpen>
-                <div className="flex h-svh w-full bg-background">
-                  <AppSidebar />
-                  <SidebarInset>
-                    <Header user={user} onLogout={handleLogout} />
-                    <div className="flex-1 overflow-hidden">
-                      <div className="h-full overflow-auto">
-                        <Routes>
-                          <Route path="/" element={<Index />} />
-                          <Route path="/environments" element={<Environments />} />
-                          <Route path="/agents" element={<CodingAgents />} />
-                          <Route path="/settings" element={<Settings />} />
-                          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                          <Route path="*" element={<NotFound />} />
-                        </Routes>
+        <EnvironmentProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            {!user ? (
+              <GitHubAuth onAuthSuccess={handleAuthSuccess} />
+            ) : (
+              <BrowserRouter>
+                <SidebarProvider defaultOpen>
+                  <div className="flex h-svh w-full bg-background">
+                    <AppSidebar />
+                    <SidebarInset>
+                      <Header user={user} onLogout={handleLogout} />
+                      <div className="flex-1 overflow-hidden">
+                        <div className="h-full overflow-auto">
+                          <Routes>
+                            <Route path="/" element={<Index />} />
+                            <Route path="/environments" element={<Environments />} />
+                            <Route path="/agents" element={<CodingAgents />} />
+                            <Route path="/settings" element={<Settings />} />
+                            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                            <Route path="*" element={<NotFound />} />
+                          </Routes>
+                        </div>
                       </div>
-                    </div>
-                  </SidebarInset>
-                </div>
-              </SidebarProvider>
-            </BrowserRouter>
-          )}
-        </TooltipProvider>
+                    </SidebarInset>
+                  </div>
+                </SidebarProvider>
+              </BrowserRouter>
+            )}
+          </TooltipProvider>
+        </EnvironmentProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

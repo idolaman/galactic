@@ -30,6 +30,10 @@ declare global {
         copied: string[];
         errors?: Array<{ file: string; message: string }>;
       }>;
+      configureEnvironmentInterface: (
+        action: "add" | "remove",
+        address: string,
+      ) => Promise<{ success: boolean; output?: string; error?: string }>;
     };
   }
 }
