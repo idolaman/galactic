@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   HardDrive,
-  Info,
   Network,
   Pencil,
   Plus,
-  Search,
   Settings2,
   ShieldCheck,
   Trash2,
@@ -44,10 +42,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useEnvironmentManager } from "@/hooks/use-environment-manager";
 import type { Environment } from "@/types/environment";
@@ -74,7 +72,6 @@ export default function Environments() {
   const [environmentToDelete, setEnvironmentToDelete] = useState<Environment | null>(
     null
   );
-  const [searchQuery, setSearchQuery] = useState("");
 
   // Select initial environment
   useEffect(() => {
@@ -92,15 +89,6 @@ export default function Environments() {
     () => environments.find((env) => env.id === selectedEnvironmentId) || null,
     [environments, selectedEnvironmentId]
   );
-
-  const filteredEnvironments = useMemo(() => {
-    if (!searchQuery) return environments;
-    const lower = searchQuery.toLowerCase();
-    return environments.filter(
-      (env) =>
-        env.name.toLowerCase().includes(lower) || env.address.includes(lower)
-    );
-  }, [environments, searchQuery]);
 
   // Sync local config state with selected environment
   useEffect(() => {
@@ -236,7 +224,7 @@ export default function Environments() {
   return (
     <div className="h-full flex flex-col bg-background">
       {/* Header */}
-      <header className="flex h-14 items-center justify-between border-b px-6 shrink-0">
+      <header className="flex h-14 items-center justify-between border-b px-6 shrink-0 gap-4">
         <div className="flex items-center gap-2">
           <Network className="h-5 w-5 text-primary" />
           <h1 className="text-lg font-semibold">Environments</h1>
@@ -244,7 +232,8 @@ export default function Environments() {
             {environments.length}
           </Badge>
         </div>
-        <div className="flex items-center gap-2">
+
+        <div className="flex items-center gap-2 flex-1 justify-end">
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button size="sm">
@@ -298,264 +287,227 @@ export default function Environments() {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-hidden">
-        <ResizablePanelGroup direction="horizontal">
-          {/* Sidebar List */}
-          <ResizablePanel defaultSize={30} minSize={20} maxSize={40}>
-            <div className="flex h-full flex-col border-r">
-              <div className="p-4 border-b">
-                <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Filter environments..."
-                    className="pl-8"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Tabs 
+          value={selectedEnvironmentId || ""} 
+          onValueChange={(val) => setSelectedEnvironmentId(val)}
+          className="flex-1 flex flex-col overflow-hidden"
+        >
+          {/* Tabs List Bar */}
+          <div className="border-b bg-muted/10 px-6 pt-2">
+          <TabsList className="w-full justify-start h-auto p-0 bg-transparent gap-2 flex-wrap rounded-none border-b-0">
+            {environments.map((env) => (
+              <TabsTrigger
+                key={env.id}
+                value={env.id}
+                className="data-[state=active]:bg-background data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none border-b-2 border-transparent px-4 py-3 h-auto"
+              >
+                <span className="mr-2">{env.name}</span>
+                <Badge variant="secondary" className="font-mono text-[10px] px-1 h-4 leading-none">
+                  {env.address}
+                </Badge>
+              </TabsTrigger>
+            ))}
+            {environments.length === 0 && (
+              <div className="py-3 text-sm text-muted-foreground px-2">
+                No environments yet
               </div>
-              <ScrollArea className="flex-1">
-                {filteredEnvironments.length === 0 ? (
-                  <div className="p-8 text-center text-sm text-muted-foreground">
-                    {searchQuery ? "No matches found." : "No environments yet."}
-                  </div>
-                ) : (
-                  <div className="flex flex-col p-2 gap-1">
-                    {filteredEnvironments.map((env) => (
-                      <button
-                        key={env.id}
-                        onClick={() => setSelectedEnvironmentId(env.id)}
-                        className={cn(
-                          "flex flex-col items-start gap-1 rounded-md p-3 text-sm transition-colors hover:bg-accent hover:text-accent-foreground text-left",
-                          selectedEnvironmentId === env.id
-                            ? "bg-accent text-accent-foreground"
-                            : "transparent"
-                        )}
+            )}
+          </TabsList>
+          </div>
+
+          {/* Tab Content Area */}
+          <div className="flex-1 overflow-hidden bg-muted/10">
+            {selectedEnvironment ? (
+              <div className="flex-1 flex flex-col h-full overflow-hidden">
+                {/* Detail Header */}
+                <div className="p-6 pb-4 border-b bg-background">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h2 className="text-2xl font-bold tracking-tight">
+                        {selectedEnvironment.name}
+                      </h2>
+                      <div className="flex items-center gap-2 mt-1 text-muted-foreground">
+                        <Network className="h-4 w-4" />
+                        <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-foreground">
+                          {selectedEnvironment.address}
+                        </code>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:text-primary"
+                        onClick={() => {
+                          setRenameName(selectedEnvironment.name);
+                          setIsRenameDialogOpen(true);
+                        }}
                       >
-                        <div className="flex w-full items-center justify-between">
-                          <span className="font-semibold truncate">{env.name}</span>
-                          <Badge
-                            variant="secondary"
-                            className="font-mono text-[10px] px-1 h-5"
-                          >
-                            {env.address}
-                          </Badge>
-                        </div>
-                        <div className="text-xs text-muted-foreground flex items-center gap-2">
-                          <span>{env.bindings.length} bindings</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </ScrollArea>
-            </div>
-          </ResizablePanel>
-
-          <ResizableHandle withHandle />
-
-          {/* Details View */}
-          <ResizablePanel defaultSize={70}>
-            <div className="h-full flex flex-col bg-muted/10">
-              {selectedEnvironment ? (
-                <div className="flex-1 flex flex-col h-full overflow-hidden">
-                  {/* Detail Header */}
-                  <div className="p-6 pb-4 border-b bg-background">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h2 className="text-2xl font-bold tracking-tight">
-                          {selectedEnvironment.name}
-                        </h2>
-                        <div className="flex items-center gap-2 mt-1 text-muted-foreground">
-                          <Network className="h-4 w-4" />
-                          <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-foreground">
-                            {selectedEnvironment.address}
-                          </code>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-muted-foreground hover:text-primary"
-                          onClick={() => {
-                            setRenameName(selectedEnvironment.name);
-                            setIsRenameDialogOpen(true);
-                          }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-muted-foreground hover:text-destructive"
-                          onClick={() => setEnvironmentToDelete(selectedEnvironment)}
-                        >
-                          <Trash2 className="h-5 w-5" />
-                        </Button>
-                      </div>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:text-destructive"
+                        onClick={() => setEnvironmentToDelete(selectedEnvironment)}
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </Button>
                     </div>
                   </div>
+                </div>
 
-                  {/* Detail Content */}
-                  <ScrollArea className="flex-1 p-6">
-                    <div className="max-w-3xl space-y-8">
-                      
-                      {/* Configuration Card */}
-                      <Card className="overflow-hidden">
-                        <CardHeader className="bg-muted/40 pb-4">
-                          <div className="flex items-center gap-2">
-                            <Settings2 className="h-5 w-5 text-primary" />
-                            <CardTitle className="text-lg">Environment Settings</CardTitle>
-                          </div>
-                          <CardDescription>
-                            Configure how your project connects to this environment.
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-6 grid gap-6">
-                          <div className="space-y-3">
-                            <Label htmlFor="config-host" className="text-sm font-medium">
-                              Host Variable Name
-                            </Label>
-                            <div className="flex items-center gap-3 max-w-md">
-                              <Input
-                                id="config-host"
-                                value={configHostVar}
-                                placeholder="HOST"
-                                onChange={(e) => setConfigHostVar(e.target.value)}
-                                onBlur={handleSaveConfig}
-                                onKeyDown={(e) => e.key === 'Enter' && handleSaveConfig()}
-                                className="font-mono"
-                              />
-                              <span className="text-muted-foreground text-sm shrink-0">
-                                = {selectedEnvironment.address}
-                              </span>
-                            </div>
-                            <p className="text-[13px] text-muted-foreground leading-relaxed">
-                              This environment variable will be injected into your editor. 
-                              Your application must read <code className="font-mono font-medium text-foreground">{configHostVar || "HOST"}</code> to bind the services to the correct local IP.
-                            </p>
-                          </div>
-                        </CardContent>
-                      </Card>
-
-                      {/* Developer Guide */}
-                      <div className="rounded-md border bg-blue-50/50 dark:bg-blue-950/20 p-4">
-                        <div className="flex items-start gap-3">
-                          <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
-                          <div className="space-y-2 text-sm">
-                            <h4 className="font-semibold text-blue-900 dark:text-blue-100">
-                              Listening to the Environment
-                            </h4>
-                            <p className="text-blue-800 dark:text-blue-300 leading-relaxed">
-                              When you open a project in this environment, the IDE is spawned with the environment variable configured above.
-                            </p>
-                            <div className="mt-2 p-3 rounded bg-background/80 border border-blue-200 dark:border-blue-800 font-mono text-xs space-y-1">
-                              <div className="text-muted-foreground"># Example: Node.js / Express</div>
-                              <div>
-                                <span className="text-purple-600 dark:text-purple-400">const</span> host = process.env.{configHostVar || "HOST"} || <span className="text-green-600 dark:text-green-400">"0.0.0.0"</span>;
-                              </div>
-                              <div>
-                                app.listen(port, <span className="font-bold text-foreground">host</span>, () ={">"} {"{"} ... {"}"});
-                              </div>
-                            </div>
-                            <p className="text-blue-800 dark:text-blue-300 text-xs mt-2">
-                              <strong>Important:</strong> Do not bind to <code className="font-mono">localhost</code> or <code className="font-mono">127.0.0.1</code>. Always use the variable.
-                            </p>
-                          </div>
+                {/* Detail Content */}
+                <ScrollArea className="flex-1 p-6">
+                  <div className="max-w-4xl space-y-8 mx-auto">
+                    
+                    {/* Configuration Card */}
+                    <Card className="overflow-hidden">
+                      <CardHeader className="bg-muted/40 pb-4">
+                        <div className="flex items-center gap-2">
+                          <Settings2 className="h-5 w-5 text-primary" />
+                          <CardTitle className="text-lg">Environment Settings</CardTitle>
                         </div>
-                      </div>
+                        <CardDescription>
+                          Configure how your project connects to this environment.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="p-6 grid gap-6">
+                        <div className="space-y-3">
+                          <Label htmlFor="config-host" className="text-sm font-medium">
+                            Host Variable Name
+                          </Label>
+                          <div className="flex items-center gap-3 max-w-md">
+                            <Input
+                              id="config-host"
+                              value={configHostVar}
+                              placeholder="HOST"
+                              onChange={(e) => setConfigHostVar(e.target.value)}
+                              onBlur={handleSaveConfig}
+                              onKeyDown={(e) => e.key === 'Enter' && handleSaveConfig()}
+                              className="font-mono"
+                            />
+                            <span className="text-muted-foreground text-sm shrink-0">
+                              = {selectedEnvironment.address}
+                            </span>
+                          </div>
+                          <p className="text-[13px] text-muted-foreground leading-relaxed">
+                            This environment variable will be injected into your editor. 
+                            Your application must read <code className="font-mono font-medium text-foreground">{configHostVar || "HOST"}</code> to bind the services to the correct local IP.
+                          </p>
+                        </div>
 
-                      {/* Bindings Section */}
-                      <section>
-                        <h3 className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wider">
-                          Attached Bindings
-                        </h3>
-                        {selectedEnvironment.bindings.length === 0 ? (
-                          <Card className="border-dashed bg-muted/30">
-                            <CardContent className="flex flex-col items-center justify-center py-8 text-center">
-                              <HardDrive className="h-10 w-10 text-muted-foreground mb-4 opacity-50" />
-                              <p className="font-medium">No bindings attached</p>
-                              <p className="text-sm text-muted-foreground max-w-xs mt-1">
-                                Go to the Projects page to attach a workspace or
-                                base code to this environment.
-                              </p>
-                            </CardContent>
-                          </Card>
-                        ) : (
-                          <div className="grid gap-4">
-                            {selectedEnvironment.bindings.map((binding) => (
-                              <Card key={binding.targetPath} className="bg-card">
-                                <CardContent className="p-4 flex items-center justify-between gap-4">
-                                  <div className="space-y-1 min-w-0">
-                                    <div className="flex items-center gap-2">
-                                      <h4 className="font-medium truncate">
-                                        {binding.targetLabel}
-                                      </h4>
-                                      <Badge variant="outline" className="shrink-0">
-                                        {binding.projectName}
-                                      </Badge>
-                                      <Badge
-                                        variant={
-                                          binding.kind === "base"
-                                            ? "default"
-                                            : "secondary"
-                                        }
-                                        className="shrink-0"
-                                      >
-                                        {binding.kind === "base"
-                                          ? "Base"
-                                          : "Workspace"}
-                                      </Badge>
-                                    </div>
-                                    <p className="text-xs font-mono text-muted-foreground truncate" title={binding.targetPath}>
-                                      {binding.targetPath}
-                                    </p>
-                                  </div>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() =>
-                                      handleUnassign(
-                                        binding.targetPath,
-                                        binding.targetLabel
-                                      )
+                        <div className="space-y-2 pt-2 border-t">
+                          <Label className="text-sm font-medium">Usage Example</Label>
+                          <div className="p-3 rounded bg-muted/50 border font-mono text-xs space-y-1">
+                            <div className="text-muted-foreground"># Example: Node.js / Express</div>
+                            <div>
+                              <span className="text-purple-600 dark:text-purple-400">const</span> host = process.env.{configHostVar || "HOST"} || <span className="text-green-600 dark:text-green-400">"0.0.0.0"</span>;
+                            </div>
+                            <div>
+                              app.listen(port, <span className="font-bold text-foreground">host</span>, () ={">"} {"{"} ... {"}"});
+                            </div>
+                          </div>
+                          <p className="text-[13px] text-muted-foreground">
+                            <strong>Important:</strong> Do not bind to <code className="font-mono">localhost</code> or <code className="font-mono">127.0.0.1</code>. Always use the variable.
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Bindings Section */}
+                    <section>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wider">
+                        Attached Bindings
+                      </h3>
+                      {selectedEnvironment.bindings.length === 0 ? (
+                        <Card className="border-dashed bg-muted/30">
+                          <CardContent className="flex flex-col items-center justify-center py-8 text-center">
+                            <HardDrive className="h-10 w-10 text-muted-foreground mb-4 opacity-50" />
+                            <p className="font-medium">No bindings attached</p>
+                            <p className="text-sm text-muted-foreground max-w-xs mt-1">
+                              Go to the Projects page to attach a workspace or
+                              base code to this environment.
+                            </p>
+                          </CardContent>
+                        </Card>
+                      ) : (
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                          {selectedEnvironment.bindings.map((binding) => (
+                            <Card key={binding.targetPath} className="bg-card hover:border-primary/50 transition-colors">
+                              <CardContent className="p-4 flex flex-col gap-3 relative group">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() =>
+                                    handleUnassign(
+                                      binding.targetPath,
+                                      binding.targetLabel
+                                    )
+                                  }
+                                  className="absolute right-2 top-2 h-6 w-6 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                                
+                                <div className="flex items-center gap-2 pr-6">
+                                  <h4 className="font-medium truncate" title={binding.targetLabel}>
+                                    {binding.targetLabel}
+                                  </h4>
+                                </div>
+                                
+                                <div className="flex flex-wrap gap-2">
+                                  <Badge variant="outline" className="shrink-0 text-[10px] h-5">
+                                    {binding.projectName}
+                                  </Badge>
+                                  <Badge
+                                    variant={
+                                      binding.kind === "base"
+                                        ? "default"
+                                        : "secondary"
                                     }
-                                    className="shrink-0 text-muted-foreground hover:text-destructive"
+                                    className="shrink-0 text-[10px] h-5"
                                   >
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </div>
-                        )}
-                      </section>
-                    </div>
-                  </ScrollArea>
-                </div>
-              ) : (
-                <div className="flex h-full flex-col items-center justify-center text-muted-foreground p-8 text-center">
-                  <Settings2 className="h-12 w-12 mb-4 opacity-20" />
-                  <h3 className="font-semibold text-lg text-foreground">
-                    No Environment Selected
-                  </h3>
-                  <p className="max-w-sm mt-2">
-                    Select an environment from the list or create a new one to get
-                    started with isolated networking.
-                  </p>
-                  <Button
-                    variant="outline"
-                    className="mt-6"
-                    onClick={() => setIsCreateDialogOpen(true)}
-                  >
-                    Create Environment
-                  </Button>
-                </div>
-              )}
-            </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
+                                    {binding.kind === "base"
+                                      ? "Base"
+                                      : "Workspace"}
+                                  </Badge>
+                                </div>
+                                
+                                <p className="text-[10px] font-mono text-muted-foreground truncate border-t pt-2 mt-1" title={binding.targetPath}>
+                                  {binding.targetPath}
+                                </p>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      )}
+                    </section>
+                  </div>
+                </ScrollArea>
+              </div>
+            ) : (
+              <div className="flex h-full flex-col items-center justify-center text-muted-foreground p-8 text-center">
+                <Settings2 className="h-12 w-12 mb-4 opacity-20" />
+                <h3 className="font-semibold text-lg text-foreground">
+                  No Environment Selected
+                </h3>
+                <p className="max-w-sm mt-2">
+                  Select an environment from the tabs above or create a new one to get
+                  started with isolated networking.
+                </p>
+                <Button
+                  variant="outline"
+                  className="mt-6"
+                  onClick={() => setIsCreateDialogOpen(true)}
+                >
+                  Create Environment
+                </Button>
+              </div>
+            )}
+          </div>
+        </Tabs>
       </div>
 
       {/* Rename Dialog */}
