@@ -1,7 +1,8 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, GitBranch, GitMerge, FolderOpen, AlertTriangle, Bug, Trash2, FileCode, X, Loader2 } from "lucide-react";
+import { ArrowLeft, GitBranch, GitMerge, FolderOpen, AlertTriangle, Bug, Trash2, FileCode, X, Loader2, RefreshCw } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   Command,
   CommandEmpty,
@@ -10,6 +11,16 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useEffect, useRef, useState } from "react";
 import type { Workspace } from "@/types/workspace";
 import type { Environment, EnvironmentBinding } from "@/types/environment";
@@ -41,6 +52,91 @@ interface ProjectDetailProps {
   getEnvironmentIdForTarget: (targetPath: string) => string | null;
   onEnvironmentChange: (environmentId: string | null, binding: EnvironmentBinding) => void;
 }
+
+interface LaunchButtonProps {
+  path: string;
+  onLaunch: (path: string) => void;
+  currentEnvId: string | null;
+  children: React.ReactNode;
+  className?: string;
+  variant?: "default" | "secondary" | "ghost" | "destructive" | "outline" | "link";
+}
+
+const LaunchButton = ({
+  path,
+  onLaunch,
+  currentEnvId,
+  children,
+  className,
+  variant = "default",
+}: LaunchButtonProps) => {
+  const [showDialog, setShowDialog] = useState(false);
+  // We assume the editor is "synced" with the environment present at mount time.
+  // If the environment ID changes, we flag it as needing a relaunch.
+  // When launched, we update the synced ID to match the current one.
+  const [syncedEnvId, setSyncedEnvId] = useState<string | null>(currentEnvId);
+
+  // If the environment configuration differs from what we last "synced" (launched or mounted with),
+  // we suggest a relaunch to apply the changes.
+  const needsRelaunch = currentEnvId !== syncedEnvId;
+
+  const handleLaunch = () => {
+    onLaunch(path);
+    setSyncedEnvId(currentEnvId);
+    setShowDialog(false);
+  };
+
+  if (!needsRelaunch) {
+    return (
+      <Button
+        onClick={handleLaunch}
+        className={className}
+        variant={variant}
+      >
+        {children}
+      </Button>
+    );
+  }
+
+  return (
+    <>
+      <Button
+        onClick={() => setShowDialog(true)}
+        className={cn(className, "bg-orange-600 hover:bg-orange-700 text-white border-orange-700")}
+        variant={variant}
+      >
+        <RefreshCw className="mr-2 h-4 w-4" />
+        Relaunch
+      </Button>
+
+      <AlertDialog open={showDialog} onOpenChange={setShowDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Relaunch Required</AlertDialogTitle>
+            <AlertDialogDescription>
+              To apply environment changes, you must manually close the existing editor window for this project.
+              <br />
+              <br />
+              Once closed, click <strong>Launch</strong> to re-open it with the new settings.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button
+              variant="secondary"
+              onClick={() => onLaunch(path)}
+            >
+              Focus Window
+            </Button>
+            <AlertDialogAction onClick={handleLaunch}>
+              Launch
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+};
 
 export const ProjectDetail = ({
   project,
@@ -147,13 +243,15 @@ export const ProjectDetail = ({
                 )}
               </div>
               
-              <Button 
-                onClick={() => onOpenInEditor(project.path)}
+              <LaunchButton
+                path={project.path}
+                onLaunch={onOpenInEditor}
+                currentEnvId={getEnvironmentIdForTarget(project.path)}
                 className="bg-primary hover:bg-primary-glow transition-all duration-300"
               >
                 <FolderOpen className="mr-2 h-4 w-4" />
                 Open in Editor
-              </Button>
+              </LaunchButton>
             </div>
 
             <EnvironmentSelector
@@ -210,13 +308,15 @@ export const ProjectDetail = ({
                   </div>
 
                     <div className="flex gap-2">
-                      <Button 
-                    onClick={() => onOpenInEditor(branch.workspace)}
+                      <LaunchButton
+                        path={branch.workspace}
+                        onLaunch={onOpenInEditor}
+                        currentEnvId={getEnvironmentIdForTarget(branch.workspace)}
                         className="flex-1 bg-primary hover:bg-primary/90"
                       >
                         <FolderOpen className="mr-2 h-4 w-4" />
                         Move to
-                      </Button>
+                      </LaunchButton>
                       
                       <Button 
                         variant="secondary"
