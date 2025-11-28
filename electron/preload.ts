@@ -19,4 +19,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("project/copy-files-to-worktree", projectPath, worktreePath, files),
   configureEnvironmentInterface: (action: "add" | "remove", address: string) =>
     ipcRenderer.invoke("network/configure-environment-interface", action, address),
+  writeCodeWorkspace: (
+    targetPath: string,
+    envConfig: { hostVariable?: string; address?: string } | null,
+  ) => ipcRenderer.invoke("workspace/write-code-workspace", targetPath, envConfig),
+  getCodeWorkspacePath: (targetPath: string) =>
+    ipcRenderer.invoke("workspace/get-code-workspace-path", targetPath),
 });

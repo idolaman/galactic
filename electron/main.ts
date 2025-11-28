@@ -460,6 +460,8 @@ ipcMain.handle(
   },
 );
 
+import { createHash } from "node:crypto";
+
 const LOOPBACK_PATTERN = /^127\.0\.0\.\d{1,3}$/;
 
 const runPrivilegedIfconfig = async (args: string[]) => {
@@ -520,5 +522,98 @@ ipcMain.handle(
         error: error instanceof Error ? error.message : "Failed to configure environment interface.",
       };
     }
+  },
+);
+
+const WORKSPACES_CACHE_DIR = "galactic-workspaces";
+
+interface WorkspaceEnvConfig {
+  hostVariable?: string;
+  address?: string;
+}
+
+const getWorkspacesCacheDir = () => {
+  const cacheDir = path.join(app.getPath("userData"), WORKSPACES_CACHE_DIR);
+  if (!existsSync(cacheDir)) {
+    mkdirSync(cacheDir, { recursive: true });
+  }
+  return cacheDir;
+};
+
+const hashTargetPath = (targetPath: string): string => {
+  return createHash("sha256").update(targetPath).digest("hex").slice(0, 16);
+};
+
+const getWorkspaceFilePath = (targetPath: string): string => {
+  const hash = hashTargetPath(targetPath);
+  const safeName = path.basename(targetPath).replace(/[^a-zA-Z0-9_-]/g, "_");
+  return path.join(getWorkspacesCacheDir(), `${safeName}-${hash}.code-workspace`);
+};
+
+const buildWorkspaceContent = (targetPath: string, envConfig: WorkspaceEnvConfig | null) => {
+  const settings: Record<string, unknown> = {};
+
+  if (envConfig && (envConfig.hostVariable || envConfig.address)) {
+    const envVars: Record<string, string> = {};
+    if (envConfig.hostVariable && envConfig.address) {
+      envVars[envConfig.hostVariable] = envConfig.address;
+    }
+
+    if (Object.keys(envVars).length > 0) {
+      settings["terminal.integrated.env.osx"] = envVars;
+      settings["terminal.integrated.env.linux"] = envVars;
+      settings["terminal.integrated.env.windows"] = envVars;
+    }
+  }
+
+  return JSON.stringify(
+    {
+      folders: [{ path: targetPath }],
+      settings,
+    },
+    null,
+    2,
+  );
+};
+
+ipcMain.handle(
+  "workspace/write-code-workspace",
+  async (
+    _event,
+    targetPath: string,
+    envConfig: WorkspaceEnvConfig | null,
+  ): Promise<{ success: boolean; workspacePath?: string; error?: string }> => {
+    if (!targetPath) {
+      return { success: false, error: "No target path provided." };
+    }
+
+    if (!existsSync(targetPath)) {
+      return { success: false, error: "Target path does not exist." };
+    }
+
+    const workspacePath = getWorkspaceFilePath(targetPath);
+
+    try {
+      const content = buildWorkspaceContent(targetPath, envConfig);
+      await fsPromises.writeFile(workspacePath, content, "utf-8");
+      return { success: true, workspacePath };
+    } catch (error) {
+      console.error(`Failed to write workspace file:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to write workspace file.",
+      };
+    }
+  },
+);
+
+ipcMain.handle(
+  "workspace/get-code-workspace-path",
+  async (_event, targetPath: string): Promise<{ exists: boolean; workspacePath: string }> => {
+    const workspacePath = getWorkspaceFilePath(targetPath);
+    return {
+      exists: existsSync(workspacePath),
+      workspacePath,
+    };
   },
 );

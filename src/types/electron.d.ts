@@ -1,5 +1,10 @@
 export {};
 
+export interface WorkspaceEnvConfig {
+  hostVariable?: string;
+  address?: string;
+}
+
 declare global {
   interface Window {
     electronAPI: {
@@ -34,6 +39,13 @@ declare global {
         action: "add" | "remove",
         address: string,
       ) => Promise<{ success: boolean; output?: string; error?: string }>;
+      writeCodeWorkspace: (
+        targetPath: string,
+        envConfig: WorkspaceEnvConfig | null,
+      ) => Promise<{ success: boolean; workspacePath?: string; error?: string }>;
+      getCodeWorkspacePath: (
+        targetPath: string,
+      ) => Promise<{ exists: boolean; workspacePath: string }>;
     };
   }
 }
