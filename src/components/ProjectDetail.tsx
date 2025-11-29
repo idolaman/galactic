@@ -25,6 +25,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Workspace } from "@/types/workspace";
 import type { Environment, EnvironmentBinding } from "@/types/environment";
 import { EnvironmentSelector } from "@/components/EnvironmentSelector";
+import { workspaceNeedsRelaunch, clearWorkspaceRelaunchFlag } from "@/services/workspace-state";
 
 interface ProjectDetailProps {
   project: {
@@ -56,7 +57,6 @@ interface ProjectDetailProps {
 interface LaunchButtonProps {
   path: string;
   onLaunch: (path: string) => void;
-  currentEnvId: string | null;
   children: React.ReactNode;
   className?: string;
   variant?: "default" | "secondary" | "ghost" | "destructive" | "outline" | "link";
@@ -65,24 +65,16 @@ interface LaunchButtonProps {
 const LaunchButton = ({
   path,
   onLaunch,
-  currentEnvId,
   children,
   className,
   variant = "default",
 }: LaunchButtonProps) => {
   const [showDialog, setShowDialog] = useState(false);
-  // We assume the editor is "synced" with the environment present at mount time.
-  // If the environment ID changes, we flag it as needing a relaunch.
-  // When launched, we update the synced ID to match the current one.
-  const [syncedEnvId, setSyncedEnvId] = useState<string | null>(currentEnvId);
-
-  // If the environment configuration differs from what we last "synced" (launched or mounted with),
-  // we suggest a relaunch to apply the changes.
-  const needsRelaunch = currentEnvId !== syncedEnvId;
+  const needsRelaunch = workspaceNeedsRelaunch(path);
 
   const handleLaunch = () => {
     onLaunch(path);
-    setSyncedEnvId(currentEnvId);
+    clearWorkspaceRelaunchFlag(path);
     setShowDialog(false);
   };
 
@@ -246,7 +238,6 @@ export const ProjectDetail = ({
               <LaunchButton
                 path={project.path}
                 onLaunch={onOpenInEditor}
-                currentEnvId={getEnvironmentIdForTarget(project.path)}
                 className="bg-primary hover:bg-primary-glow transition-all duration-300"
               >
                 <FolderOpen className="mr-2 h-4 w-4" />
@@ -311,7 +302,6 @@ export const ProjectDetail = ({
                       <LaunchButton
                         path={branch.workspace}
                         onLaunch={onOpenInEditor}
-                        currentEnvId={getEnvironmentIdForTarget(branch.workspace)}
                         className="flex-1 bg-primary hover:bg-primary/90"
                       >
                         <FolderOpen className="mr-2 h-4 w-4" />
