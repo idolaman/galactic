@@ -1,5 +1,5 @@
 appId: com.galactic.ide
-productName: Galactic IDE
+productName: Galactic
 directories:
   output: release
   buildResources: resources
@@ -10,8 +10,27 @@ asar: true
 mac:
   category: public.app-category.developer-tools
   target:
-    - dmg
-    - zip
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+    - target: zip
+      arch:
+        - x64
+        - arm64
+  icon: src/assets/icon.png
+
+dmg:
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+  window:
+    width: 540
+    height: 380
+
 extraMetadata:
   main: dist-electron/main.js
-

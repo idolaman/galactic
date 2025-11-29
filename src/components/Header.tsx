@@ -22,7 +22,7 @@ export const Header = ({ user, onLogout }: HeaderProps) => (
         <div className="flex items-center gap-3">
           <Code2 className="h-6 w-6 text-primary" />
           <div>
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">Galactic IDE</p>
+            <p className="text-xs uppercase tracking-widest text-muted-foreground">Galactic</p>
             <h1 className="text-lg font-semibold leading-tight">Project Control Center</h1>
           </div>
         </div>
