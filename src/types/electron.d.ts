@@ -46,6 +46,9 @@ declare global {
       getCodeWorkspacePath: (
         targetPath: string,
       ) => Promise<{ exists: boolean; workspacePath: string }>;
+      deleteCodeWorkspace: (
+        targetPath: string,
+      ) => Promise<{ success: boolean; error?: string }>;
     };
   }
 }
