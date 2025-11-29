@@ -548,11 +548,10 @@ const getWorkspaceFilePath = (targetPath: string): string => {
 const buildWorkspaceContent = (targetPath: string, envConfig: WorkspaceEnvConfig | null) => {
   const settings: Record<string, unknown> = {};
 
-  if (envConfig && (envConfig.hostVariable || envConfig.address)) {
+  if (envConfig && envConfig.address) {
     const envVars: Record<string, string> = {};
-    if (envConfig.hostVariable && envConfig.address) {
-      envVars[envConfig.hostVariable] = envConfig.address;
-    }
+    const hostVar = envConfig.hostVariable || "HOST";
+    envVars[hostVar] = envConfig.address;
 
     if (Object.keys(envVars).length > 0) {
       settings["terminal.integrated.env.osx"] = envVars;
