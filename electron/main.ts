@@ -11,7 +11,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { existsSync, mkdirSync } from "node:fs";
 import { promises as fsPromises } from "node:fs";
-import { execFile, exec } from "node:child_process";
+import { execFile, exec, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import type { ExecFileException } from "node:child_process";
 const __filename = fileURLToPath(import.meta.url);
@@ -457,5 +457,163 @@ ipcMain.handle(
         ],
       };
     }
+  },
+);
+
+import { createHash } from "node:crypto";
+
+const LOOPBACK_PATTERN = /^127\.0\.0\.\d{1,3}$/;
+
+const runPrivilegedIfconfig = async (args: string[]) => {
+  if (process.platform !== "darwin") {
+    return { success: false, output: "", error: "Environment networking is only supported on macOS." };
+  }
+
+  // Uses AppleScript to request elevation through the system dialog, keeping credentials out of JS.
+  // Example: do shell script "ifconfig lo0 alias 127.0.0.2/32 up" with administrator privileges
+  const command = `ifconfig ${args.map((part) => part.replace(/"/g, '\\"')).join(" ")}`;
+  const appleScript = `do shell script "${command.replace(/"/g, '\\"')}" with administrator privileges`;
+
+  return await new Promise<{ success: boolean; output: string; error?: string }>((resolve) => {
+    const child = spawn("osascript", ["-e", appleScript]);
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", (data) => {
+      stdout += data.toString();
+    });
+
+    child.stderr.on("data", (data) => {
+      stderr += data.toString();
+    });
+
+    child.on("error", (error) => {
+      resolve({ success: false, output: stdout, error: error.message });
+    });
+
+    child.on("close", (code) => {
+      resolve({
+        success: code === 0,
+        output: stdout.trim(),
+        error: code === 0 ? undefined : (stderr.trim() || "Command failed."),
+      });
+    });
+  });
+};
+
+ipcMain.handle(
+  "network/configure-environment-interface",
+  async (_event, action: "add" | "remove", address: string) => {
+    if (!LOOPBACK_PATTERN.test(address)) {
+      return { success: false, error: "Invalid loopback address. Expected 127.0.0.x" };
+    }
+
+    const args =
+      action === "add"
+        ? ["lo0", "alias", `${address}/32`, "up"]
+        : ["lo0", "-alias", address];
+
+    try {
+      return await runPrivilegedIfconfig(args);
+    } catch (error) {
+      return {
+        success: false,
+        output: "",
+        error: error instanceof Error ? error.message : "Failed to configure environment interface.",
+      };
+    }
+  },
+);
+
+const WORKSPACES_CACHE_DIR = "galactic-workspaces";
+
+interface WorkspaceEnvConfig {
+  hostVariable?: string;
+  address?: string;
+}
+
+const getWorkspacesCacheDir = () => {
+  const cacheDir = path.join(app.getPath("userData"), WORKSPACES_CACHE_DIR);
+  if (!existsSync(cacheDir)) {
+    mkdirSync(cacheDir, { recursive: true });
+  }
+  return cacheDir;
+};
+
+const hashTargetPath = (targetPath: string): string => {
+  return createHash("sha256").update(targetPath).digest("hex").slice(0, 16);
+};
+
+const getWorkspaceFilePath = (targetPath: string): string => {
+  const hash = hashTargetPath(targetPath);
+  const safeName = path.basename(targetPath).replace(/[^a-zA-Z0-9_-]/g, "_");
+  return path.join(getWorkspacesCacheDir(), `${safeName}-${hash}.code-workspace`);
+};
+
+const buildWorkspaceContent = (targetPath: string, envConfig: WorkspaceEnvConfig | null) => {
+  const settings: Record<string, unknown> = {};
+
+  if (envConfig && (envConfig.hostVariable || envConfig.address)) {
+    const envVars: Record<string, string> = {};
+    if (envConfig.hostVariable && envConfig.address) {
+      envVars[envConfig.hostVariable] = envConfig.address;
+    }
+
+    if (Object.keys(envVars).length > 0) {
+      settings["terminal.integrated.env.osx"] = envVars;
+      settings["terminal.integrated.env.linux"] = envVars;
+      settings["terminal.integrated.env.windows"] = envVars;
+    }
+  }
+
+  return JSON.stringify(
+    {
+      folders: [{ path: targetPath }],
+      settings,
+    },
+    null,
+    2,
+  );
+};
+
+ipcMain.handle(
+  "workspace/write-code-workspace",
+  async (
+    _event,
+    targetPath: string,
+    envConfig: WorkspaceEnvConfig | null,
+  ): Promise<{ success: boolean; workspacePath?: string; error?: string }> => {
+    if (!targetPath) {
+      return { success: false, error: "No target path provided." };
+    }
+
+    if (!existsSync(targetPath)) {
+      return { success: false, error: "Target path does not exist." };
+    }
+
+    const workspacePath = getWorkspaceFilePath(targetPath);
+
+    try {
+      const content = buildWorkspaceContent(targetPath, envConfig);
+      await fsPromises.writeFile(workspacePath, content, "utf-8");
+      return { success: true, workspacePath };
+    } catch (error) {
+      console.error(`Failed to write workspace file:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to write workspace file.",
+      };
+    }
+  },
+);
+
+ipcMain.handle(
+  "workspace/get-code-workspace-path",
+  async (_event, targetPath: string): Promise<{ exists: boolean; workspacePath: string }> => {
+    const workspacePath = getWorkspaceFilePath(targetPath);
+    return {
+      exists: existsSync(workspacePath),
+      workspacePath,
+    };
   },
 );

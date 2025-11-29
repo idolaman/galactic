@@ -8,6 +8,10 @@ import { projectStorage, type StoredProject } from "@/services/projects";
 import { openProjectInEditor, type EditorName } from "@/services/editor";
 import type { Workspace } from "@/types/workspace";
 import { copyProjectFilesToWorktree, searchProjectFiles } from "@/services/files";
+import { useEnvironmentManager } from "@/hooks/use-environment-manager";
+import type { EnvironmentBinding } from "@/types/environment";
+import { writeCodeWorkspace, getCodeWorkspacePath } from "@/services/workspace";
+import { markWorkspaceRequiresRelaunch, clearWorkspaceRelaunchFlag } from "@/services/workspace-state";
 
 type Project = StoredProject;
 
@@ -32,8 +36,7 @@ const Index = () => {
   });
   const [fileSearchResults, setFileSearchResults] = useState<string[]>([]);
   const [isSearchingFiles, setIsSearchingFiles] = useState(false);
-
-  const mockEnvironments = ["Development", "Staging", "Production"];
+  const { environments, assignTarget, unassignTarget, environmentForTarget } = useEnvironmentManager();
 
   const handleAddProject = async () => {
     const projectPath = await chooseProjectDirectory();
@@ -65,6 +68,12 @@ const Index = () => {
 
     setProjects(projectStorage.upsert(newProject));
     setProjectWorkspaces((prev) => ({ ...prev, [newProject.id]: newProject.workspaces ?? [] }));
+
+    // Clear any existing environment binding and create .code-workspace without env vars.
+    // New projects start "clean", so no relaunch is required yet.
+    unassignTarget(normalizedPath);
+    await writeCodeWorkspace(normalizedPath, null);
+    clearWorkspaceRelaunchFlag(normalizedPath);
 
     setSelectedProject(newProject);
     toast({
@@ -154,6 +163,12 @@ const Index = () => {
       }
     }
 
+    // Clear any existing environment binding and create .code-workspace without env vars.
+    // Fresh worktrees also start clean.
+    unassignTarget(result.path!);
+    await writeCodeWorkspace(result.path, null);
+    clearWorkspaceRelaunchFlag(result.path!);
+
     setProjectWorkspaces((prev) => {
       const next = { ...prev };
       const list = next[selectedProject.id] ? [...next[selectedProject.id]] : [];
@@ -192,13 +207,6 @@ const Index = () => {
     toast({
       title: "Debug in Main",
       description: `Pushing changes from ${branch} and switching base code`,
-    });
-  };
-
-  const handleEnvironmentChange = (workspace: string, env: string) => {
-    toast({
-      title: "Environment Changed",
-      description: `Switched to ${env} for this workspace`,
     });
   };
 
@@ -242,6 +250,63 @@ const Index = () => {
       title: "Workspace removed",
       description: `Removed ${branchName} worktree`,
     });
+  };
+
+  const handleEnvironmentChange = async (environmentId: string | null, binding: EnvironmentBinding) => {
+    const previousProjectEnvironment = environments.find((env) =>
+      env.bindings.some((entry) => entry.projectId === binding.projectId),
+    );
+
+    if (!environmentId) {
+      unassignTarget(binding.targetPath);
+      // Overwrite .code-workspace without env vars. Because the underlying
+      // editor window still has the previous env configuration, we still need
+      // a relaunch to apply the "no environment" state.
+      await writeCodeWorkspace(binding.targetPath, null);
+      markWorkspaceRequiresRelaunch(binding.targetPath);
+      toast({
+        title: "Environment detached",
+        description: `${binding.targetLabel} is no longer isolated.`,
+      });
+      return;
+    }
+
+    const result = assignTarget(environmentId, binding);
+    if (!result.success) {
+      toast({
+        title: "Unable to attach environment",
+        description: result.error ?? "Unknown environment error.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Overwrite .code-workspace file with environment config
+    const selectedEnv = environments.find((env) => env.id === environmentId);
+    const workspaceResult = await writeCodeWorkspace(binding.targetPath, {
+      hostVariable: selectedEnv?.hostVariable,
+      address: selectedEnv?.address,
+    });
+
+    // Environment attachment or change requires a relaunch to apply in the editor.
+    markWorkspaceRequiresRelaunch(binding.targetPath);
+
+    if (!workspaceResult.success) {
+      console.warn("Failed to update .code-workspace file:", workspaceResult.error);
+    }
+
+    toast({
+      title: "Environment attached",
+      description:
+        `${binding.targetLabel} now uses ${selectedEnv?.name ?? "environment"}.` +
+        (result.reassigned && previousProjectEnvironment
+          ? ` Moved from ${previousProjectEnvironment.name} to keep one workspace per project.`
+          : ""),
+    });
+  };
+
+  const getEnvironmentIdForTarget = (targetPath: string) => {
+    return environmentForTarget(targetPath)?.id ?? null;
   };
 
   const handleSearchProjectFiles = useCallback(
@@ -317,12 +382,21 @@ const Index = () => {
     setIsSearchingFiles(false);
   }, [selectedProject?.id]);
 
-  const handleOpenInEditor = async (path: string) => {
-    const result = await openProjectInEditor(preferredEditor, path);
+  const handleOpenInEditor = async (targetPath: string) => {
+    const env = environmentForTarget(targetPath);
+    let openPath = targetPath;
+
+    // Always use .code-workspace file if it exists
+    const workspaceInfo = await getCodeWorkspacePath(targetPath);
+    if (workspaceInfo?.exists) {
+      openPath = workspaceInfo.workspacePath;
+    }
+
+    const result = await openProjectInEditor(preferredEditor, openPath);
     if (result.success) {
       toast({
         title: `Opening in ${preferredEditor}`,
-        description: path,
+        description: env ? `${targetPath} (with ${env.name} environment)` : targetPath,
       });
       return;
     }
@@ -350,13 +424,11 @@ const Index = () => {
           project={selectedProject}
           workspaces={projectWorkspaces[selectedProject.id] ?? []}
           gitBranches={projectBranches}
-          environments={mockEnvironments}
           onLoadBranches={loadProjectBranches}
           onBack={() => setSelectedProject(null)}
           onCreateWorkspace={handleCreateWorkspace}
           onDebugInMain={handleDebugInMain}
           onOpenInEditor={handleOpenInEditor}
-          onEnvironmentChange={handleEnvironmentChange}
           onDeleteWorkspace={handleDeleteWorkspace}
           configFiles={selectedProject.configFiles ?? []}
           fileSearchResults={fileSearchResults}
@@ -364,6 +436,9 @@ const Index = () => {
           onSearchFiles={handleSearchProjectFiles}
           onAddConfigFile={handleAddConfigFile}
           onRemoveConfigFile={handleRemoveConfigFile}
+          environments={environments}
+          getEnvironmentIdForTarget={getEnvironmentIdForTarget}
+          onEnvironmentChange={handleEnvironmentChange}
         />
       ) : (
         <ProjectList 
