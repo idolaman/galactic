@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, GitBranch, GitMerge, FolderOpen, AlertTriangle, Trash2, FileCode, X, Loader2, RefreshCw } from "lucide-react";
+import { ArrowLeft, GitBranch, GitMerge, FolderOpen, AlertTriangle, Trash2, FileCode, X, Loader2, RefreshCw, HardDrive } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Command,
@@ -218,14 +218,15 @@ export const ProjectDetail = ({
         </h2>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Base Code Card */}
+          {/* Repository Root Card */}
           <Card className="p-4 bg-gradient-card border-primary/20 shadow-sm group">
             <div className="flex flex-col gap-4">
               {/* Header */}
               <div className="flex items-start justify-between">
                 <div className="space-y-1 min-w-0 max-w-[85%]">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-lg text-primary">Base Code</h3>
+                    <HardDrive className="h-4 w-4 text-primary" />
+                    <h3 className="font-semibold text-lg text-primary">Repository Root</h3>
                   </div>
                   <div 
                     className="text-[10px] text-muted-foreground font-mono truncate select-all px-0.5"
@@ -251,14 +252,14 @@ export const ProjectDetail = ({
                   <EnvironmentSelector
                     environments={environments}
                     value={getEnvironmentIdForTarget(project.path)}
-                    targetLabel="Base Code"
+                    targetLabel="Repository Root"
                     minimal
                     onChange={(environmentId) =>
                       onEnvironmentChange(environmentId, {
                         projectId: project.id,
                         projectName: project.name,
                         targetPath: project.path,
-                        targetLabel: "Base Code",
+                        targetLabel: "Repository Root",
                         kind: "base",
                       })
                     }
@@ -458,7 +459,7 @@ export const ProjectDetail = ({
                   </CommandList>
                 </Command>
                 <p className="text-xs text-muted-foreground">
-                  Choose files from the base code that should be copied into every new worktree. Type at
+                  Choose files from the repository root that should be copied into every new worktree. Type at
                   least two characters to search.
                 </p>
 

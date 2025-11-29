@@ -49,7 +49,7 @@ export const EnvironmentSelector = ({
       </Select>
       {!minimal && (
         <p className="text-[11px] text-muted-foreground">
-          Only one workspace (or base code) per project can live in a given environment. Attach {targetLabel} to
+          Only one workspace (or repository root) per project can live in a given environment. Attach {targetLabel} to
           isolate its network ports.
         </p>
       )}
