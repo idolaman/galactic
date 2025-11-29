@@ -68,6 +68,26 @@ export const getWorktrees = async (projectPath: string): Promise<GitWorktreeInfo
   }
 };
 
+export const fetchBranches = async (projectPath: string): Promise<{ success: boolean; error?: string }> => {
+  if (!projectPath || typeof window === "undefined") {
+    return { success: false, error: "Invalid project path." };
+  }
+
+  try {
+    const result = await window.electronAPI?.fetchGitBranches?.(projectPath);
+    if (!result) {
+      return { success: false, error: "Fetch failed." };
+    }
+    return result;
+  } catch (error) {
+    console.error("Failed to fetch git branches:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown fetch error.",
+    };
+  }
+};
+
 export const createWorktree = async (projectPath: string, branch: string): Promise<WorktreeResult> => {
   if (!projectPath || !branch || typeof window === "undefined") {
     return { success: false, error: "Invalid project or branch." };

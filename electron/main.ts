@@ -287,15 +287,33 @@ ipcMain.handle("git/list-branches", async (_event, projectPath: string) => {
   }
 
   try {
-    const { stdout } = await execFileAsync(
+    // Get local branches
+    const { stdout: localStdout } = await execFileAsync(
       "git",
       ["for-each-ref", "--format=%(refname:short)", "refs/heads/"],
       { cwd: projectPath },
     );
-    return stdout
+    const localBranches = localStdout
       .split("\n")
       .map((line) => line.trim())
       .filter(Boolean);
+
+    // Get remote branches and strip origin/ prefix
+    const { stdout: remoteStdout } = await execFileAsync(
+      "git",
+      ["for-each-ref", "--format=%(refname:short)", "refs/remotes/origin/"],
+      { cwd: projectPath },
+    );
+    const remoteBranches = remoteStdout
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((branch) => branch.replace(/^origin\//, ""))
+      .filter((branch) => branch !== "HEAD" && branch !== "origin" && branch !== "");
+
+    // Merge and deduplicate (local branches take precedence)
+    const allBranches = [...new Set([...localBranches, ...remoteBranches])];
+    return allBranches.sort();
   } catch (error) {
     console.warn(`Failed to list git branches for ${projectPath}:`, error);
     return [];
@@ -356,6 +374,29 @@ ipcMain.handle("git/get-worktrees", async (_event, projectPath: string) => {
   } catch (error) {
     console.warn(`Failed to list worktrees for ${projectPath}:`, error);
     return [];
+  }
+});
+
+ipcMain.handle("git/fetch-branches", async (_event, projectPath: string) => {
+  if (!projectPath) {
+    return { success: false, error: "Project path is required." };
+  }
+
+  const gitDirExists = existsSync(path.join(projectPath, ".git"));
+  if (!gitDirExists) {
+    return { success: false, error: "Git repository not found." };
+  }
+
+  try {
+    await execFileAsync("git", ["fetch", "--all", "--prune"], { cwd: projectPath });
+    return { success: true };
+  } catch (error) {
+    console.warn(`Failed to fetch branches for ${projectPath}:`, error);
+    const execError = error as ExecFileException & { stderr?: string };
+    return {
+      success: false,
+      error: execError?.stderr || execError?.message || "Unknown error fetching branches.",
+    };
   }
 });
 

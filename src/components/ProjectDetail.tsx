@@ -36,6 +36,7 @@ interface ProjectDetailProps {
   };
   workspaces: Workspace[];
   gitBranches: string[];
+  isLoadingBranches?: boolean;
   onBack: () => void;
   onCreateWorkspace: (branch: string) => void;
   onOpenInEditor: (path: string) => void;
@@ -132,6 +133,7 @@ export const ProjectDetail = ({
   project,
   workspaces,
   gitBranches,
+  isLoadingBranches,
   onBack,
   onCreateWorkspace,
   onOpenInEditor,
@@ -374,7 +376,16 @@ export const ProjectDetail = ({
                     onBlur={() => setTimeout(() => setBranchSearchActive(false), 120)}
                   />
                   <CommandList className={`max-h-60 ${branchSearchActive ? "" : "hidden"}`}>
-                    <CommandEmpty>No matching branches.</CommandEmpty>
+                    <CommandEmpty>
+                      {isLoadingBranches ? (
+                        <span className="flex items-center gap-2 text-muted-foreground text-sm">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Fetching branches...
+                        </span>
+                      ) : (
+                        "No matching branches."
+                      )}
+                    </CommandEmpty>
                     <CommandGroup heading="Available branches">
                       {availableBranches.map((branchName) => (
                         <CommandItem
