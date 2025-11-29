@@ -225,8 +225,13 @@ export default function Environments() {
     }
   };
 
-  const handleUnassign = (targetPath: string, targetLabel: string) => {
+  const handleUnassign = async (targetPath: string, targetLabel: string) => {
     unassignTarget(targetPath);
+    
+    // Clear configuration and request relaunch
+    await writeCodeWorkspace(targetPath, null);
+    markWorkspaceRequiresRelaunch(targetPath);
+
     toast({
       title: "Binding removed",
       description: `${targetLabel} detached from environment.`,
