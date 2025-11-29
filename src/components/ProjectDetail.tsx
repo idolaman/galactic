@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, GitBranch, GitMerge, FolderOpen, AlertTriangle, Bug, Trash2, FileCode, X, Loader2, RefreshCw } from "lucide-react";
+import { ArrowLeft, GitBranch, GitMerge, FolderOpen, AlertTriangle, Trash2, FileCode, X, Loader2, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Command,
@@ -39,7 +39,6 @@ interface ProjectDetailProps {
   gitBranches: string[];
   onBack: () => void;
   onCreateWorkspace: (branch: string) => void;
-  onDebugInMain: (workspace: string, branch: string) => void;
   onOpenInEditor: (path: string) => void;
   onLoadBranches?: () => void | Promise<void>;
   onDeleteWorkspace: (workspacePath: string, branch: string) => void;
@@ -136,7 +135,6 @@ export const ProjectDetail = ({
   gitBranches,
   onBack,
   onCreateWorkspace,
-  onDebugInMain,
   onOpenInEditor,
   onLoadBranches,
   onDeleteWorkspace,
@@ -276,62 +274,68 @@ export const ProjectDetail = ({
               {workspaces.map((branch) => (
                 <Card 
                   key={branch.workspace}
-                  className="p-6 bg-card border-primary/30"
+                  className="p-4 bg-card/50 border-primary/20 hover:border-primary/40 transition-colors group"
                 >
-                  <div className="space-y-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <Badge className="mb-2 bg-primary/20 text-primary border-primary/30 font-mono">
-                      {branch.name}
-                    </Badge>
-                    <code className="text-xs text-muted-foreground block">
-                      {branch.workspace}
-                    </code>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => onDeleteWorkspace(branch.workspace, branch.name)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                  </div>
-
-                    <div className="flex gap-2">
-                      <LaunchButton
-                        path={branch.workspace}
-                        onLaunch={onOpenInEditor}
-                        className="flex-1 bg-primary hover:bg-primary/90"
-                      >
-                        <FolderOpen className="mr-2 h-4 w-4" />
-                        Move to
-                      </LaunchButton>
+                  <div className="flex flex-col gap-4">
+                    {/* Header: Branch Name + Delete */}
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1 min-w-0 max-w-[85%]">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 font-mono text-sm py-1 px-2.5 rounded-md">
+                            {branch.name}
+                          </Badge>
+                        </div>
+                        <div 
+                          className="text-[10px] text-muted-foreground font-mono truncate select-all px-0.5"
+                          title={branch.workspace}
+                        >
+                          {branch.workspace}
+                        </div>
+                      </div>
                       
-                      <Button 
-                        variant="secondary"
-                    onClick={() => onDebugInMain(branch.workspace, branch.name)}
-                        className="flex-1"
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 -mr-1 -mt-1 opacity-0 group-hover:opacity-100 transition-all duration-200"
+                        onClick={() => onDeleteWorkspace(branch.workspace, branch.name)}
+                        title="Delete Workspace"
                       >
-                        <Bug className="mr-2 h-4 w-4" />
-                        Debug in Base Code
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
 
-                    <EnvironmentSelector
-                      environments={environments}
-                      value={getEnvironmentIdForTarget(branch.workspace)}
-                      targetLabel={`${branch.name} workspace`}
-                      onChange={(environmentId) =>
-                        onEnvironmentChange(environmentId, {
-                          projectId: project.id,
-                          projectName: project.name,
-                          targetPath: branch.workspace,
-                          targetLabel: branch.name,
-                          kind: "workspace",
-                        })
-                      }
-                    />
+                    {/* Footer: Environment + Action */}
+                    <div className="flex items-end gap-3 pt-2 border-t border-border/50">
+                      <div className="flex-1 min-w-0">
+                        <div className="mb-1.5 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                          Environment
+                        </div>
+                        <EnvironmentSelector
+                          environments={environments}
+                          value={getEnvironmentIdForTarget(branch.workspace)}
+                          targetLabel={`${branch.name} workspace`}
+                          minimal
+                          onChange={(environmentId) =>
+                            onEnvironmentChange(environmentId, {
+                              projectId: project.id,
+                              projectName: project.name,
+                              targetPath: branch.workspace,
+                              targetLabel: branch.name,
+                              kind: "workspace",
+                            })
+                          }
+                        />
+                      </div>
+
+                      <LaunchButton
+                        path={branch.workspace}
+                        onLaunch={onOpenInEditor}
+                        className="h-9 px-4 text-sm font-medium bg-primary hover:bg-primary/90 shadow-sm shrink-0"
+                      >
+                        <FolderOpen className="mr-2 h-3.5 w-3.5" />
+                        Open
+                      </LaunchButton>
+                    </div>
                   </div>
                 </Card>
               ))}
