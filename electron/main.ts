@@ -611,3 +611,26 @@ ipcMain.handle(
     };
   },
 );
+ipcMain.handle(
+  "workspace/delete-code-workspace",
+  async (_event, targetPath: string): Promise<{ success: boolean; error?: string }> => {
+    if (!targetPath) {
+      return { success: false, error: "No target path provided." };
+    }
+
+    const workspacePath = getWorkspaceFilePath(targetPath);
+
+    try {
+      if (existsSync(workspacePath)) {
+        await fsPromises.unlink(workspacePath);
+      }
+      return { success: true };
+    } catch (error) {
+      console.error(`Failed to delete workspace file:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to delete workspace file.",
+      };
+    }
+  },
+);

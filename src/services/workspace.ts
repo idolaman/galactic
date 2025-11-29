@@ -34,3 +34,21 @@ export const getCodeWorkspacePath = async (
   }
 };
 
+export const deleteCodeWorkspace = async (
+  targetPath: string,
+): Promise<{ success: boolean; error?: string }> => {
+  if (typeof window === "undefined") {
+    return { success: false, error: "Workspace management is only available in the desktop app." };
+  }
+
+  try {
+    const result = await window.electronAPI?.deleteCodeWorkspace?.(targetPath);
+    return result ?? { success: false, error: "Workspace IPC bridge is unavailable." };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown workspace error.",
+    };
+  }
+};
+

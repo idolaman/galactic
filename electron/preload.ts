@@ -25,4 +25,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   ) => ipcRenderer.invoke("workspace/write-code-workspace", targetPath, envConfig),
   getCodeWorkspacePath: (targetPath: string) =>
     ipcRenderer.invoke("workspace/get-code-workspace-path", targetPath),
+  deleteCodeWorkspace: (targetPath: string) =>
+    ipcRenderer.invoke("workspace/delete-code-workspace", targetPath),
 });
