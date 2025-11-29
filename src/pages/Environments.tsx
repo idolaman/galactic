@@ -50,6 +50,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useEnvironmentManager } from "@/hooks/use-environment-manager";
 import type { Environment } from "@/types/environment";
 import { cn } from "@/lib/utils";
+import { writeCodeWorkspace } from "@/services/workspace";
+import { markWorkspaceRequiresRelaunch } from "@/services/workspace-state";
 
 export default function Environments() {
   const { environments, createEnvironment, updateEnvironment, deleteEnvironment, unassignTarget } =
@@ -187,6 +189,16 @@ export default function Environments() {
       setConfigHostVar(selectedEnvironment.hostVariable || "");
       return;
     }
+
+    // Update all .code-workspace files for bindings to this environment
+    const updatePromises = selectedEnvironment.bindings.map(async (binding) => {
+      await writeCodeWorkspace(binding.targetPath, {
+        hostVariable: trimmedHostVar,
+        address: selectedEnvironment.address,
+      });
+      markWorkspaceRequiresRelaunch(binding.targetPath);
+    });
+    await Promise.all(updatePromises);
 
     toast({ title: "Settings saved", description: "Environment configuration updated." });
   };

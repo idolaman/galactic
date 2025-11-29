@@ -11,6 +11,7 @@ import { copyProjectFilesToWorktree, searchProjectFiles } from "@/services/files
 import { useEnvironmentManager } from "@/hooks/use-environment-manager";
 import type { EnvironmentBinding } from "@/types/environment";
 import { writeCodeWorkspace, getCodeWorkspacePath } from "@/services/workspace";
+import { markWorkspaceRequiresRelaunch, clearWorkspaceRelaunchFlag } from "@/services/workspace-state";
 
 type Project = StoredProject;
 
@@ -68,9 +69,11 @@ const Index = () => {
     setProjects(projectStorage.upsert(newProject));
     setProjectWorkspaces((prev) => ({ ...prev, [newProject.id]: newProject.workspaces ?? [] }));
 
-    // Clear any existing environment binding and create .code-workspace without env vars
+    // Clear any existing environment binding and create .code-workspace without env vars.
+    // New projects start "clean", so no relaunch is required yet.
     unassignTarget(normalizedPath);
     await writeCodeWorkspace(normalizedPath, null);
+    clearWorkspaceRelaunchFlag(normalizedPath);
 
     setSelectedProject(newProject);
     toast({
@@ -160,9 +163,11 @@ const Index = () => {
       }
     }
 
-    // Clear any existing environment binding and create .code-workspace without env vars
+    // Clear any existing environment binding and create .code-workspace without env vars.
+    // Fresh worktrees also start clean.
     unassignTarget(result.path!);
     await writeCodeWorkspace(result.path, null);
+    clearWorkspaceRelaunchFlag(result.path!);
 
     setProjectWorkspaces((prev) => {
       const next = { ...prev };
@@ -254,8 +259,11 @@ const Index = () => {
 
     if (!environmentId) {
       unassignTarget(binding.targetPath);
-      // Overwrite .code-workspace without env vars
+      // Overwrite .code-workspace without env vars. Because the underlying
+      // editor window still has the previous env configuration, we still need
+      // a relaunch to apply the "no environment" state.
       await writeCodeWorkspace(binding.targetPath, null);
+      markWorkspaceRequiresRelaunch(binding.targetPath);
       toast({
         title: "Environment detached",
         description: `${binding.targetLabel} is no longer isolated.`,
@@ -279,6 +287,9 @@ const Index = () => {
       hostVariable: selectedEnv?.hostVariable,
       address: selectedEnv?.address,
     });
+
+    // Environment attachment or change requires a relaunch to apply in the editor.
+    markWorkspaceRequiresRelaunch(binding.targetPath);
 
     if (!workspaceResult.success) {
       console.warn("Failed to update .code-workspace file:", workspaceResult.error);
