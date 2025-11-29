@@ -6,6 +6,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import vscodeIcon from "@/assets/vscode-icon.png";
+import cursorIcon from "@/assets/cursor.jpeg";
 import { type EditorName } from "@/services/editor";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +16,6 @@ export default function Settings() {
     const saved = typeof window !== "undefined" ? window.localStorage.getItem("preferredEditor") : null;
     return (saved === "Cursor" || saved === "VSCode") ? saved : "Cursor";
   });
-  const cursorSrc = "/cursor.jpeg";
   const [cursorInstalled, setCursorInstalled] = useState<boolean>(false);
   const [vscodeInstalled, setVscodeInstalled] = useState<boolean>(false);
 
@@ -47,7 +47,7 @@ export default function Settings() {
       value: "Cursor",
       title: "Cursor",
       description: "AI-native editor from the Cursor team.",
-      icon: cursorSrc,
+      icon: cursorIcon,
       installed: cursorInstalled,
     },
     {
