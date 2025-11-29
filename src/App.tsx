@@ -16,6 +16,7 @@ import NotFound from "./pages/NotFound";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeProvider } from "@/components/theme-provider";
 import { EnvironmentProvider } from "@/hooks/use-environment-manager";
+import { StarsBackground } from "@/components/StarsBackground";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,7 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="dark" storageKey="galactic-ide-theme">
+        <StarsBackground />
         <EnvironmentProvider>
           <TooltipProvider>
             <Toaster />
@@ -56,7 +58,7 @@ const App = () => {
             ) : (
               <BrowserRouter>
                 <SidebarProvider defaultOpen>
-                  <div className="flex h-svh w-full bg-background">
+                  <div className="flex h-svh w-full bg-transparent">
                     <AppSidebar />
                     <SidebarInset>
                       <Header user={user} onLogout={handleLogout} />

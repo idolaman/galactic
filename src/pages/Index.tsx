@@ -60,7 +60,6 @@ const Index = () => {
       name: projectName,
       path: normalizedPath,
       isGitRepo: gitInfo.isGitRepo,
-      currentBranch: gitInfo.currentBranch,
       worktrees: 0,
       workspaces: [],
       configFiles: [],
@@ -200,13 +199,6 @@ const Index = () => {
     toast({
       title: "Workspace created",
       description: `Git worktree ready at ${result.path}`,
-    });
-  };
-
-  const handleDebugInMain = (workspace: string, branch: string) => {
-    toast({
-      title: "Debug in Main",
-      description: `Pushing changes from ${branch} and switching base code`,
     });
   };
 
@@ -427,7 +419,6 @@ const Index = () => {
           onLoadBranches={loadProjectBranches}
           onBack={() => setSelectedProject(null)}
           onCreateWorkspace={handleCreateWorkspace}
-          onDebugInMain={handleDebugInMain}
           onOpenInEditor={handleOpenInEditor}
           onDeleteWorkspace={handleDeleteWorkspace}
           configFiles={selectedProject.configFiles ?? []}

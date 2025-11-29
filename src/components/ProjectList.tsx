@@ -9,7 +9,6 @@ interface Project {
   id: string;
   name: string;
   path: string;
-  currentBranch?: string | null;
   isGitRepo: boolean;
   worktrees: number;
 }
@@ -133,20 +132,6 @@ export const ProjectList = ({
             </div>
 
             <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <GitBranch className="h-4 w-4 text-primary" />
-              <span className="text-muted-foreground">Branch:</span>
-              {project.isGitRepo ? (
-                <Badge variant="secondary" className="font-mono">
-                  {project.currentBranch ?? "HEAD"}
-                </Badge>
-              ) : (
-                <span className="text-xs italic text-muted-foreground">
-                  Git not initialized
-                </span>
-              )}
-              </div>
-              
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">Worktrees:</span>
                 <Badge className="bg-primary/20 text-primary border-primary/30">

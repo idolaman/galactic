@@ -14,7 +14,7 @@ declare global {
       browseApplication: () => Promise<string | null>;
       openApplicationsFolder: () => Promise<boolean>;
       chooseProjectDirectory: () => Promise<string | null>;
-      getGitInfo: (projectPath: string) => Promise<{ isGitRepo: boolean; currentBranch?: string | null }>;
+      getGitInfo: (projectPath: string) => Promise<{ isGitRepo: boolean }>;
       listGitBranches: (projectPath: string) => Promise<string[]>;
       createGitWorktree: (
         projectPath: string,

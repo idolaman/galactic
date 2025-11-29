@@ -22,7 +22,7 @@ export function AppSidebar() {
   const { open } = useSidebar();
 
   return (
-    <Sidebar className="border-r border-border bg-background pt-12">
+    <Sidebar className="border-r border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-12">
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
