@@ -2,8 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { LogOut, Code2 } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { ModeToggle } from "@/components/ModeToggle";
+import Logo from "@/assets/logo.svg";
 
 interface HeaderProps {
   user: {
@@ -20,10 +21,10 @@ export const Header = ({ user, onLogout }: HeaderProps) => (
       <Separator orientation="vertical" className="mr-3 hidden h-6 md:block" />
       <div className="flex flex-1 items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Code2 className="h-6 w-6 text-primary" />
-          <div>
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">Galactic</p>
-            <h1 className="text-lg font-semibold leading-tight">Project Control Center</h1>
+          <img src={Logo} alt="Galactic Logo" className="h-8 w-8 rounded-lg" />
+          <div className="flex flex-col">
+            <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-white to-indigo-300 bg-clip-text text-transparent leading-none">Galactic</h1>
+            <p className="text-xs text-muted-foreground font-medium">Project Control Center</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
