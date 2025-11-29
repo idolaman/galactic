@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { GitHubAuth } from "@/components/GitHubAuth";
@@ -56,7 +56,7 @@ const App = () => {
             {!user ? (
               <GitHubAuth onAuthSuccess={handleAuthSuccess} />
             ) : (
-              <BrowserRouter>
+              <HashRouter>
                 <SidebarProvider defaultOpen>
                   <div className="flex h-svh w-full bg-transparent">
                     <AppSidebar />
@@ -77,7 +77,7 @@ const App = () => {
                     </SidebarInset>
                   </div>
                 </SidebarProvider>
-              </BrowserRouter>
+              </HashRouter>
             )}
           </TooltipProvider>
         </EnvironmentProvider>
