@@ -52,47 +52,47 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 222 14% 4%;
-    --foreground: 210 12% 88%;
+    --background: 240 17% 2%;
+    --foreground: 0 0% 100%;
 
-    --card: 222 14% 6%;
-    --card-foreground: 210 12% 88%;
+    --card: 240 29% 5%;
+    --card-foreground: 0 0% 100%;
 
-    --popover: 222 14% 6%;
-    --popover-foreground: 210 12% 88%;
+    --popover: 240 29% 5%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 210 100% 60%;
-    --primary-foreground: 222 14% 4%;
-    --primary-glow: 210 100% 70%;
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 258 90% 66%;
 
-    --secondary: 220 13% 10%;
-    --secondary-foreground: 210 12% 88%;
+    --secondary: 221 83% 53%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 220 13% 10%;
-    --muted-foreground: 215 10% 55%;
+    --muted: 240 20% 10%;
+    --muted-foreground: 215 16% 65%;
 
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 240 20% 10%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 63% 55%;
-    --destructive-foreground: 210 12% 88%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 12%;
-    --input: 220 13% 12%;
-    --ring: 210 100% 60%;
+    --border: 240 20% 12%;
+    --input: 240 20% 12%;
+    --ring: 262 83% 58%;
 
-    --radius: 0.25rem;
+    --radius: 0.5rem;
 
     --success: 142 70% 50%;
     --warning: 38 92% 55%;
     
-    --gradient-primary: linear-gradient(135deg, hsl(235 79% 60%) 0%, hsl(199 89% 48%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(222 14% 8%) 0%, hsl(222 14% 4%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(262 83% 58%) 0%, hsl(221 83% 53%) 100%);
+    --gradient-card: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
     
-    --shadow-glow: 0 0 20px hsl(210 100% 60% / 0.25);
-    --shadow-card: 0 10px 30px hsl(222 14% 2% / 0.35);
+    --shadow-glow: 0 0 20px hsl(262 83% 58% / 0.5);
+    --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.5);
     
-    --transition-smooth: all 0.15s ease-in-out;
+    --transition-smooth: all 0.3s ease-in-out;
   }
 }
 
@@ -103,8 +103,8 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 13px;
+    font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
   }
   
   code, pre {
