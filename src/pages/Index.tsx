@@ -203,13 +203,6 @@ const Index = () => {
     });
   };
 
-  const handleDebugInMain = (workspace: string, branch: string) => {
-    toast({
-      title: "Debug in Main",
-      description: `Pushing changes from ${branch} and switching base code`,
-    });
-  };
-
   const handleDeleteWorkspace = async (workspacePath: string, branchName: string) => {
     if (!selectedProject) return;
 
@@ -427,7 +420,6 @@ const Index = () => {
           onLoadBranches={loadProjectBranches}
           onBack={() => setSelectedProject(null)}
           onCreateWorkspace={handleCreateWorkspace}
-          onDebugInMain={handleDebugInMain}
           onOpenInEditor={handleOpenInEditor}
           onDeleteWorkspace={handleDeleteWorkspace}
           configFiles={selectedProject.configFiles ?? []}
