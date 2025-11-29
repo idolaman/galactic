@@ -10,7 +10,7 @@ import type { Workspace } from "@/types/workspace";
 import { copyProjectFilesToWorktree, searchProjectFiles } from "@/services/files";
 import { useEnvironmentManager } from "@/hooks/use-environment-manager";
 import type { EnvironmentBinding } from "@/types/environment";
-import { writeCodeWorkspace, getCodeWorkspacePath } from "@/services/workspace";
+import { writeCodeWorkspace, getCodeWorkspacePath, deleteCodeWorkspace } from "@/services/workspace";
 import { markWorkspaceRequiresRelaunch, clearWorkspaceRelaunchFlag } from "@/services/workspace-state";
 
 type Project = StoredProject;
@@ -115,6 +115,13 @@ const Index = () => {
       return next;
     });
 
+    // Clean up the repository root workspace file
+    unassignTarget(projectToDelete.path);
+    deleteCodeWorkspace(projectToDelete.path).catch((err) =>
+      console.error("Failed to delete project workspace file:", err),
+    );
+    clearWorkspaceRelaunchFlag(projectToDelete.path);
+
     toast({
       title: "Project removed",
       description: `${projectToDelete.name} deleted from your project list.`,
@@ -214,6 +221,11 @@ const Index = () => {
       });
       return;
     }
+
+    // Delete associated .code-workspace file
+    unassignTarget(workspacePath);
+    await deleteCodeWorkspace(workspacePath);
+    clearWorkspaceRelaunchFlag(workspacePath);
 
     setProjectWorkspaces((prev) => {
       const next = { ...prev };
