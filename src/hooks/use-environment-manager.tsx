@@ -6,6 +6,8 @@ import {
   nextLoopbackAddress,
   runEnvironmentCommand,
 } from "@/services/environments";
+import { writeCodeWorkspace } from "@/services/workspace";
+import { markWorkspaceRequiresRelaunch } from "@/services/workspace-state";
 
 interface EnvironmentContextValue {
   environments: Environment[];
@@ -103,6 +105,14 @@ export const EnvironmentProvider = ({ children }: { children: ReactNode }) => {
     if (!commandResult.success) {
       return { success: false, error: commandResult.error ?? "Unable to remove loopback alias." };
     }
+
+    // Clear configurations from all bound workspaces before removing environment
+    await Promise.all(
+      environment.bindings.map(async (binding) => {
+        await writeCodeWorkspace(binding.targetPath, null);
+        markWorkspaceRequiresRelaunch(binding.targetPath);
+      })
+    );
 
     setEnvironments((prev) => {
       const next = environmentStorage.remove(id);
