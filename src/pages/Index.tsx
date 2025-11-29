@@ -115,6 +115,13 @@ const Index = () => {
       return next;
     });
 
+    // Clean up the repository root workspace file
+    unassignTarget(projectToDelete.path);
+    deleteCodeWorkspace(projectToDelete.path).catch((err) =>
+      console.error("Failed to delete project workspace file:", err),
+    );
+    clearWorkspaceRelaunchFlag(projectToDelete.path);
+
     toast({
       title: "Project removed",
       description: `${projectToDelete.name} deleted from your project list.`,
