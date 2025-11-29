@@ -266,7 +266,7 @@ export default function Environments() {
                   <Label htmlFor="name">Name</Label>
                   <Input
                     id="name"
-                    placeholder="e.g., Backend Service A"
+                    placeholder="e.g., Full Stack Dev Environment"
                     value={newEnvName}
                     onChange={(e) => setNewEnvName(e.target.value)}
                     onKeyDown={(e) => {
