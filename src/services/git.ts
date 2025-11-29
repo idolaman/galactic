@@ -1,9 +1,8 @@
 export interface GitInfo {
   isGitRepo: boolean;
-  currentBranch?: string | null;
 }
 
-const defaultGitInfo: GitInfo = { isGitRepo: false, currentBranch: null };
+const defaultGitInfo: GitInfo = { isGitRepo: false };
 const defaultBranches: string[] = [];
 
 export interface WorktreeResult {
@@ -25,7 +24,6 @@ export const getGitInfo = async (projectPath: string): Promise<GitInfo> => {
 
     return {
       isGitRepo: info.isGitRepo,
-      currentBranch: info.currentBranch ?? null,
     };
   } catch (error) {
     console.error("Failed to fetch git info:", error);

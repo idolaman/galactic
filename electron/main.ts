@@ -169,18 +169,13 @@ ipcMain.handle("git/get-info", async (_event, projectPath: string) => {
   }
 
   try {
-    const { stdout } = await execFileAsync(
-      "git",
-      ["rev-parse", "--abbrev-ref", "HEAD"],
-      { cwd: projectPath }
-    );
+    // Just check for git repo existence, don't need branch
     return {
       isGitRepo: true,
-      currentBranch: stdout.trim() || "HEAD",
     };
   } catch (error) {
     console.warn(`Failed to read git branch for ${projectPath}:`, error);
-    return { isGitRepo: true, currentBranch: "HEAD" };
+    return { isGitRepo: true };
   }
 });
 
