@@ -26,6 +26,7 @@ export interface ElectronAPI {
   getGitInfo: (projectPath: string) => Promise<GitInfo>;
   listGitBranches: (projectPath: string) => Promise<string[]>;
   getGitWorktrees: (projectPath: string) => Promise<GitWorktreeInfo[]>;
+  fetchGitBranches: (projectPath: string) => Promise<{ success: boolean; error?: string }>;
   createGitWorktree: (projectPath: string, branch: string) => Promise<WorktreeResult>;
   removeGitWorktree: (projectPath: string, workspacePath: string) => Promise<WorktreeResult>;
   openProjectInEditor: (editorName: string, projectPath: string) => Promise<{ success: boolean; error?: string }>;
