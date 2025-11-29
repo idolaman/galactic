@@ -3,7 +3,7 @@ import { ProjectList } from "@/components/ProjectList";
 import { ProjectDetail } from "@/components/ProjectDetail";
 import { useToast } from "@/hooks/use-toast";
 import { chooseProjectDirectory } from "@/services/os";
-import { createWorktree, getGitInfo, listBranches as listGitBranches, removeWorktree, getWorktrees } from "@/services/git";
+import { createWorktree, getGitInfo, listBranches as listGitBranches, removeWorktree, getWorktrees, fetchBranches } from "@/services/git";
 import { projectStorage, type StoredProject } from "@/services/projects";
 import { openProjectInEditor, type EditorName } from "@/services/editor";
 import type { Workspace } from "@/types/workspace";
@@ -27,6 +27,7 @@ const Index = () => {
 
   const [projects, setProjects] = useState<Project[]>(() => projectStorage.load());
   const [projectBranches, setProjectBranches] = useState<string[]>([]);
+  const [isLoadingBranches, setIsLoadingBranches] = useState(false);
   const [projectWorkspaces, setProjectWorkspaces] = useState<Record<string, Workspace[]>>(() => {
     const loaded = projectStorage.load();
     return loaded.reduce((acc, project) => {
@@ -454,9 +455,26 @@ const Index = () => {
       setProjectBranches([]);
       return;
     }
-    const branches = await listGitBranches(selectedProject.path);
-    setProjectBranches(branches);
-  }, [selectedProject?.path, selectedProject?.isGitRepo]);
+
+    setIsLoadingBranches(true);
+    try {
+      // Fetch latest from origin first (runs every time dropdown opens)
+      const fetchResult = await fetchBranches(selectedProject.path);
+      if (!fetchResult.success) {
+        toast({
+          title: "Fetch failed",
+          description: fetchResult.error ?? "Unable to fetch remote branches.",
+          variant: "destructive",
+        });
+      }
+
+      // Load branches (includes local + remote after fetch)
+      const branches = await listGitBranches(selectedProject.path);
+      setProjectBranches(branches);
+    } finally {
+      setIsLoadingBranches(false);
+    }
+  }, [selectedProject?.path, selectedProject?.isGitRepo, toast]);
 
   return (
     <div className="space-y-8 p-6">
@@ -465,6 +483,7 @@ const Index = () => {
           project={selectedProject}
           workspaces={projectWorkspaces[selectedProject.id] ?? []}
           gitBranches={projectBranches}
+          isLoadingBranches={isLoadingBranches}
           onLoadBranches={loadProjectBranches}
           onBack={() => setSelectedProject(null)}
           onCreateWorkspace={handleCreateWorkspace}

@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getGitInfo: (projectPath: string) => ipcRenderer.invoke("git/get-info", projectPath),
   listGitBranches: (projectPath: string) => ipcRenderer.invoke("git/list-branches", projectPath),
   getGitWorktrees: (projectPath: string) => ipcRenderer.invoke("git/get-worktrees", projectPath),
+  fetchGitBranches: (projectPath: string) => ipcRenderer.invoke("git/fetch-branches", projectPath),
   createGitWorktree: (projectPath: string, branch: string) =>
     ipcRenderer.invoke("git/create-worktree", projectPath, branch),
   removeGitWorktree: (projectPath: string, workspacePath: string) =>
