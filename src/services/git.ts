@@ -48,6 +48,26 @@ export const listBranches = async (projectPath: string): Promise<string[]> => {
   }
 };
 
+export interface GitWorktreeInfo {
+  path: string;
+  branch: string;
+  sha: string;
+}
+
+export const getWorktrees = async (projectPath: string): Promise<GitWorktreeInfo[]> => {
+  if (!projectPath || typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const worktrees = await window.electronAPI?.getGitWorktrees?.(projectPath);
+    return worktrees ?? [];
+  } catch (error) {
+    console.error("Failed to list worktrees:", error);
+    return [];
+  }
+};
+
 export const createWorktree = async (projectPath: string, branch: string): Promise<WorktreeResult> => {
   if (!projectPath || !branch || typeof window === "undefined") {
     return { success: false, error: "Invalid project or branch." };
