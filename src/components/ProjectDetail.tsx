@@ -1,8 +1,8 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, GitBranch, GitMerge, FolderOpen, AlertTriangle, Bug, Trash2, FileCode, X, Loader2 } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, GitBranch, GitMerge, FolderOpen, AlertTriangle, Bug, Trash2, FileCode, X, Loader2, RefreshCw } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   Command,
   CommandEmpty,
@@ -11,11 +11,25 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useEffect, useRef, useState } from "react";
 import type { Workspace } from "@/types/workspace";
+import type { Environment, EnvironmentBinding } from "@/types/environment";
+import { EnvironmentSelector } from "@/components/EnvironmentSelector";
+import { workspaceNeedsRelaunch, clearWorkspaceRelaunchFlag } from "@/services/workspace-state";
 
 interface ProjectDetailProps {
   project: {
+    id: string;
     name: string;
     path: string;
     currentBranch?: string | null;
@@ -23,12 +37,10 @@ interface ProjectDetailProps {
   };
   workspaces: Workspace[];
   gitBranches: string[];
-  environments: string[];
   onBack: () => void;
   onCreateWorkspace: (branch: string) => void;
   onDebugInMain: (workspace: string, branch: string) => void;
   onOpenInEditor: (path: string) => void;
-  onEnvironmentChange: (workspace: string, env: string) => void;
   onLoadBranches?: () => void | Promise<void>;
   onDeleteWorkspace: (workspacePath: string, branch: string) => void;
   configFiles: string[];
@@ -37,18 +49,95 @@ interface ProjectDetailProps {
   onSearchFiles: (query: string) => void;
   onAddConfigFile: (filePath: string) => void;
   onRemoveConfigFile: (filePath: string) => void;
+  environments: Environment[];
+  getEnvironmentIdForTarget: (targetPath: string) => string | null;
+  onEnvironmentChange: (environmentId: string | null, binding: EnvironmentBinding) => void;
 }
+
+interface LaunchButtonProps {
+  path: string;
+  onLaunch: (path: string) => void;
+  children: React.ReactNode;
+  className?: string;
+  variant?: "default" | "secondary" | "ghost" | "destructive" | "outline" | "link";
+}
+
+const LaunchButton = ({
+  path,
+  onLaunch,
+  children,
+  className,
+  variant = "default",
+}: LaunchButtonProps) => {
+  const [showDialog, setShowDialog] = useState(false);
+  const needsRelaunch = workspaceNeedsRelaunch(path);
+
+  const handleLaunch = () => {
+    onLaunch(path);
+    clearWorkspaceRelaunchFlag(path);
+    setShowDialog(false);
+  };
+
+  if (!needsRelaunch) {
+    return (
+      <Button
+        onClick={handleLaunch}
+        className={className}
+        variant={variant}
+      >
+        {children}
+      </Button>
+    );
+  }
+
+  return (
+    <>
+      <Button
+        onClick={() => setShowDialog(true)}
+        className={cn(className, "bg-orange-600 hover:bg-orange-700 text-white border-orange-700")}
+        variant={variant}
+      >
+        <RefreshCw className="mr-2 h-4 w-4" />
+        Relaunch
+      </Button>
+
+      <AlertDialog open={showDialog} onOpenChange={setShowDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Relaunch Required</AlertDialogTitle>
+            <AlertDialogDescription>
+              To apply environment changes, you must manually close the existing editor window for this project.
+              <br />
+              <br />
+              Once closed, click <strong>Launch</strong> to re-open it with the new settings.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button
+              variant="secondary"
+              onClick={() => onLaunch(path)}
+            >
+              Focus Window
+            </Button>
+            <AlertDialogAction onClick={handleLaunch}>
+              Launch
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+};
 
 export const ProjectDetail = ({
   project,
   workspaces,
   gitBranches,
-  environments,
   onBack,
   onCreateWorkspace,
   onDebugInMain,
   onOpenInEditor,
-  onEnvironmentChange,
   onLoadBranches,
   onDeleteWorkspace,
   configFiles,
@@ -57,6 +146,9 @@ export const ProjectDetail = ({
   onSearchFiles,
   onAddConfigFile,
   onRemoveConfigFile,
+  environments,
+  getEnvironmentIdForTarget,
+  onEnvironmentChange,
 }: ProjectDetailProps) => {
   const [branchInput, setBranchInput] = useState("");
   const [branchSearchActive, setBranchSearchActive] = useState(false);
@@ -123,31 +215,51 @@ export const ProjectDetail = ({
 
       {/* Base Code */}
       <Card className="p-6 bg-gradient-card border-border shadow-card">
-        <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <h2 className="text-xl font-semibold">Base Code</h2>
-            {project.isGitRepo ? (
-              <div className="flex items-center gap-2">
-                <GitBranch className="h-4 w-4 text-primary" />
-                <Badge variant="secondary" className="font-mono">
-                  {project.currentBranch ?? "HEAD"}
-                </Badge>
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-3 flex-1">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-2">
+                <h2 className="text-xl font-semibold">Base Code</h2>
+                {project.isGitRepo ? (
+                  <div className="flex items-center gap-2">
+                    <GitBranch className="h-4 w-4 text-primary" />
+                    <Badge variant="secondary" className="font-mono">
+                      {project.currentBranch ?? "HEAD"}
+                    </Badge>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <AlertTriangle className="h-4 w-4 text-amber-400" />
+                    <span>Git is not initialized for this folder.</span>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <AlertTriangle className="h-4 w-4 text-amber-400" />
-                <span>Git is not initialized for this folder.</span>
-              </div>
-            )}
+              
+              <LaunchButton
+                path={project.path}
+                onLaunch={onOpenInEditor}
+                className="bg-primary hover:bg-primary-glow transition-all duration-300"
+              >
+                <FolderOpen className="mr-2 h-4 w-4" />
+                Open in Editor
+              </LaunchButton>
+            </div>
+
+            <EnvironmentSelector
+              environments={environments}
+              value={getEnvironmentIdForTarget(project.path)}
+              targetLabel="the base code"
+              onChange={(environmentId) =>
+                onEnvironmentChange(environmentId, {
+                  projectId: project.id,
+                  projectName: project.name,
+                  targetPath: project.path,
+                  targetLabel: "Base Code",
+                  kind: "base",
+                })
+              }
+            />
           </div>
-          
-          <Button 
-            onClick={() => onOpenInEditor(project.path)}
-            className="bg-primary hover:bg-primary-glow transition-all duration-300"
-          >
-            <FolderOpen className="mr-2 h-4 w-4" />
-            Open in Editor
-          </Button>
         </div>
       </Card>
 
@@ -184,32 +296,17 @@ export const ProjectDetail = ({
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
-                </div>
-
-                    <div className="space-y-2">
-                      <label className="text-xs text-muted-foreground">Environment</label>
-                  <Select onValueChange={(value) => onEnvironmentChange(branch.workspace, value)}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select environment" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {environments.map((env) => (
-                            <SelectItem key={env} value={env}>
-                              {env}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  </div>
 
                     <div className="flex gap-2">
-                      <Button 
-                    onClick={() => onOpenInEditor(branch.workspace)}
+                      <LaunchButton
+                        path={branch.workspace}
+                        onLaunch={onOpenInEditor}
                         className="flex-1 bg-primary hover:bg-primary/90"
                       >
                         <FolderOpen className="mr-2 h-4 w-4" />
                         Move to
-                      </Button>
+                      </LaunchButton>
                       
                       <Button 
                         variant="secondary"
@@ -220,6 +317,21 @@ export const ProjectDetail = ({
                         Debug in Base Code
                       </Button>
                     </div>
+
+                    <EnvironmentSelector
+                      environments={environments}
+                      value={getEnvironmentIdForTarget(branch.workspace)}
+                      targetLabel={`${branch.name} workspace`}
+                      onChange={(environmentId) =>
+                        onEnvironmentChange(environmentId, {
+                          projectId: project.id,
+                          projectName: project.name,
+                          targetPath: branch.workspace,
+                          targetLabel: branch.name,
+                          kind: "workspace",
+                        })
+                      }
+                    />
                   </div>
                 </Card>
               ))}
