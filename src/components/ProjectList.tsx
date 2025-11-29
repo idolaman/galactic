@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { FolderGit2, GitBranch, Layers, Plus, Eye, Trash2 } from "lucide-react";
+import { FolderGit2, GitBranch, Layers, Plus, Trash2 } from "lucide-react";
 
 interface Project {
   id: string;
@@ -105,26 +105,16 @@ export const ProjectList = ({
                 <code className="text-xs text-muted-foreground">{project.path}</code>
               </div>
               
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="h-8 w-8"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onViewProject(project);
-                  }}
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8 text-destructive hover:text-destructive"
+                  className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                   onClick={(event) => {
                     event.stopPropagation();
                     setProjectPendingDelete(project);
                   }}
+                  title="Delete Project"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
