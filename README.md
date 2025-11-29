@@ -1,6 +1,6 @@
-# Galactic IDE — macOS Desktop App
+# Galactic — macOS Desktop App
 
-Galactic IDE is a Vite + React application bundled as a native macOS desktop experience using Electron. The project ships with a streamlined development workflow, sensible production builds, and packaging via `electron-builder`.
+Galactic is a Vite + React application bundled as a native macOS desktop experience using Electron. The project ships with a streamlined development workflow, sensible production builds, and packaging via `electron-builder`.
 
 ---
 
@@ -76,13 +76,24 @@ This script:
 1. Builds the renderer with `vite build` (output in `dist/`).
 2. Compiles Electron sources into `dist-electron/`.
 3. Packages the app with `electron-builder`, producing artifacts inside `release/`.
+4. Generates a DMG with a custom window and app icon.
+
+### Icon Generation
+
+The application uses a custom generated icon. The source is located at `src/assets/logo.svg`. The build process expects a high-resolution PNG at `src/assets/icon.png`.
+
+To regenerate the icon from the SVG (e.g., after modifying the logo):
+
+1.  Ensure `sharp` is installed: `npm install -D sharp`
+2.  Create a conversion script (or use the one below) to convert the SVG to a 1024x1024 PNG with transparency.
+3.  Run the script to update `src/assets/icon.png`.
 
 ### Running the Packaged App Locally
 
 After a successful build, open the DMG from `release/` and drag the app to Applications, or run the unpacked app directly:
 
 ```sh
-open release/mac/*.app
+open release/mac-arm64/*.app
 ```
 
 ---
