@@ -302,6 +302,63 @@ ipcMain.handle("git/list-branches", async (_event, projectPath: string) => {
   }
 });
 
+ipcMain.handle("git/get-worktrees", async (_event, projectPath: string) => {
+  if (!projectPath) {
+    return [];
+  }
+
+  const gitDirExists = existsSync(path.join(projectPath, ".git"));
+  if (!gitDirExists) {
+    return [];
+  }
+
+  try {
+    const { stdout } = await execFileAsync("git", ["worktree", "list", "--porcelain"], {
+      cwd: projectPath,
+    });
+    
+    // Parse porcelain output
+    // worktree /path/to/worktree
+    // HEAD <sha>
+    // branch refs/heads/branch-name
+    //
+    // worktree /path/to/main-repo
+    // HEAD <sha>
+    // branch refs/heads/main
+
+    const worktrees: Array<{ path: string; branch: string; sha: string }> = [];
+    const entries = stdout.split("\n\n");
+    
+    for (const entry of entries) {
+      if (!entry.trim()) continue;
+      
+      const lines = entry.split("\n");
+      let worktreePath = "";
+      let branch = "";
+      let sha = "";
+      
+      for (const line of lines) {
+        if (line.startsWith("worktree ")) {
+          worktreePath = line.substring(9).trim();
+        } else if (line.startsWith("branch ")) {
+          branch = line.substring(7).replace("refs/heads/", "").trim();
+        } else if (line.startsWith("HEAD ")) {
+          sha = line.substring(5).trim();
+        }
+      }
+      
+      if (worktreePath && branch) {
+        worktrees.push({ path: worktreePath, branch, sha });
+      }
+    }
+    
+    return worktrees;
+  } catch (error) {
+    console.warn(`Failed to list worktrees for ${projectPath}:`, error);
+    return [];
+  }
+});
+
 const IGNORED_DIRECTORIES = new Set([".git", "node_modules", "worktrees"]);
 const MAX_FILE_RESULTS = 250;
 

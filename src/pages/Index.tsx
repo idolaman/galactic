@@ -3,7 +3,7 @@ import { ProjectList } from "@/components/ProjectList";
 import { ProjectDetail } from "@/components/ProjectDetail";
 import { useToast } from "@/hooks/use-toast";
 import { chooseProjectDirectory } from "@/services/os";
-import { createWorktree, getGitInfo, listBranches as listGitBranches, removeWorktree } from "@/services/git";
+import { createWorktree, getGitInfo, listBranches as listGitBranches, removeWorktree, getWorktrees } from "@/services/git";
 import { projectStorage, type StoredProject } from "@/services/projects";
 import { openProjectInEditor, type EditorName } from "@/services/editor";
 import type { Workspace } from "@/types/workspace";
@@ -54,14 +54,41 @@ const Index = () => {
     const projectName = pathSegments[pathSegments.length - 1] || normalizedPath;
 
     const gitInfo = await getGitInfo(normalizedPath);
+    let detectedWorkspaces: Workspace[] = [];
+    let detectedWorktrees = 0;
+
+    if (gitInfo.isGitRepo) {
+      const worktrees = await getWorktrees(normalizedPath);
+      // Filter out the main worktree which typically matches the project path
+      // or is the root of the repo. We only want additional worktrees.
+      const additionalWorktrees = worktrees.filter((wt) => {
+        // Normalize paths for comparison (remove trailing slashes, etc)
+        const wtPath = wt.path.replace(/[\\/]+$/, "");
+        const projPath = normalizedPath.replace(/[\\/]+$/, "");
+        return wtPath !== projPath;
+      });
+
+      detectedWorktrees = additionalWorktrees.length;
+      detectedWorkspaces = additionalWorktrees.map((wt) => ({
+        name: wt.branch,
+        workspace: wt.path,
+      }));
+
+      // Create .code-workspace files for detected worktrees
+      for (const ws of detectedWorkspaces) {
+        unassignTarget(ws.workspace);
+        await writeCodeWorkspace(ws.workspace, null);
+        clearWorkspaceRelaunchFlag(ws.workspace);
+      }
+    }
 
     const newProject: Project = {
       id: normalizedPath,
       name: projectName,
       path: normalizedPath,
       isGitRepo: gitInfo.isGitRepo,
-      worktrees: 0,
-      workspaces: [],
+      worktrees: detectedWorktrees,
+      workspaces: detectedWorkspaces,
       configFiles: [],
     };
 
