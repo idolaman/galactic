@@ -122,6 +122,16 @@ const Index = () => {
     );
     clearWorkspaceRelaunchFlag(projectToDelete.path);
 
+    // Clean up any associated worktree workspaces
+    const workspacesToDelete = projectWorkspaces[projectId] ?? projectToDelete.workspaces ?? [];
+    workspacesToDelete.forEach((ws) => {
+      unassignTarget(ws.workspace);
+      deleteCodeWorkspace(ws.workspace).catch((err) =>
+        console.error(`Failed to delete workspace file for ${ws.name}:`, err),
+      );
+      clearWorkspaceRelaunchFlag(ws.workspace);
+    });
+
     toast({
       title: "Project removed",
       description: `${projectToDelete.name} deleted from your project list.`,
