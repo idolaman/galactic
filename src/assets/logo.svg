@@ -1,0 +1,30 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="planet_gradient" x1="200" y1="200" x2="824" y2="824" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#7c3aed" />
+      <stop offset="100%" stop-color="#2563eb" />
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="30" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background Squircle -->
+  <rect x="52" y="52" width="920" height="920" rx="220" fill="#050507" stroke="#1a1a2e" stroke-width="4"/>
+  
+  <!-- Orbit Group -->
+  <g transform="translate(512, 512) rotate(-30)">
+    <!-- Rear part of orbit (behind planet) could be split if we want true 3D layering, but simple ellipse is okay for icon -->
+    <ellipse cx="0" cy="0" rx="350" ry="120" stroke="rgba(255,255,255,0.4)" stroke-width="16" fill="none" />
+    <!-- Satellite -->
+    <circle cx="300" cy="-60" r="24" fill="white" filter="drop-shadow(0 0 10px white)"/>
+  </g>
+
+  <!-- Planet -->
+  <circle cx="512" cy="512" r="220" fill="url(#planet_gradient)" filter="url(#glow)" />
+  
+</svg>

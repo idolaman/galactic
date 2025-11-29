@@ -181,7 +181,7 @@ export const ProjectList = ({
             <AlertDialogTitle>Remove project</AlertDialogTitle>
             <AlertDialogDescription>
               {projectPendingDelete
-                ? `Are you sure you want to remove ${projectPendingDelete.name} from Galactic IDE?`
+                ? `Are you sure you want to remove ${projectPendingDelete.name} from Galactic?`
                 : "This action cannot be undone."}
             </AlertDialogDescription>
           </AlertDialogHeader>
