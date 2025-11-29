@@ -5,7 +5,6 @@ export interface StoredProject {
   name: string;
   path: string;
   isGitRepo: boolean;
-  currentBranch?: string | null;
   worktrees: number;
   workspaces?: Workspace[];
   configFiles?: string[];

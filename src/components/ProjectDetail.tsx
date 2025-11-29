@@ -32,7 +32,6 @@ interface ProjectDetailProps {
     id: string;
     name: string;
     path: string;
-    currentBranch?: string | null;
     isGitRepo: boolean;
   };
   workspaces: Workspace[];
@@ -227,11 +226,6 @@ export const ProjectDetail = ({
                 <div className="space-y-1 min-w-0 max-w-[85%]">
                   <div className="flex items-center gap-2">
                     <h3 className="font-semibold text-lg text-primary">Base Code</h3>
-                    {project.isGitRepo && (
-                      <Badge variant="secondary" className="font-mono text-xs">
-                        {project.currentBranch ?? "HEAD"}
-                      </Badge>
-                    )}
                   </div>
                   <div 
                     className="text-[10px] text-muted-foreground font-mono truncate select-all px-0.5"

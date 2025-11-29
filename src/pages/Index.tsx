@@ -60,7 +60,6 @@ const Index = () => {
       name: projectName,
       path: normalizedPath,
       isGitRepo: gitInfo.isGitRepo,
-      currentBranch: gitInfo.currentBranch,
       worktrees: 0,
       workspaces: [],
       configFiles: [],
