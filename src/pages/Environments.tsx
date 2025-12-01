@@ -65,7 +65,9 @@ export default function Environments() {
   const [newEnvName, setNewEnvName] = useState("");
   
   // Configuration form state
-  const [configHostVar, setConfigHostVar] = useState("");
+  const [envVars, setEnvVars] = useState<Record<string, string>>({});
+  const [newVarKey, setNewVarKey] = useState("");
+  const [newVarSuffix, setNewVarSuffix] = useState("");
   const [renameName, setRenameName] = useState("");
 
   const [isCreating, setIsCreating] = useState(false);
@@ -95,9 +97,73 @@ export default function Environments() {
   // Sync local config state with selected environment
   useEffect(() => {
     if (selectedEnvironment) {
-      setConfigHostVar(selectedEnvironment.hostVariable || "");
+      setEnvVars(selectedEnvironment.envVars || {});
     }
   }, [selectedEnvironment]);
+
+  const handleAddEnvVar = () => {
+    const key = newVarKey.trim();
+    if (!key || !selectedEnvironment) return;
+    
+    // Check if key already exists
+    if (Object.keys(envVars).some(k => k.trim() === key)) {
+      toast({
+        title: "Variable exists",
+        description: `Environment variable '${key}' already exists.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Enforce IP prefix
+    const value = `${selectedEnvironment.address}${newVarSuffix}`;
+    const next = { ...envVars, [key]: value };
+    setEnvVars(next);
+    setNewVarKey("");
+    setNewVarSuffix("");
+    
+    // Trigger auto-save after adding
+    saveConfig(selectedEnvironment.id, next);
+  };
+
+  const handleRemoveEnvVar = (key: string) => {
+    const next = { ...envVars };
+    delete next[key];
+    setEnvVars(next);
+    
+    // Trigger auto-save after removing
+    saveConfig(selectedEnvironment?.id, next);
+  };
+
+  // Helper to debounce/unify save logic
+  const saveConfig = async (envId: string | undefined, vars: Record<string, string>) => {
+     if (!envId || !selectedEnvironment) return;
+     
+     const result = await updateEnvironment(envId, {
+       envVars: vars,
+     });
+
+     if (!result.success) {
+       toast({
+         title: "Failed to update",
+         description: result.error || "Unknown error.",
+         variant: "destructive",
+       });
+       return;
+     }
+
+     // Update all .code-workspace files
+     const updatePromises = selectedEnvironment.bindings.map(async (binding) => {
+       await writeCodeWorkspace(binding.targetPath, {
+         address: selectedEnvironment.address,
+         envVars: vars,
+       });
+       markWorkspaceRequiresRelaunch(binding.targetPath);
+     });
+     await Promise.all(updatePromises);
+     
+     toast({ title: "Settings saved", description: "Environment configuration updated." });
+  };
 
   const handleCreateEnvironment = async () => {
     const trimmed = newEnvName.trim();
@@ -105,6 +171,15 @@ export default function Environments() {
       toast({
         title: "Name required",
         description: "Please give the environment a name.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (environments.some((env) => env.name.toLowerCase() === trimmed.toLowerCase())) {
+      toast({
+        title: "Name taken",
+        description: "An environment with this name already exists.",
         variant: "destructive",
       });
       return;
@@ -148,6 +223,21 @@ export default function Environments() {
       return;
     }
 
+    if (
+      environments.some(
+        (env) =>
+          env.id !== selectedEnvironmentId &&
+          env.name.toLowerCase() === trimmed.toLowerCase()
+      )
+    ) {
+      toast({
+        title: "Name taken",
+        description: "An environment with this name already exists.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const result = await updateEnvironment(selectedEnvironmentId, {
       name: trimmed,
     });
@@ -164,45 +254,7 @@ export default function Environments() {
     toast({ title: "Environment renamed", description: `Renamed to ${trimmed}.` });
     setIsRenameDialogOpen(false);
   };
-
-  const handleSaveConfig = async () => {
-    if (!selectedEnvironment) return;
-    
-    const trimmedHostVar = configHostVar.trim();
-
-    // Only update if changes were made
-    if (trimmedHostVar === (selectedEnvironment.hostVariable || "")) {
-      return;
-    }
-
-    const result = await updateEnvironment(selectedEnvironment.id, {
-      hostVariable: trimmedHostVar,
-    });
-
-    if (!result.success) {
-      toast({
-        title: "Failed to update",
-        description: result.error || "Unknown error.",
-        variant: "destructive",
-      });
-      // Reset to previous valid state
-      setConfigHostVar(selectedEnvironment.hostVariable || "");
-      return;
-    }
-
-    // Update all .code-workspace files for bindings to this environment
-    const updatePromises = selectedEnvironment.bindings.map(async (binding) => {
-      await writeCodeWorkspace(binding.targetPath, {
-        hostVariable: trimmedHostVar,
-        address: selectedEnvironment.address,
-      });
-      markWorkspaceRequiresRelaunch(binding.targetPath);
-    });
-    await Promise.all(updatePromises);
-
-    toast({ title: "Settings saved", description: "Environment configuration updated." });
-  };
-
+  
   const handleDeleteEnvironment = async () => {
     if (!environmentToDelete) return;
 
@@ -391,43 +443,59 @@ export default function Environments() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="p-6 grid gap-6">
-                        <div className="space-y-3">
-                          <Label htmlFor="config-host" className="text-sm font-medium">
-                            Host Variable Name
-                          </Label>
-                          <div className="flex items-center gap-3 max-w-md">
-                            <Input
-                              id="config-host"
-                              value={configHostVar}
-                              placeholder="HOST"
-                              onChange={(e) => setConfigHostVar(e.target.value)}
-                              onBlur={handleSaveConfig}
-                              onKeyDown={(e) => e.key === 'Enter' && handleSaveConfig()}
-                              className="font-mono"
-                            />
-                            <span className="text-muted-foreground text-sm shrink-0">
-                              = {selectedEnvironment.address}
-                            </span>
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-sm font-medium">Environment Variables</Label>
                           </div>
-                          <p className="text-[13px] text-muted-foreground leading-relaxed">
-                            This environment variable will be injected into your editor. 
-                            Your application must read <code className="font-mono font-medium text-foreground">{configHostVar || "HOST"}</code> to bind the services to the correct local IP.
-                          </p>
-                        </div>
+                          
+                          <div className="grid gap-3">
+                            <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
+                               <Input 
+                                 placeholder="Key (e.g. HOST)" 
+                                 className="font-mono text-xs"
+                                 value={newVarKey}
+                                 onChange={(e) => setNewVarKey(e.target.value)}
+                                 onKeyDown={(e) => e.key === 'Enter' && handleAddEnvVar()}
+                               />
+                               <div className="flex items-center rounded-md border border-input bg-transparent focus-within:ring-1 focus-within:ring-ring">
+                                  <span className="px-3 py-1 text-xs text-muted-foreground bg-muted/50 border-r h-full flex items-center font-mono shrink-0">
+                                    {selectedEnvironment.address}
+                                  </span>
+                                  <Input 
+                                    placeholder=":3000 (optional)" 
+                                    className="font-mono text-xs border-0 focus-visible:ring-0 px-2 h-8"
+                                    value={newVarSuffix}
+                                    onChange={(e) => setNewVarSuffix(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleAddEnvVar()}
+                                  />
+                               </div>
+                               <Button size="icon" variant="secondary" onClick={handleAddEnvVar}>
+                                 <Plus className="h-4 w-4" />
+                               </Button>
+                            </div>
 
-                        <div className="space-y-2 pt-2 border-t">
-                          <Label className="text-sm font-medium">Usage Example</Label>
-                          <div className="p-3 rounded bg-muted/50 border font-mono text-xs space-y-1">
-                            <div className="text-muted-foreground"># Example: Node.js / Express</div>
-                            <div>
-                              <span className="text-purple-600 dark:text-purple-400">const</span> host = process.env.{configHostVar || "HOST"} || <span className="text-green-600 dark:text-green-400">"0.0.0.0"</span>;
-                            </div>
-                            <div>
-                              app.listen(port, <span className="font-bold text-foreground">host</span>, () ={">"} {"{"} ... {"}"});
-                            </div>
+                            {Object.entries(envVars).length > 0 && (
+                              <div className="rounded-md border bg-muted/10 divide-y">
+                                {Object.entries(envVars).map(([key, value]) => (
+                                  <div key={key} className="grid grid-cols-[1fr_1fr_auto] gap-2 p-2 items-center">
+                                    <div className="font-mono text-xs font-medium truncate" title={key}>{key}</div>
+                                    <div className="font-mono text-xs text-muted-foreground truncate" title={value}>{value}</div>
+                                    <Button 
+                                      size="icon" 
+                                      variant="ghost" 
+                                      className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                      onClick={() => handleRemoveEnvVar(key)}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                           <p className="text-[13px] text-muted-foreground">
-                            <strong>Important:</strong> Do not bind to <code className="font-mono">localhost</code> or <code className="font-mono">127.0.0.1</code>. Always use the variable.
+                            Variables are automatically prefixed with the environment's IP address ({selectedEnvironment.address}).
+                            Add optional ports and paths (e.g., :3000/api) as needed. If left empty, it will point directly to the IP.
                           </p>
                         </div>
                       </CardContent>

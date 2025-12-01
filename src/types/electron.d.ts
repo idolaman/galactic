@@ -15,8 +15,8 @@ export interface GitWorktreeInfo {
 }
 
 export interface WorkspaceEnvConfig {
-  hostVariable?: string;
   address?: string;
+  envVars?: Record<string, string>;
 }
 
 export interface ElectronAPI {

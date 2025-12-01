@@ -621,8 +621,8 @@ ipcMain.handle(
 const WORKSPACES_CACHE_DIR = "galactic-workspaces";
 
 interface WorkspaceEnvConfig {
-  hostVariable?: string;
   address?: string;
+  envVars?: Record<string, string>;
 }
 
 const getWorkspacesCacheDir = () => {
@@ -647,9 +647,7 @@ const buildWorkspaceContent = (targetPath: string, envConfig: WorkspaceEnvConfig
   const settings: Record<string, unknown> = {};
 
   if (envConfig && envConfig.address) {
-    const envVars: Record<string, string> = {};
-    const hostVar = envConfig.hostVariable || "HOST";
-    envVars[hostVar] = envConfig.address;
+    const envVars: Record<string, string> = { ...envConfig.envVars };
 
     if (Object.keys(envVars).length > 0) {
       settings["terminal.integrated.env.osx"] = envVars;
