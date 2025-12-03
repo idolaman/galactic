@@ -20,6 +20,14 @@ export default function Settings() {
   const [cursorInstalled, setCursorInstalled] = useState<boolean>(false);
   const [vscodeInstalled, setVscodeInstalled] = useState<boolean>(false);
 
+  const [mcpInstalled, setMcpInstalled] = useState<Record<string, boolean>>({
+    Cursor: false,
+    VSCode: false,
+    Claude: false,
+    Codex: false,
+  });
+  const [installing, setInstalling] = useState<Record<string, boolean>>({});
+
   useEffect(() => {
     window.localStorage.setItem("preferredEditor", preferredEditor);
   }, [preferredEditor]);
@@ -33,14 +41,50 @@ export default function Settings() {
     }
   }, []);
 
+  const checkMcpStatus = useCallback(async () => {
+    if (window.electronAPI?.checkMcpInstalled) {
+      const tools = ["Cursor", "VSCode", "Claude", "Codex"];
+      const status: Record<string, boolean> = {};
+
+      for (const tool of tools) {
+        status[tool] = await window.electronAPI.checkMcpInstalled(tool);
+      }
+      setMcpInstalled(status);
+    }
+  }, []);
+
   useEffect(() => {
     checkEditors();
-  }, [checkEditors]);
+    checkMcpStatus();
+  }, [checkEditors, checkMcpStatus]);
 
   const handleEditorChange = (value: string) => {
     const nextValue: EditorName = value === "VSCode" ? "VSCode" : "Cursor";
     setPreferredEditor(nextValue);
     toast({ title: "Default editor updated", description: `${nextValue} selected.` });
+  };
+
+  const handleInstallMcp = async (tool: string) => {
+    if (!window.electronAPI?.installMcp) return;
+
+    setInstalling(prev => ({ ...prev, [tool]: true }));
+    try {
+      const result = await window.electronAPI.installMcp(tool);
+      if (result.success) {
+        toast({ title: "Installation Successful", description: `Galactic MCP installed for ${tool}.` });
+        await checkMcpStatus();
+      } else {
+        toast({
+          title: "Installation Failed",
+          description: result.error || `Failed to install MCP for ${tool}.`,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
+    } finally {
+      setInstalling(prev => ({ ...prev, [tool]: false }));
+    }
   };
 
   const editorOptions = [
@@ -124,7 +168,7 @@ export default function Settings() {
       <Card className="border-border bg-card" id="mcp-installation">
         <CardHeader className="pb-4">
           <CardTitle>Install Galactic MCP</CardTitle>
-          <CardDescription>Connect your favorite tools to Galactic to enable background monitoring.</CardDescription>
+          <CardDescription>Connect your favorite tools to Galactic to monitor AI agent statuses.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="flex flex-col items-center justify-between gap-4 border bg-background/70 p-6 text-center shadow-sm transition-all hover:border-primary/50 hover:shadow-md">
@@ -136,11 +180,12 @@ export default function Settings() {
               <p className="text-xs text-muted-foreground">The classic editor</p>
             </div>
             <Button
-              variant="secondary"
+              variant={mcpInstalled["VSCode"] ? "outline" : "secondary"}
               className="w-full"
-              onClick={() => toast({ title: "Coming Soon", description: "MCP installation for VS Code is coming soon!" })}
+              disabled={mcpInstalled["VSCode"] || installing["VSCode"]}
+              onClick={() => handleInstallMcp("VSCode")}
             >
-              Install
+              {mcpInstalled["VSCode"] ? "Installed" : installing["VSCode"] ? "Installing..." : "Install"}
             </Button>
           </Card>
 
@@ -189,11 +234,12 @@ export default function Settings() {
               <p className="text-xs text-muted-foreground">AI-native editor integration</p>
             </div>
             <Button
-              variant="secondary"
+              variant={mcpInstalled["Cursor"] ? "outline" : "secondary"}
               className="w-full"
-              onClick={() => toast({ title: "Coming Soon", description: "MCP installation for Cursor is coming soon!" })}
+              disabled={mcpInstalled["Cursor"] || installing["Cursor"]}
+              onClick={() => handleInstallMcp("Cursor")}
             >
-              Install
+              {mcpInstalled["Cursor"] ? "Installed" : installing["Cursor"] ? "Installing..." : "Install"}
             </Button>
           </Card>
 
@@ -208,11 +254,12 @@ export default function Settings() {
               <p className="text-xs text-muted-foreground">Anthropic's coding assistant</p>
             </div>
             <Button
-              variant="secondary"
+              variant={mcpInstalled["Claude"] ? "outline" : "secondary"}
               className="w-full"
-              onClick={() => toast({ title: "Coming Soon", description: "MCP installation for Claude Code is coming soon!" })}
+              disabled={mcpInstalled["Claude"] || installing["Claude"]}
+              onClick={() => handleInstallMcp("Claude")}
             >
-              Install
+              {mcpInstalled["Claude"] ? "Installed" : installing["Claude"] ? "Installing..." : "Install"}
             </Button>
           </Card>
 
@@ -227,11 +274,12 @@ export default function Settings() {
               <p className="text-xs text-muted-foreground">OpenAI's coding model</p>
             </div>
             <Button
-              variant="secondary"
+              variant={mcpInstalled["Codex"] ? "outline" : "secondary"}
               className="w-full"
-              onClick={() => toast({ title: "Coming Soon", description: "MCP installation for Codex is coming soon!" })}
+              disabled={mcpInstalled["Codex"] || installing["Codex"]}
+              onClick={() => handleInstallMcp("Codex")}
             >
-              Install
+              {mcpInstalled["Codex"] ? "Installed" : installing["Codex"] ? "Installing..." : "Install"}
             </Button>
           </Card>
         </CardContent>
