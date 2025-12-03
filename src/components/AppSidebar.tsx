@@ -62,13 +62,15 @@ export function AppSidebar() {
                       </p>
                     </div>
                   </div>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="w-full bg-white text-slate-900 shadow-none transition-colors hover:bg-white/90"
-                  >
-                    Install now
-                  </Button>
+                  <NavLink to="/settings#mcp-installation" className="w-full">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="w-full bg-white text-slate-900 shadow-none transition-colors hover:bg-white/90"
+                    >
+                      Install now
+                    </Button>
+                  </NavLink>
                 </div>
               </div>
             ) : (
