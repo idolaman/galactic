@@ -9,7 +9,7 @@
     "dev:electron": "npm run build:main && concurrently -k \"npm:dev:vite\" \"npm:watch:electron\" \"npm:start:electron\"",
     "dev": "npm run dev:electron",
     "watch:electron": "concurrently -k \"tsc -p electron/tsconfig.json --watch\" \"tsc -p electron/tsconfig.preload.json --watch\"",
-    "start:electron": "wait-on http://127.0.0.1:8080 && ELECTRON_START_URL=http://127.0.0.1:8080 electron .",
+    "start:electron": "wait-on http://${VITE_HOST:-127.0.0.1}:${VITE_PORT:-8080} && ELECTRON_START_URL=http://${VITE_HOST:-127.0.0.1}:${VITE_PORT:-8080} electron .",
     "build:ui": "vite build",
     "build:main": "tsc -p electron/tsconfig.json && tsc -p electron/tsconfig.preload.json",
     "build:electron": "npm run build:ui && npm run build:main && electron-builder --mac dmg zip",
