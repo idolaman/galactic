@@ -14,5 +14,5 @@ export interface Environment {
   address: string;
   createdAt: number;
   bindings: EnvironmentBinding[];
-  hostVariable?: string;
+  envVars?: Record<string, string>;
 }
