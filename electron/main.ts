@@ -732,70 +732,52 @@ ipcMain.handle(
   },
 );
 
+import { updateMcpConfig, checkMcpConfig } from "./utils/config.js";
+
+const THINKING_LOGGER_CONFIG = {
+  type: "http",
+  url: "http://localhost:8001"
+} as const;
+
 ipcMain.handle("mcp/check-installed", async (_event, tool: string) => {
   if (tool === "Cursor") {
-    const configPath = path.join(os.homedir(), ".cursor", "mcp.json");
-    if (!existsSync(configPath)) return false;
-
-    try {
-      const content = await fsPromises.readFile(configPath, "utf-8");
-      const config = JSON.parse(content);
-      return !!(config.mcpServers && config.mcpServers["thinking-logger"]);
-    } catch (error) {
-      console.error("Failed to check Cursor MCP config:", error);
-      return false;
-    }
+    return await checkMcpConfig(path.join(os.homedir(), ".cursor", "mcp.json"), "thinking-logger");
   }
 
-  // For other tools, return false for now
+  if (tool === "Claude") {
+    return await checkMcpConfig(path.join(os.homedir(), ".claude.json"), "thinking-logger");
+  }
+
+  if (tool === "Codex") {
+    return await checkMcpConfig(path.join(os.homedir(), ".codex", "config.toml"), "thinking-logger");
+  }
+
   return false;
 });
 
 ipcMain.handle("mcp/install", async (_event, tool: string) => {
   if (tool === "Cursor") {
-    const cursorDir = path.join(os.homedir(), ".cursor");
-    const configPath = path.join(cursorDir, "mcp.json");
+    return await updateMcpConfig(
+      path.join(os.homedir(), ".cursor", "mcp.json"),
+      "thinking-logger",
+      THINKING_LOGGER_CONFIG
+    );
+  }
 
-    const mcpConfig = {
-      "thinking-logger": {
-        "type": "http",
-        "url": "http://localhost:8001"
-      }
-    };
+  if (tool === "Claude") {
+    return await updateMcpConfig(
+      path.join(os.homedir(), ".claude.json"),
+      "thinking-logger",
+      THINKING_LOGGER_CONFIG
+    );
+  }
 
-    try {
-      if (!existsSync(cursorDir)) {
-        await fsPromises.mkdir(cursorDir, { recursive: true });
-      }
-
-      let config: any = { mcpServers: {} };
-
-      if (existsSync(configPath)) {
-        try {
-          const content = await fsPromises.readFile(configPath, "utf-8");
-          config = JSON.parse(content);
-          if (!config.mcpServers) config.mcpServers = {};
-        } catch (e) {
-          // If file is corrupt or empty, start fresh
-          console.warn("Cursor MCP config corrupt, resetting:", e);
-        }
-      }
-
-      // Add our MCP
-      config.mcpServers = {
-        ...config.mcpServers,
-        ...mcpConfig
-      };
-
-      await fsPromises.writeFile(configPath, JSON.stringify(config, null, 2), "utf-8");
-      return { success: true };
-    } catch (error) {
-      console.error("Failed to install Cursor MCP:", error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Failed to install MCP"
-      };
-    }
+  if (tool === "Codex") {
+    return await updateMcpConfig(
+      path.join(os.homedir(), ".codex", "config.toml"),
+      "thinking-logger",
+      THINKING_LOGGER_CONFIG
+    );
   }
 
   return { success: false, error: "Tool not supported yet." };
