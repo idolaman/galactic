@@ -8,6 +8,7 @@ import {
 } from "electron";
 import path from "node:path";
 import process from "node:process";
+import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { existsSync, mkdirSync } from "node:fs";
 import { promises as fsPromises } from "node:fs";
@@ -113,10 +114,10 @@ ipcMain.handle("check-editor-installed", (_event, editorName: string) => {
     Cursor: "/Applications/Cursor.app",
     VSCode: "/Applications/Visual Studio Code.app",
   };
-  
+
   const editorPath = editorPaths[editorName];
   if (!editorPath) return false;
-  
+
   return existsSync(editorPath);
 });
 
@@ -187,8 +188,8 @@ ipcMain.handle(
     }
 
     if (!existsSync(projectPath)) {
-    return { success: false, error: "Project path does not exist." };
-  }
+      return { success: false, error: "Project path does not exist." };
+    }
 
     const commandString = resolveEditorCommand(editorName, projectPath);
     if (!commandString) {
@@ -334,7 +335,7 @@ ipcMain.handle("git/get-worktrees", async (_event, projectPath: string) => {
     const { stdout } = await execFileAsync("git", ["worktree", "list", "--porcelain"], {
       cwd: projectPath,
     });
-    
+
     // Parse porcelain output
     // worktree /path/to/worktree
     // HEAD <sha>
@@ -346,15 +347,15 @@ ipcMain.handle("git/get-worktrees", async (_event, projectPath: string) => {
 
     const worktrees: Array<{ path: string; branch: string; sha: string }> = [];
     const entries = stdout.split("\n\n");
-    
+
     for (const entry of entries) {
       if (!entry.trim()) continue;
-      
+
       const lines = entry.split("\n");
       let worktreePath = "";
       let branch = "";
       let sha = "";
-      
+
       for (const line of lines) {
         if (line.startsWith("worktree ")) {
           worktreePath = line.substring(9).trim();
@@ -364,12 +365,12 @@ ipcMain.handle("git/get-worktrees", async (_event, projectPath: string) => {
           sha = line.substring(5).trim();
         }
       }
-      
+
       if (worktreePath && branch) {
         worktrees.push({ path: worktreePath, branch, sha });
       }
     }
-    
+
     return worktrees;
   } catch (error) {
     console.warn(`Failed to list worktrees for ${projectPath}:`, error);
@@ -730,3 +731,72 @@ ipcMain.handle(
     }
   },
 );
+
+ipcMain.handle("mcp/check-installed", async (_event, tool: string) => {
+  if (tool === "Cursor") {
+    const configPath = path.join(os.homedir(), ".cursor", "mcp.json");
+    if (!existsSync(configPath)) return false;
+
+    try {
+      const content = await fsPromises.readFile(configPath, "utf-8");
+      const config = JSON.parse(content);
+      return !!(config.mcpServers && config.mcpServers["thinking-logger"]);
+    } catch (error) {
+      console.error("Failed to check Cursor MCP config:", error);
+      return false;
+    }
+  }
+
+  // For other tools, return false for now
+  return false;
+});
+
+ipcMain.handle("mcp/install", async (_event, tool: string) => {
+  if (tool === "Cursor") {
+    const cursorDir = path.join(os.homedir(), ".cursor");
+    const configPath = path.join(cursorDir, "mcp.json");
+
+    const mcpConfig = {
+      "thinking-logger": {
+        "type": "http",
+        "url": "http://localhost:8001"
+      }
+    };
+
+    try {
+      if (!existsSync(cursorDir)) {
+        await fsPromises.mkdir(cursorDir, { recursive: true });
+      }
+
+      let config: any = { mcpServers: {} };
+
+      if (existsSync(configPath)) {
+        try {
+          const content = await fsPromises.readFile(configPath, "utf-8");
+          config = JSON.parse(content);
+          if (!config.mcpServers) config.mcpServers = {};
+        } catch (e) {
+          // If file is corrupt or empty, start fresh
+          console.warn("Cursor MCP config corrupt, resetting:", e);
+        }
+      }
+
+      // Add our MCP
+      config.mcpServers = {
+        ...config.mcpServers,
+        ...mcpConfig
+      };
+
+      await fsPromises.writeFile(configPath, JSON.stringify(config, null, 2), "utf-8");
+      return { success: true };
+    } catch (error) {
+      console.error("Failed to install Cursor MCP:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to install MCP"
+      };
+    }
+  }
+
+  return { success: false, error: "Tool not supported yet." };
+});

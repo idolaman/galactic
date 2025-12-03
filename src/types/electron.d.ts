@@ -46,6 +46,8 @@ export interface ElectronAPI {
   ) => Promise<{ success: boolean; workspacePath?: string; error?: string }>;
   getCodeWorkspacePath: (targetPath: string) => Promise<{ exists: boolean; workspacePath: string }>;
   deleteCodeWorkspace: (targetPath: string) => Promise<{ success: boolean; error?: string }>;
+  checkMcpInstalled: (tool: string) => Promise<boolean>;
+  installMcp: (tool: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 declare global {

@@ -58,7 +58,7 @@ export function AppSidebar() {
                     <div className="space-y-1">
                       <p className="text-sm font-semibold leading-tight">Install Galactic MCP</p>
                       <p className="text-xs text-white/80">
-                        Monitor every task automatically with the Galactic MCP running beside your workspace.
+                        Monitor AI agent statuses automatically with the Galactic MCP running beside your workspace.
                       </p>
                     </div>
                   </div>
