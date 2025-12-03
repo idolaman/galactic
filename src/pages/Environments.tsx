@@ -38,6 +38,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -68,6 +75,7 @@ export default function Environments() {
   const [envVars, setEnvVars] = useState<Record<string, string>>({});
   const [newVarKey, setNewVarKey] = useState("");
   const [newVarSuffix, setNewVarSuffix] = useState("");
+  const [newVarProtocol, setNewVarProtocol] = useState<string>("none");
   const [renameName, setRenameName] = useState("");
 
   const [isCreating, setIsCreating] = useState(false);
@@ -116,11 +124,13 @@ export default function Environments() {
     }
     
     // Enforce IP prefix
-    const value = `${selectedEnvironment.address}${newVarSuffix}`;
+    const protocolPrefix = newVarProtocol === "none" ? "" : `${newVarProtocol}://`;
+    const value = `${protocolPrefix}${selectedEnvironment.address}${newVarSuffix}`;
     const next = { ...envVars, [key]: value };
     setEnvVars(next);
     setNewVarKey("");
     setNewVarSuffix("");
+    setNewVarProtocol("none");
     
     // Trigger auto-save after adding
     saveConfig(selectedEnvironment.id, next);
@@ -457,13 +467,23 @@ export default function Environments() {
                                  onChange={(e) => setNewVarKey(e.target.value)}
                                  onKeyDown={(e) => e.key === 'Enter' && handleAddEnvVar()}
                                />
-                               <div className="flex items-center rounded-md border border-input bg-transparent focus-within:ring-1 focus-within:ring-ring">
-                                  <span className="px-3 py-1 text-xs text-muted-foreground bg-muted/50 border-r h-full flex items-center font-mono shrink-0">
+                               <div className="flex items-center rounded-md border border-input bg-transparent ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 overflow-hidden h-10">
+                                  <Select value={newVarProtocol} onValueChange={setNewVarProtocol}>
+                                    <SelectTrigger className="w-[100px] h-full border-0 border-r rounded-none px-3 text-xs bg-muted/50 focus:ring-0 text-muted-foreground font-mono hover:bg-muted/70 transition-colors">
+                                      <SelectValue placeholder="Proto" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none">None</SelectItem>
+                                      <SelectItem value="http">http://</SelectItem>
+                                      <SelectItem value="https">https://</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <div className="px-3 h-full flex items-center justify-center text-xs text-muted-foreground bg-muted/20 border-r font-mono shrink-0 select-none">
                                     {selectedEnvironment.address}
-                                  </span>
+                                  </div>
                                   <Input 
                                     placeholder=":3000 (optional)" 
-                                    className="font-mono text-xs border-0 focus-visible:ring-0 px-2 h-8"
+                                    className="font-mono text-xs border-0 shadow-none focus-visible:ring-0 px-3 h-full rounded-none flex-1"
                                     value={newVarSuffix}
                                     onChange={(e) => setNewVarSuffix(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleAddEnvVar()}
