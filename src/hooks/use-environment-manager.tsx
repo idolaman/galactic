@@ -14,7 +14,7 @@ interface EnvironmentContextValue {
   createEnvironment: (name: string) => Promise<{ success: boolean; error?: string; address?: string; id?: string }>;
   updateEnvironment: (
     id: string,
-    updates: { name?: string; hostVariable?: string },
+    updates: { name?: string; envVars?: Record<string, string> },
   ) => Promise<{ success: boolean; error?: string }>;
   deleteEnvironment: (id: string) => Promise<{ success: boolean; error?: string }>;
   assignTarget: (
@@ -62,7 +62,10 @@ export const EnvironmentProvider = ({ children }: { children: ReactNode }) => {
     return { success: true, address: nextAddress, id: environment.id };
   };
 
-  const updateEnvironment = async (id: string, updates: { name?: string; hostVariable?: string }) => {
+  const updateEnvironment = async (
+    id: string,
+    updates: { name?: string; envVars?: Record<string, string> },
+  ) => {
     if (updates.name !== undefined && !updates.name.trim()) {
       return { success: false, error: "Environment name cannot be empty." };
     }
@@ -77,11 +80,10 @@ export const EnvironmentProvider = ({ children }: { children: ReactNode }) => {
 
       const next = prev.map((env) =>
         env.id === id
-          ? {
+          ?             {
               ...env,
               name: updates.name !== undefined ? updates.name.trim() : env.name,
-              hostVariable:
-                updates.hostVariable !== undefined ? updates.hostVariable.trim() : env.hostVariable,
+              envVars: updates.envVars !== undefined ? updates.envVars : env.envVars,
             }
           : env,
       );

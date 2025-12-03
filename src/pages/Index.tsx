@@ -326,8 +326,8 @@ const Index = () => {
     // Overwrite .code-workspace file with environment config
     const selectedEnv = environments.find((env) => env.id === environmentId);
     const workspaceResult = await writeCodeWorkspace(binding.targetPath, {
-      hostVariable: selectedEnv?.hostVariable,
       address: selectedEnv?.address,
+      envVars: selectedEnv?.envVars,
     });
 
     // Environment attachment or change requires a relaunch to apply in the editor.
