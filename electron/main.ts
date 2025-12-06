@@ -122,6 +122,9 @@ ipcMain.handle("check-editor-installed", (_event, editorName: string) => {
 });
 
 app.whenReady().then(() => {
+  // Start the MCP server
+  startMcpServer({ port: MCP_SERVER_PORT, tokenless: true });
+
   createWindow().catch((error) => {
     console.error("Failed to create window:", error);
     app.quit();
@@ -137,8 +140,13 @@ app.whenReady().then(() => {
   });
 });
 
+app.on("before-quit", () => {
+  stopMcpServer();
+});
+
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
+    stopMcpServer();
     app.quit();
   }
 });
@@ -733,23 +741,34 @@ ipcMain.handle(
 );
 
 import { updateMcpConfig, checkMcpConfig } from "./utils/config.js";
+import {
+  startMcpServer,
+  stopMcpServer,
+  isMcpServerRunning,
+  restartMcpServer,
+  getMcpServerUrl,
+} from "./mcp-server.js";
+
+const MCP_SERVER_PORT = 17890;
 
 const THINKING_LOGGER_CONFIG = {
   type: "http",
-  url: "http://localhost:8001"
+  url: `http://localhost:${MCP_SERVER_PORT}`
 } as const;
+
+const MCP_SERVER_NAME = "galactic";
 
 ipcMain.handle("mcp/check-installed", async (_event, tool: string) => {
   if (tool === "Cursor") {
-    return await checkMcpConfig(path.join(os.homedir(), ".cursor", "mcp.json"), "thinking-logger");
+    return await checkMcpConfig(path.join(os.homedir(), ".cursor", "mcp.json"), MCP_SERVER_NAME);
   }
 
   if (tool === "Claude") {
-    return await checkMcpConfig(path.join(os.homedir(), ".claude.json"), "thinking-logger");
+    return await checkMcpConfig(path.join(os.homedir(), ".claude.json"), MCP_SERVER_NAME);
   }
 
   if (tool === "Codex") {
-    return await checkMcpConfig(path.join(os.homedir(), ".codex", "config.toml"), "thinking-logger");
+    return await checkMcpConfig(path.join(os.homedir(), ".codex", "config.toml"), MCP_SERVER_NAME);
   }
 
   return false;
@@ -759,7 +778,7 @@ ipcMain.handle("mcp/install", async (_event, tool: string) => {
   if (tool === "Cursor") {
     return await updateMcpConfig(
       path.join(os.homedir(), ".cursor", "mcp.json"),
-      "thinking-logger",
+      MCP_SERVER_NAME,
       THINKING_LOGGER_CONFIG
     );
   }
@@ -767,7 +786,7 @@ ipcMain.handle("mcp/install", async (_event, tool: string) => {
   if (tool === "Claude") {
     return await updateMcpConfig(
       path.join(os.homedir(), ".claude.json"),
-      "thinking-logger",
+      MCP_SERVER_NAME,
       THINKING_LOGGER_CONFIG
     );
   }
@@ -775,10 +794,23 @@ ipcMain.handle("mcp/install", async (_event, tool: string) => {
   if (tool === "Codex") {
     return await updateMcpConfig(
       path.join(os.homedir(), ".codex", "config.toml"),
-      "thinking-logger",
+      MCP_SERVER_NAME,
       THINKING_LOGGER_CONFIG
     );
   }
 
   return { success: false, error: "Tool not supported yet." };
+});
+
+ipcMain.handle("mcp/server-status", () => {
+  return {
+    running: isMcpServerRunning(),
+    url: getMcpServerUrl(MCP_SERVER_PORT),
+    port: MCP_SERVER_PORT,
+  };
+});
+
+ipcMain.handle("mcp/restart-server", () => {
+  restartMcpServer({ port: MCP_SERVER_PORT, tokenless: true });
+  return { success: true };
 });
