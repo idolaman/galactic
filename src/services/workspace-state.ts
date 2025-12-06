@@ -6,6 +6,12 @@ export const markWorkspaceRequiresRelaunch = (targetPath: string): void => {
   relaunchTargets.add(normalizePath(targetPath));
 };
 
+export const markAllWorkspacesRequireRelaunch = (workspacePaths: string[]): void => {
+  for (const path of workspacePaths) {
+    relaunchTargets.add(normalizePath(path));
+  }
+};
+
 export const clearWorkspaceRelaunchFlag = (targetPath: string): void => {
   relaunchTargets.delete(normalizePath(targetPath));
 };
