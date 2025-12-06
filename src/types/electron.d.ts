@@ -48,6 +48,8 @@ export interface ElectronAPI {
   deleteCodeWorkspace: (targetPath: string) => Promise<{ success: boolean; error?: string }>;
   checkMcpInstalled: (tool: string) => Promise<boolean>;
   installMcp: (tool: string) => Promise<{ success: boolean; error?: string }>;
+  getMcpServerStatus: () => Promise<{ running: boolean; url: string; port: number }>;
+  restartMcpServer: () => Promise<{ success: boolean }>;
 }
 
 declare global {
