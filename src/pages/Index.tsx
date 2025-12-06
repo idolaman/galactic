@@ -185,7 +185,7 @@ const Index = () => {
         description: result.error ?? "Unknown error running git worktree.",
         variant: "destructive",
       });
-      return;
+      return false;
     }
 
     if (configFiles.length > 0 && result.path) {
@@ -245,6 +245,8 @@ const Index = () => {
       title: "Workspace created",
       description: `Git worktree ready at ${result.path}`,
     });
+
+    return true;
   };
 
   const handleDeleteWorkspace = async (workspacePath: string, branchName: string) => {
@@ -500,7 +502,7 @@ const Index = () => {
           onEnvironmentChange={handleEnvironmentChange}
         />
       ) : (
-        <ProjectList 
+        <ProjectList
           projects={projects}
           onAddProject={handleAddProject}
           onViewProject={handleViewProject}

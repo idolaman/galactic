@@ -70,7 +70,7 @@ export default function Environments() {
     null
   );
   const [newEnvName, setNewEnvName] = useState("");
-  
+
   // Configuration form state
   const [envVars, setEnvVars] = useState<Record<string, string>>({});
   const [newVarKey, setNewVarKey] = useState("");
@@ -112,7 +112,7 @@ export default function Environments() {
   const handleAddEnvVar = () => {
     const key = newVarKey.trim();
     if (!key || !selectedEnvironment) return;
-    
+
     // Check if key already exists
     if (Object.keys(envVars).some(k => k.trim() === key)) {
       toast({
@@ -122,7 +122,7 @@ export default function Environments() {
       });
       return;
     }
-    
+
     // Enforce IP prefix
     const protocolPrefix = newVarProtocol === "none" ? "" : `${newVarProtocol}://`;
     const value = `${protocolPrefix}${selectedEnvironment.address}${newVarSuffix}`;
@@ -131,7 +131,7 @@ export default function Environments() {
     setNewVarKey("");
     setNewVarSuffix("");
     setNewVarProtocol("none");
-    
+
     // Trigger auto-save after adding
     saveConfig(selectedEnvironment.id, next);
   };
@@ -140,39 +140,39 @@ export default function Environments() {
     const next = { ...envVars };
     delete next[key];
     setEnvVars(next);
-    
+
     // Trigger auto-save after removing
     saveConfig(selectedEnvironment?.id, next);
   };
 
   // Helper to debounce/unify save logic
   const saveConfig = async (envId: string | undefined, vars: Record<string, string>) => {
-     if (!envId || !selectedEnvironment) return;
-     
-     const result = await updateEnvironment(envId, {
-       envVars: vars,
-     });
+    if (!envId || !selectedEnvironment) return;
 
-     if (!result.success) {
-       toast({
-         title: "Failed to update",
-         description: result.error || "Unknown error.",
-         variant: "destructive",
-       });
-       return;
-     }
+    const result = await updateEnvironment(envId, {
+      envVars: vars,
+    });
 
-     // Update all .code-workspace files
-     const updatePromises = selectedEnvironment.bindings.map(async (binding) => {
-       await writeCodeWorkspace(binding.targetPath, {
-         address: selectedEnvironment.address,
-         envVars: vars,
-       });
-       markWorkspaceRequiresRelaunch(binding.targetPath);
-     });
-     await Promise.all(updatePromises);
-     
-     toast({ title: "Settings saved", description: "Environment configuration updated." });
+    if (!result.success) {
+      toast({
+        title: "Failed to update",
+        description: result.error || "Unknown error.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Update all .code-workspace files
+    const updatePromises = selectedEnvironment.bindings.map(async (binding) => {
+      await writeCodeWorkspace(binding.targetPath, {
+        address: selectedEnvironment.address,
+        envVars: vars,
+      });
+      markWorkspaceRequiresRelaunch(binding.targetPath);
+    });
+    await Promise.all(updatePromises);
+
+    toast({ title: "Settings saved", description: "Environment configuration updated." });
   };
 
   const handleCreateEnvironment = async () => {
@@ -264,7 +264,7 @@ export default function Environments() {
     toast({ title: "Environment renamed", description: `Renamed to ${trimmed}.` });
     setIsRenameDialogOpen(false);
   };
-  
+
   const handleDeleteEnvironment = async () => {
     if (!environmentToDelete) return;
 
@@ -289,7 +289,7 @@ export default function Environments() {
 
   const handleUnassign = async (targetPath: string, targetLabel: string) => {
     unassignTarget(targetPath);
-    
+
     // Clear configuration and request relaunch
     await writeCodeWorkspace(targetPath, null);
     markWorkspaceRequiresRelaunch(targetPath);
@@ -367,32 +367,32 @@ export default function Environments() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Tabs 
-          value={selectedEnvironmentId || ""} 
+        <Tabs
+          value={selectedEnvironmentId || ""}
           onValueChange={(val) => setSelectedEnvironmentId(val)}
           className="flex-1 flex flex-col overflow-hidden"
         >
           {/* Tabs List Bar */}
           <div className="border-b bg-muted/10 px-6 pt-2">
-          <TabsList className="w-full justify-start h-auto p-0 bg-transparent gap-2 flex-wrap rounded-none border-b-0">
-            {environments.map((env) => (
-              <TabsTrigger
-                key={env.id}
-                value={env.id}
-                className="data-[state=active]:bg-background data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none border-b-2 border-transparent px-4 py-3 h-auto"
-              >
-                <span className="mr-2">{env.name}</span>
-                <Badge variant="secondary" className="font-mono text-[10px] px-1 h-4 leading-none">
-                  {env.address}
-                </Badge>
-              </TabsTrigger>
-            ))}
-            {environments.length === 0 && (
-              <div className="py-3 text-sm text-muted-foreground px-2">
-                No environments yet
-              </div>
-            )}
-          </TabsList>
+            <TabsList className="w-full justify-start h-auto p-0 bg-transparent gap-2 flex-wrap rounded-none border-b-0">
+              {environments.map((env) => (
+                <TabsTrigger
+                  key={env.id}
+                  value={env.id}
+                  className="data-[state=active]:bg-background data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none border-b-2 border-transparent px-4 py-3 h-auto"
+                >
+                  <span className="mr-2">{env.name}</span>
+                  <Badge variant="secondary" className="font-mono text-[10px] px-1 h-4 leading-none">
+                    {env.address}
+                  </Badge>
+                </TabsTrigger>
+              ))}
+              {environments.length === 0 && (
+                <div className="py-3 text-sm text-muted-foreground px-2">
+                  No environments yet
+                </div>
+              )}
+            </TabsList>
           </div>
 
           {/* Tab Content Area */}
@@ -440,7 +440,7 @@ export default function Environments() {
                 {/* Detail Content */}
                 <ScrollArea className="flex-1 p-6">
                   <div className="max-w-4xl space-y-8 mx-auto">
-                    
+
                     {/* Configuration Card */}
                     <Card className="overflow-hidden">
                       <CardHeader className="bg-muted/40 pb-4">
@@ -457,41 +457,41 @@ export default function Environments() {
                           <div className="flex items-center justify-between">
                             <Label className="text-sm font-medium">Environment Variables</Label>
                           </div>
-                          
+
                           <div className="grid gap-3">
                             <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
-                               <Input 
-                                 placeholder="Key (e.g. HOST)" 
-                                 className="font-mono text-xs"
-                                 value={newVarKey}
-                                 onChange={(e) => setNewVarKey(e.target.value)}
-                                 onKeyDown={(e) => e.key === 'Enter' && handleAddEnvVar()}
-                               />
-                               <div className="flex items-center rounded-md border border-input bg-transparent ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 overflow-hidden h-10">
-                                  <Select value={newVarProtocol} onValueChange={setNewVarProtocol}>
-                                    <SelectTrigger className="w-[100px] h-full border-0 border-r rounded-none px-3 text-xs bg-muted/50 focus:ring-0 text-muted-foreground font-mono hover:bg-muted/70 transition-colors">
-                                      <SelectValue placeholder="Proto" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="none">None</SelectItem>
-                                      <SelectItem value="http">http://</SelectItem>
-                                      <SelectItem value="https">https://</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                  <div className="px-3 h-full flex items-center justify-center text-xs text-muted-foreground bg-muted/20 border-r font-mono shrink-0 select-none">
-                                    {selectedEnvironment.address}
-                                  </div>
-                                  <Input 
-                                    placeholder=":3000 (optional)" 
-                                    className="font-mono text-xs border-0 shadow-none focus-visible:ring-0 px-3 h-full rounded-none flex-1"
-                                    value={newVarSuffix}
-                                    onChange={(e) => setNewVarSuffix(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleAddEnvVar()}
-                                  />
-                               </div>
-                               <Button size="icon" variant="secondary" onClick={handleAddEnvVar}>
-                                 <Plus className="h-4 w-4" />
-                               </Button>
+                              <Input
+                                placeholder="Key (e.g. HOST)"
+                                className="font-mono text-xs"
+                                value={newVarKey}
+                                onChange={(e) => setNewVarKey(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddEnvVar()}
+                              />
+                              <div className="flex items-center rounded-md border border-input bg-transparent ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 overflow-hidden h-10">
+                                <Select value={newVarProtocol} onValueChange={setNewVarProtocol}>
+                                  <SelectTrigger className="w-[100px] h-full border-0 border-r rounded-none px-3 text-xs bg-muted/50 focus:ring-0 text-muted-foreground font-mono hover:bg-muted/70 transition-colors">
+                                    <SelectValue placeholder="Proto" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">None</SelectItem>
+                                    <SelectItem value="http">http://</SelectItem>
+                                    <SelectItem value="https">https://</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <div className="px-3 h-full flex items-center justify-center text-xs text-muted-foreground bg-muted/20 border-r font-mono shrink-0 select-none">
+                                  {selectedEnvironment.address}
+                                </div>
+                                <Input
+                                  placeholder=":3000 (optional)"
+                                  className="font-mono text-xs border-0 shadow-none focus-visible:ring-0 px-3 h-full rounded-none flex-1"
+                                  value={newVarSuffix}
+                                  onChange={(e) => setNewVarSuffix(e.target.value)}
+                                  onKeyDown={(e) => e.key === 'Enter' && handleAddEnvVar()}
+                                />
+                              </div>
+                              <Button size="icon" variant="secondary" onClick={handleAddEnvVar}>
+                                <Plus className="h-4 w-4" />
+                              </Button>
                             </div>
 
                             {Object.entries(envVars).length > 0 && (
@@ -500,9 +500,9 @@ export default function Environments() {
                                   <div key={key} className="grid grid-cols-[1fr_1fr_auto] gap-2 p-2 items-center">
                                     <div className="font-mono text-xs font-medium truncate" title={key}>{key}</div>
                                     <div className="font-mono text-xs text-muted-foreground truncate" title={value}>{value}</div>
-                                    <Button 
-                                      size="icon" 
-                                      variant="ghost" 
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
                                       className="h-6 w-6 text-muted-foreground hover:text-destructive"
                                       onClick={() => handleRemoveEnvVar(key)}
                                     >
@@ -532,8 +532,7 @@ export default function Environments() {
                             <HardDrive className="h-10 w-10 text-muted-foreground mb-4 opacity-50" />
                             <p className="font-medium">No bindings attached</p>
                             <p className="text-sm text-muted-foreground max-w-xs mt-1">
-                              Go to the Projects page to attach a workspace or
-                              base code to this environment.
+                              Go to the Projects page to attach a workspace to this environment.
                             </p>
                           </CardContent>
                         </Card>
@@ -555,13 +554,13 @@ export default function Environments() {
                                 >
                                   <X className="h-3 w-3" />
                                 </Button>
-                                
+
                                 <div className="flex items-center gap-2 pr-6">
                                   <h4 className="font-medium truncate" title={binding.targetLabel}>
                                     {binding.targetLabel}
                                   </h4>
                                 </div>
-                                
+
                                 <div className="flex flex-wrap gap-2">
                                   <Badge variant="outline" className="shrink-0 text-[10px] h-5">
                                     {binding.projectName}
@@ -579,7 +578,7 @@ export default function Environments() {
                                       : "Workspace"}
                                   </Badge>
                                 </div>
-                                
+
                                 <p className="text-[10px] font-mono text-muted-foreground truncate border-t pt-2 mt-1" title={binding.targetPath}>
                                   {binding.targetPath}
                                 </p>
@@ -594,21 +593,54 @@ export default function Environments() {
               </div>
             ) : (
               <div className="flex h-full flex-col items-center justify-center text-muted-foreground p-8 text-center">
-                <Settings2 className="h-12 w-12 mb-4 opacity-20" />
-                <h3 className="font-semibold text-lg text-foreground">
-                  No Environment Selected
-                </h3>
-                <p className="max-w-sm mt-2">
-                  Select an environment from the tabs above or create a new one to get
-                  started with isolated networking.
-                </p>
-                <Button
-                  variant="outline"
-                  className="mt-6"
-                  onClick={() => setIsCreateDialogOpen(true)}
-                >
-                  Create Environment
-                </Button>
+                <div className="max-w-md space-y-8">
+                  <div className="space-y-2">
+                    <div className="bg-primary/10 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 ring-1 ring-primary/20 shadow-sm">
+                      <Network className="h-8 w-8 text-primary" />
+                    </div>
+                    <h3 className="font-bold text-xl text-foreground">
+                      Network Isolation Environments
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                      Run multiple workspaces simultaneously on the same ports (e.g. :3000) without conflicts.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-3 text-left">
+                    <div className="flex gap-4 p-4 border rounded-xl bg-background/50 hover:bg-background/80 transition-colors shadow-sm">
+                      <div className="bg-blue-500/10 p-2.5 rounded-lg h-fit shrink-0">
+                        <Network className="h-5 w-5 text-blue-500" />
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="font-semibold text-foreground text-sm">Dedicated Loopback</h4>
+                        <p className="text-xs text-muted-foreground leading-snug">
+                          Each environment gets a unique local IP (e.g. 127.0.0.2), acting as a private network namespace.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-4 p-4 border rounded-xl bg-background/50 hover:bg-background/80 transition-colors shadow-sm">
+                      <div className="bg-purple-500/10 p-2.5 rounded-lg h-fit shrink-0">
+                        <HardDrive className="h-5 w-5 text-purple-500" />
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="font-semibold text-foreground text-sm">Parallel Execution</h4>
+                        <p className="text-xs text-muted-foreground leading-snug">
+                          Bind workspaces to different environments to run them in parallel, even if they use the same port config.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button
+                    size="lg"
+                    className="mt-4 w-full shadow-md font-semibold"
+                    onClick={() => setIsCreateDialogOpen(true)}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Environment
+                  </Button>
+                </div>
               </div>
             )}
           </div>
