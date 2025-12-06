@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { FolderGit2, GitBranch, Layers, Plus, Trash2 } from "lucide-react";
+import { FolderGit2, Plus, Trash2 } from "lucide-react";
 
 interface Project {
   id: string;
@@ -27,8 +27,6 @@ export const ProjectList = ({
   onDeleteProject,
 }: ProjectListProps) => {
   const [projectPendingDelete, setProjectPendingDelete] = useState<Project | null>(null);
-  const gitProjects = useMemo(() => projects.filter((project) => project.isGitRepo).length, [projects]);
-  const totalWorktrees = useMemo(() => projects.reduce((total, project) => total + project.worktrees, 0), [projects]);
 
   return (
     <div className="space-y-6">
@@ -46,49 +44,12 @@ export const ProjectList = ({
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="bg-gradient-card border-border shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Tracked Projects</p>
-              <p className="text-sm text-muted-foreground">All imported folders</p>
-            </div>
-            <FolderGit2 className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold">{projects.length}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-card border-border shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Git Repos</p>
-              <p className="text-sm text-muted-foreground">Ready for worktrees</p>
-            </div>
-            <GitBranch className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold">{gitProjects}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-card border-border shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Worktrees</p>
-              <p className="text-sm text-muted-foreground">Across all projects</p>
-            </div>
-            <Layers className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold">{totalWorktrees}</p>
-          </CardContent>
-        </Card>
-      </div>
+
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {projects.map((project) => (
-          <Card 
-            key={project.id} 
+          <Card
+            key={project.id}
             className="p-6 bg-gradient-card border-border shadow-card hover:shadow-glow transition-all duration-300 cursor-pointer group"
             onClick={() => onViewProject(project)}
           >
@@ -104,7 +65,7 @@ export const ProjectList = ({
                 </h3>
                 <code className="text-xs text-muted-foreground">{project.path}</code>
               </div>
-              
+
               <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                 <Button
                   size="icon"
@@ -140,7 +101,7 @@ export const ProjectList = ({
           <p className="text-muted-foreground mb-6">
             Add your first project to get started with worktree management
           </p>
-          <Button 
+          <Button
             onClick={onAddProject}
             className="bg-primary hover:bg-primary-glow transition-all duration-300"
           >
