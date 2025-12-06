@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { FolderGit2, Settings2, Settings as SettingsIcon, Rocket, ChevronRight, HardDrive, GitBranch, RefreshCw, Check, X } from "lucide-react";
+import { FolderGit2, Settings2, Settings as SettingsIcon, Rocket, ChevronRight, HardDrive, GitBranch, RefreshCw, Check, X, ExternalLink } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -158,12 +158,30 @@ function SidebarWorkspaceItem({ path, name, icon: Icon, variant = "default", ses
   return (
     <>
       <SidebarMenuSubItem>
-        <SidebarMenuSubButton onClick={onClick} className="group/item cursor-pointer">
-          <Icon className={cn("h-4 w-4", variant === "root" ? "text-primary/70" : "text-muted-foreground")} />
-          <span className="truncate">{name}</span>
-          {needsRelaunch && (
-            <RefreshCw className="ml-auto h-3 w-3 text-orange-500 animate-pulse" />
-          )}
+        <SidebarMenuSubButton asChild className="group/item cursor-default pr-1">
+          <div>
+            <Icon className={cn("h-4 w-4", variant === "root" ? "text-primary/70" : "text-muted-foreground")} />
+            <span className="truncate flex-1">{name}</span>
+            {needsRelaunch ? (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6 shrink-0 hover:bg-background/50 hover:text-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
+                onClick={onClick}
+              >
+                <RefreshCw className="h-3.5 w-3.5 text-orange-500 animate-pulse" />
+              </Button>
+            ) : (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6 shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-background/50 hover:text-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
+                onClick={handleLaunch}
+              >
+                <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+              </Button>
+            )}
+          </div>
         </SidebarMenuSubButton>
       </SidebarMenuSubItem>
 
