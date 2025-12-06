@@ -46,12 +46,19 @@ const writeAll = (projects: StoredProject[]): void => {
   }
 };
 
+const dispatchChange = () => {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("galactic-projects-updated"));
+  }
+};
+
 export const projectStorage = {
   load(): StoredProject[] {
     return readAll();
   },
   save(projects: StoredProject[]): void {
     writeAll(projects);
+    dispatchChange();
   },
   upsert(project: StoredProject): StoredProject[] {
     const nextProjects = [...readAll()];
@@ -62,11 +69,13 @@ export const projectStorage = {
       nextProjects.unshift(project);
     }
     writeAll(nextProjects);
+    dispatchChange();
     return nextProjects;
   },
   remove(projectId: string): StoredProject[] {
     const nextProjects = readAll().filter((project) => project.id !== projectId);
     writeAll(nextProjects);
+    dispatchChange();
     return nextProjects;
   },
 };
