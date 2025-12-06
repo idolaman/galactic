@@ -29,4 +29,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("workspace/get-code-workspace-path", targetPath),
   deleteCodeWorkspace: (targetPath: string) =>
     ipcRenderer.invoke("workspace/delete-code-workspace", targetPath),
+  checkMcpInstalled: (tool: string) => ipcRenderer.invoke("mcp/check-installed", tool),
+  installMcp: (tool: string) => ipcRenderer.invoke("mcp/install", tool),
 });
