@@ -69,11 +69,11 @@
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.9",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "zustand": "^5.0.9"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
-    "esbuild": "^0.24.0",
     "@tailwindcss/typography": "^0.5.16",
     "@types/electron": "^1.6.12",
     "@types/node": "^22.16.5",
@@ -84,6 +84,7 @@
     "concurrently": "^9.0.1",
     "electron": "^32.2.0",
     "electron-builder": "^25.1.8",
+    "esbuild": "^0.24.0",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",

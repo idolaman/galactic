@@ -1,4 +1,5 @@
-import { FolderGit2, Settings2, Settings as SettingsIcon, Rocket, ChevronRight, HardDrive, GitBranch, RefreshCw, AlertTriangle } from "lucide-react";
+import { useEffect } from "react";
+import { FolderGit2, Settings2, Settings as SettingsIcon, Rocket, ChevronRight, HardDrive, GitBranch, RefreshCw, Check, X } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -35,6 +36,7 @@ import { useEditorLauncher } from "@/hooks/use-editor-launcher";
 import { workspaceNeedsRelaunch, clearWorkspaceRelaunchFlag } from "@/services/workspace-state";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useSessionStore } from "@/stores/session-store";
 
 const navItems = [
   { title: "Projects", url: "/", icon: FolderGit2 },
@@ -42,14 +44,72 @@ const navItems = [
   { title: "Settings", url: "/settings", icon: SettingsIcon },
 ];
 
+// Compact session item for the tree
+function SidebarSessionItem({ session }: { session: import("@/services/session-rpc").SessionSummary }) {
+  const ackSession = useSessionStore(s => s.ackSession);
+  const isDone = session.status === 'done';
+  const isApproval = !isDone && !!session.approval_pending_since;
+
+  const onDismiss = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    ackSession(session.id, isDone ? 'done' : 'run');
+  };
+
+  return (
+    <SidebarMenuSubItem>
+      <div className="group/session relative flex w-full items-start gap-2.5 rounded-md py-1.5 pl-9 pr-6 hover:bg-sidebar-accent/50 transition-colors select-none">
+
+        {/* Status Icon */}
+        <div className={cn(
+          "relative flex h-6 w-6 shrink-0 items-center justify-center rounded-md border shadow-sm transition-all mt-0.5",
+          isDone ? "bg-emerald-500/15 border-emerald-500/20 text-emerald-600 dark:text-emerald-400" :
+            isApproval ? "bg-amber-500/15 border-amber-500/20 text-amber-600 dark:text-amber-400" :
+              "bg-blue-500/15 border-blue-500/20 text-blue-600 dark:text-blue-400"
+        )}>
+          {isDone ? <Check className="h-3.5 w-3.5" /> :
+            isApproval ? (
+              <>
+                <div className="h-1.5 w-1.5 rounded-full bg-current animate-ping" />
+                <div className="absolute h-1.5 w-1.5 rounded-full bg-current" />
+              </>
+            ) :
+              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          }
+        </div>
+
+        {/* Content */}
+        <div className="flex flex-col min-w-0 flex-1">
+          <span className="text-xs font-medium leading-snug text-foreground/90 break-words whitespace-normal">
+            {session.title || "Thinking..."}
+          </span>
+          <span className="text-[10px] text-muted-foreground/80 mt-0.5 font-normal">
+            {isDone ? "Finished" : isApproval ? "Action Needed" : "Thinking..."}
+          </span>
+        </div>
+
+        {/* Dismiss Button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute right-1 top-1.5 h-6 w-6 opacity-0 group-hover/session:opacity-100 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md"
+          onClick={onDismiss}
+        >
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </SidebarMenuSubItem>
+  );
+}
+
 interface SidebarWorkspaceItemProps {
   path: string;
   name: string;
   icon: React.ElementType;
   variant?: "default" | "root";
+  sessions?: import("@/services/session-rpc").SessionSummary[];
 }
 
-function SidebarWorkspaceItem({ path, name, icon: Icon, variant = "default" }: SidebarWorkspaceItemProps) {
+function SidebarWorkspaceItem({ path, name, icon: Icon, variant = "default", sessions = [] }: SidebarWorkspaceItemProps) {
   const { launchWorkspace } = useEditorLauncher();
   const [showDialog, setShowDialog] = useState(false);
   const needsRelaunch = workspaceNeedsRelaunch(path);
@@ -79,6 +139,11 @@ function SidebarWorkspaceItem({ path, name, icon: Icon, variant = "default" }: S
           )}
         </SidebarMenuSubButton>
       </SidebarMenuSubItem>
+
+      {/* Render sessions for this workspace */}
+      {sessions.map(s => (
+        <SidebarSessionItem key={s.id} session={s} />
+      ))}
 
       <AlertDialog open={showDialog} onOpenChange={setShowDialog}>
         <AlertDialogContent>
@@ -112,6 +177,46 @@ function SidebarWorkspaceItem({ path, name, icon: Icon, variant = "default" }: S
 export function AppSidebar() {
   const { open } = useSidebar();
   const projects = useProjects();
+  const { sessions, startPolling, stopPolling } = useSessionStore();
+
+  useEffect(() => {
+    startPolling();
+    return () => stopPolling();
+  }, [startPolling, stopPolling]);
+
+  // Helper: Get sessions for a specific path
+  const normalize = (p: string) => p.replace(/\/+$/, "").toLowerCase();
+
+  const getSessionsForPath = (path: string) => {
+    if (!path) return [];
+    const normPath = normalize(path);
+    const pathSessions = sessions.filter(s => s.workspace_path && normalize(s.workspace_path) === normPath);
+
+    // Deduplicate by chat_id, keeping the latest one
+    const latestSessionsMap = new Map<string, import("@/services/session-rpc").SessionSummary>();
+    const sessionsWithoutChatId: import("@/services/session-rpc").SessionSummary[] = [];
+
+    for (const s of pathSessions) {
+      if (!s.chat_id) {
+        sessionsWithoutChatId.push(s);
+        continue;
+      }
+
+      const existing = latestSessionsMap.get(s.chat_id);
+      if (!existing) {
+        latestSessionsMap.set(s.chat_id, s);
+      } else {
+        // Compare timestamps to keep the newer one
+        const tExisting = existing.started_at || '';
+        const tCurrent = s.started_at || '';
+        if (tCurrent >= tExisting) {
+          latestSessionsMap.set(s.chat_id, s);
+        }
+      }
+    }
+
+    return [...sessionsWithoutChatId, ...latestSessionsMap.values()];
+  };
 
   return (
     <Sidebar className="border-r border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-12">
@@ -144,7 +249,7 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {projects.map((project) => (
-                  <Collapsible key={project.id} defaultOpen={false} className="group/collapsible" asChild>
+                  <Collapsible key={project.id} defaultOpen={true} className="group/collapsible" asChild>
                     <SidebarMenuItem>
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton tooltip={project.name}>
@@ -156,13 +261,14 @@ export function AppSidebar() {
                       <CollapsibleContent>
                         <SidebarMenuSub>
                           {/* Repository Root */}
-                          <SidebarWorkspaceItem 
-                            path={project.path} 
-                            name="Repository Root" 
+                          <SidebarWorkspaceItem
+                            path={project.path}
+                            name="Repository Root"
                             icon={HardDrive}
                             variant="root"
+                            sessions={getSessionsForPath(project.path)}
                           />
-                          
+
                           {/* Active Workspaces */}
                           {project.workspaces?.map((ws) => (
                             <SidebarWorkspaceItem
@@ -170,6 +276,7 @@ export function AppSidebar() {
                               path={ws.workspace}
                               name={ws.name}
                               icon={GitBranch}
+                              sessions={getSessionsForPath(ws.workspace)}
                             />
                           ))}
                         </SidebarMenuSub>
