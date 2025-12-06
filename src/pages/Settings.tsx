@@ -10,6 +10,8 @@ import cursorIcon from "@/assets/cursor.jpeg";
 import { Button } from "@/components/ui/button";
 import { type EditorName } from "@/services/editor";
 import { cn } from "@/lib/utils";
+import { projectStorage } from "@/services/projects";
+import { markAllWorkspacesRequireRelaunch } from "@/services/workspace-state";
 
 export default function Settings() {
   const { toast } = useToast();
@@ -72,6 +74,20 @@ export default function Settings() {
       const result = await window.electronAPI.installMcp(tool);
       if (result.success) {
         toast({ title: "Installation Successful", description: `Galactic MCP installed for ${tool}.` });
+
+        // Mark all workspaces for relaunch
+        const projects = projectStorage.load();
+        const allPaths: string[] = [];
+        for (const p of projects) {
+          allPaths.push(p.path);
+          if (p.workspaces) {
+            for (const ws of p.workspaces) {
+              allPaths.push(ws.workspace);
+            }
+          }
+        }
+        markAllWorkspacesRequireRelaunch(allPaths);
+
         await checkMcpStatus();
       } else {
         toast({
