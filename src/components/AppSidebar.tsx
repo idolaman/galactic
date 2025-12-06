@@ -1,4 +1,4 @@
-import { FolderGit2, Settings2, Bot, Settings as SettingsIcon, Rocket } from "lucide-react";
+import { FolderGit2, Settings2, Settings as SettingsIcon, Rocket } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/button";
 const navItems = [
   { title: "Projects", url: "/", icon: FolderGit2 },
   { title: "Environments", url: "/environments", icon: Settings2 },
-  { title: "Coding Agents", url: "/agents", icon: Bot },
   { title: "Settings", url: "/settings", icon: SettingsIcon },
 ];
 
