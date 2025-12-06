@@ -26,3 +26,7 @@ release
 *.sw?
 
 bun.lockb
+
+# MCP Server build artifacts
+.mcp-build-cache/
+resources/mcp-server/*.cjs
