@@ -205,13 +205,10 @@ export function AppSidebar() {
   const { open } = useSidebar();
   const projects = useProjects();
   const { sessions, startPolling, stopPolling } = useSessionStore();
-  const [showMcpBanner, setShowMcpBanner] = useState(() => {
-    return localStorage.getItem("galactic-hide-mcp-banner") !== "true";
-  });
+  const [showMcpBanner, setShowMcpBanner] = useState(true);
 
   const dismissMcpBanner = () => {
     setShowMcpBanner(false);
-    localStorage.setItem("galactic-hide-mcp-banner", "true");
   };
 
   useEffect(() => {
