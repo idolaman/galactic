@@ -47,8 +47,28 @@ const navItems = [
 // Compact session item for the tree
 function SidebarSessionItem({ session }: { session: import("@/services/session-rpc").SessionSummary }) {
   const ackSession = useSessionStore(s => s.ackSession);
+  const [isOverdue, setIsOverdue] = useState(false);
+
   const isDone = session.status === 'done';
   const isApproval = !isDone && !!session.approval_pending_since;
+
+  useEffect(() => {
+    if (isDone || !session.started_at || !session.estimated_duration) {
+      setIsOverdue(false);
+      return;
+    }
+
+    const checkOverdue = () => {
+      const start = new Date(session.started_at!).getTime();
+      const now = Date.now();
+      const elapsedSeconds = (now - start) / 1000;
+      setIsOverdue(elapsedSeconds > (session.estimated_duration! * 2));
+    };
+
+    checkOverdue();
+    const interval = setInterval(checkOverdue, 1000);
+    return () => clearInterval(interval);
+  }, [session.started_at, session.estimated_duration, isDone]);
 
   const onDismiss = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -63,8 +83,9 @@ function SidebarSessionItem({ session }: { session: import("@/services/session-r
         <div className={cn(
           "relative flex h-6 w-6 shrink-0 items-center justify-center rounded-md border shadow-sm transition-all mt-0.5",
           isDone ? "bg-emerald-500/15 border-emerald-500/20 text-emerald-600 dark:text-emerald-400" :
-            isApproval ? "bg-amber-500/15 border-amber-500/20 text-amber-600 dark:text-amber-400" :
-              "bg-blue-500/15 border-blue-500/20 text-blue-600 dark:text-blue-400"
+            isOverdue ? "bg-orange-500/15 border-orange-500/20 text-orange-600 dark:text-orange-400" :
+              isApproval ? "bg-amber-500/15 border-amber-500/20 text-amber-600 dark:text-amber-400" :
+                "bg-blue-500/15 border-blue-500/20 text-blue-600 dark:text-blue-400"
         )}>
           {isDone ? <Check className="h-3.5 w-3.5" /> :
             isApproval ? (
@@ -82,8 +103,14 @@ function SidebarSessionItem({ session }: { session: import("@/services/session-r
           <span className="text-xs font-medium leading-snug text-foreground/90 break-words whitespace-normal">
             {session.title || "Thinking..."}
           </span>
-          <span className="text-[10px] text-muted-foreground/80 mt-0.5 font-normal">
-            {isDone ? "Finished" : isApproval ? "Action Needed" : "Thinking..."}
+          <span className={cn(
+            "text-[10px] mt-0.5 font-normal",
+            isOverdue && !isDone ? "text-orange-500/90" : "text-muted-foreground/80"
+          )}>
+            {isDone ? "Finished" :
+              isApproval ? "Action Needed" :
+                isOverdue ? "Taking longer than expected..." :
+                  "Thinking..."}
           </span>
         </div>
 

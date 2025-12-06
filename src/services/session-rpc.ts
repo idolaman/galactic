@@ -15,6 +15,7 @@ export type SessionSummary = {
     approval_pending_since?: string | undefined;
     workspace_path?: string | undefined;
     chat_id?: string | undefined;
+    estimated_duration?: number | undefined;
     status: 'in_progress' | 'done';
 };
 
@@ -29,6 +30,7 @@ export const SessionSummarySchema = z.object({
     approval_pending_since: z.string().optional(),
     workspace_path: z.string().optional(),
     chat_id: z.string().optional(),
+    estimated_duration: z.number().optional(),
     status: z.union([z.literal('in_progress'), z.literal('done')]),
 }) as z.ZodType<SessionSummary>;
 
@@ -173,6 +175,7 @@ export async function readClientSessions(params: {
                 approval_pending_since: (item as any)?.approval_pending_since ? String((item as any)?.approval_pending_since) : (undefined as string | undefined),
                 workspace_path: (item as any)?.workspace_path ? String((item as any)?.workspace_path) : (undefined as string | undefined),
                 chat_id: (item as any)?.chat_id ? String((item as any)?.chat_id) : (undefined as string | undefined),
+                estimated_duration: (item as any)?.estimated_duration ? Number((item as any)?.estimated_duration) : (undefined as number | undefined),
                 status: (item as any)?.ended_at ? 'done' : 'in_progress',
             });
             if (s.success) sessions.push(s.data);
