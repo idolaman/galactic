@@ -11,7 +11,6 @@ import { Header } from "@/components/Header";
 import Index from "./pages/Index";
 import Environments from "./pages/Environments";
 import Settings from "./pages/Settings";
-import CodingAgents from "./pages/CodingAgents";
 import NotFound from "./pages/NotFound";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -67,7 +66,6 @@ const App = () => {
                           <Routes>
                             <Route path="/" element={<Index />} />
                             <Route path="/environments" element={<Environments />} />
-                            <Route path="/agents" element={<CodingAgents />} />
                             <Route path="/settings" element={<Settings />} />
                             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                             <Route path="*" element={<NotFound />} />
