@@ -16,24 +16,46 @@ interface SessionState {
     ackSession: (id: string, runId: "run" | "done") => void;
 }
 
-// Persist acknowledged sessions in localStorage
-const STORAGE_KEY_ACK = 'galactic-ide:acked-sessions';
-const loadAcked = (): Set<string> => {
-    try {
-        return new Set(JSON.parse(localStorage.getItem(STORAGE_KEY_ACK) || '[]'));
-    } catch {
-        return new Set();
-    }
-};
-const saveAcked = (acked: Set<string>) => {
-    localStorage.setItem(STORAGE_KEY_ACK, JSON.stringify(Array.from(acked)));
-};
-
 export const useSessionStore = create<SessionState>((set, get) => {
     let pollTimer: ReturnType<typeof setInterval> | null = null;
     let mcpSession: { sessionId: string; protocolVersion: string } | null = null;
 
-    const ackedSessions = loadAcked();
+    // Track dismissed sessions in-memory only to prevent resurfacing until a new session with the same chat_id arrives.
+    const dismissedSessions = new Map<string, string>();
+
+    const isDismissed = (session: SessionSummary) => {
+        const key = session.chat_id || session.id;
+        return dismissedSessions.get(key) === session.id;
+    };
+
+    const getTimestamp = (session: SessionSummary) => {
+        const ts = new Date(session.ended_at || session.started_at || 0).getTime();
+        return Number.isNaN(ts) ? 0 : ts;
+    };
+
+    const dedupeByChatId = (list: SessionSummary[]) => {
+        const latestByChat = new Map<string, SessionSummary>();
+        const withoutChat: SessionSummary[] = [];
+
+        for (const session of list) {
+            if (!session.chat_id) {
+                withoutChat.push(session);
+                continue;
+            }
+
+            const existing = latestByChat.get(session.chat_id);
+            if (!existing) {
+                latestByChat.set(session.chat_id, session);
+                continue;
+            }
+
+            const existingTs = getTimestamp(existing);
+            const currentTs = getTimestamp(session);
+            latestByChat.set(session.chat_id, currentTs >= existingTs ? session : existing);
+        }
+
+        return [...withoutChat, ...latestByChat.values()];
+    };
 
     const fetchSessions = async () => {
         const { serverUrl, token } = get();
@@ -52,22 +74,9 @@ export const useSessionStore = create<SessionState>((set, get) => {
                 protocolVersion: mcpSession.protocolVersion
             });
 
-            // Filter out acknowledged sessions
-            // Key: id + suffix
-            const filtered = sessions.filter(s => {
-                const keyRun = `${s.id}:run`;
-                const keyDone = `${s.id}:done`;
-
-                if (s.status === 'done') {
-                    // If done, hide if 'done' is acked.
-                    // If 'run' was acked but now it is done, we SHOW it again (as finished) until user acks the finish state.
-                    if (ackedSessions.has(keyDone)) return false;
-                } else {
-                    // In progress
-                    if (ackedSessions.has(keyRun)) return false;
-                }
-                return true;
-            });
+            // Keep only the latest session per chat_id, then filter out dismissed ones.
+            const deduped = dedupeByChatId(sessions);
+            const filtered = deduped.filter((s) => !isDismissed(s));
             set({ sessions: filtered, loading: false, error: null, lastPoll: Date.now() });
 
         } catch (err) {
@@ -113,21 +122,17 @@ export const useSessionStore = create<SessionState>((set, get) => {
             set({ polling: false });
         },
 
-        ackSession: (id, runId) => {
-            const key = `${id}:${runId}`;
-            ackedSessions.add(key);
-            saveAcked(ackedSessions);
+        ackSession: (id, _runId) => {
+            const currentSessions = get().sessions;
+            const targetSession = currentSessions.find((s) => s.id === id);
+            if (targetSession) {
+                const key = targetSession.chat_id || targetSession.id;
+                dismissedSessions.set(key, targetSession.id);
+            }
 
             // Update local state immediately to hide it
-            const currentSessions = get().sessions;
             set({
-                sessions: currentSessions.filter(s => {
-                    if (s.id !== id) return true;
-                    // If we are acking strictly the state it is in:
-                    if (s.status === 'done' && runId === 'done') return false;
-                    if (s.status === 'in_progress' && runId === 'run') return false;
-                    return true;
-                })
+                sessions: currentSessions.filter((s) => s.id !== id)
             });
         }
     };
