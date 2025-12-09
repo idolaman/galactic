@@ -9,6 +9,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { GitHubAuth } from "@/components/GitHubAuth";
 import { Header } from "@/components/Header";
 import Index from "./pages/Index";
+import { QuickSidebar } from "@/pages/QuickSidebar";
 import Environments from "./pages/Environments";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -27,6 +28,7 @@ interface User {
 const App = () => {
   const [user, setUser] = useState<User | null>(null);
   const { toast } = useToast();
+  const isQuickSidebar = typeof window !== "undefined" && window.location.hash.includes("quick-sidebar");
 
   const handleAuthSuccess = (userData: User) => {
     setUser(userData);
@@ -44,6 +46,39 @@ const App = () => {
     });
   };
 
+  const content = isQuickSidebar ? (
+    <HashRouter>
+      <Routes>
+        <Route path="/quick-sidebar" element={<QuickSidebar />} />
+        <Route path="*" element={<QuickSidebar />} />
+      </Routes>
+    </HashRouter>
+  ) : !user ? (
+    <GitHubAuth onAuthSuccess={handleAuthSuccess} />
+  ) : (
+    <HashRouter>
+      <SidebarProvider defaultOpen>
+        <div className="flex h-svh w-full bg-transparent">
+          <AppSidebar />
+          <SidebarInset>
+            <Header user={user} onLogout={handleLogout} />
+            <div className="flex-1 overflow-hidden">
+              <div className="h-full overflow-auto">
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/environments" element={<Environments />} />
+                  <Route path="/settings" element={<Settings />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </div>
+            </div>
+          </SidebarInset>
+        </div>
+      </SidebarProvider>
+    </HashRouter>
+  );
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="dark" storageKey="galactic-ide-theme">
@@ -52,31 +87,7 @@ const App = () => {
           <TooltipProvider>
             <Toaster />
             <Sonner />
-            {!user ? (
-              <GitHubAuth onAuthSuccess={handleAuthSuccess} />
-            ) : (
-              <HashRouter>
-                <SidebarProvider defaultOpen>
-                  <div className="flex h-svh w-full bg-transparent">
-                    <AppSidebar />
-                    <SidebarInset>
-                      <Header user={user} onLogout={handleLogout} />
-                      <div className="flex-1 overflow-hidden">
-                        <div className="h-full overflow-auto">
-                          <Routes>
-                            <Route path="/" element={<Index />} />
-                            <Route path="/environments" element={<Environments />} />
-                            <Route path="/settings" element={<Settings />} />
-                            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                            <Route path="*" element={<NotFound />} />
-                          </Routes>
-                        </div>
-                      </div>
-                    </SidebarInset>
-                  </div>
-                </SidebarProvider>
-              </HashRouter>
-            )}
+            {content}
           </TooltipProvider>
         </EnvironmentProvider>
       </ThemeProvider>

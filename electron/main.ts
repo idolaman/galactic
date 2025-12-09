@@ -5,6 +5,8 @@ import {
   ipcMain,
   dialog,
   type OpenDialogOptions,
+  globalShortcut,
+  screen,
 } from "electron";
 import path from "node:path";
 import process from "node:process";
@@ -60,6 +62,85 @@ const VITE_DEV_SERVER_URL =
   process.env.ELECTRON_START_URL || process.env.VITE_DEV_SERVER_URL;
 
 let mainWindow: BrowserWindow | null = null;
+let quickSidebarWindow: BrowserWindow | null = null;
+const QUICK_SIDEBAR_HOTKEY = "CommandOrControl+Shift+G";
+
+const loadAppUrl = async (windowRef: BrowserWindow, hash: string) => {
+  if (VITE_DEV_SERVER_URL) {
+    await windowRef.loadURL(`${VITE_DEV_SERVER_URL}/#${hash}`);
+    return;
+  }
+  await windowRef.loadFile(path.join(__dirname, "../dist/index.html"), { hash });
+};
+
+const positionQuickSidebar = (windowRef: BrowserWindow) => {
+  const cursorPoint = screen.getCursorScreenPoint();
+  const display = screen.getDisplayNearestPoint(cursorPoint);
+  const { x, y } = display.workArea;
+  const windowWidth = 420;
+  const windowHeight = 560;
+  const margin = 16;
+
+  // Position at top-left
+  const targetX = x + margin;
+  const targetY = Math.max(y + margin, y);
+
+  windowRef.setBounds({ x: targetX, y: targetY, width: windowWidth, height: windowHeight });
+};
+
+const createQuickSidebarWindow = async () => {
+  if (quickSidebarWindow) {
+    return;
+  }
+
+  quickSidebarWindow = new BrowserWindow({
+    width: 420,
+    height: 560,
+    resizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    show: false,
+    frame: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    backgroundColor: "#0f172a",
+    titleBarStyle: "hidden",
+    autoHideMenuBar: true,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+
+  quickSidebarWindow.on("blur", () => {
+    quickSidebarWindow?.hide();
+  });
+
+  quickSidebarWindow.on("closed", () => {
+    quickSidebarWindow = null;
+  });
+
+  await loadAppUrl(quickSidebarWindow, "/quick-sidebar");
+};
+
+const toggleQuickSidebar = async () => {
+  if (!quickSidebarWindow) {
+    await createQuickSidebarWindow();
+  }
+  if (!quickSidebarWindow) {
+    return;
+  }
+
+  if (quickSidebarWindow.isVisible()) {
+    quickSidebarWindow.hide();
+    return;
+  }
+
+  positionQuickSidebar(quickSidebarWindow);
+  quickSidebarWindow.show();
+  quickSidebarWindow.focus();
+};
 
 const createWindow = async () => {
   mainWindow = new BrowserWindow({
@@ -109,6 +190,16 @@ ipcMain.handle("ping", () => {
   return "pong";
 });
 
+ipcMain.handle("quick-sidebar/toggle", async () => {
+  await toggleQuickSidebar();
+  return { visible: quickSidebarWindow?.isVisible() ?? false };
+});
+
+ipcMain.handle("quick-sidebar/hide", () => {
+  quickSidebarWindow?.hide();
+  return { hidden: true };
+});
+
 ipcMain.handle("check-editor-installed", (_event, editorName: string) => {
   const editorPaths: Record<string, string> = {
     Cursor: "/Applications/Cursor.app",
@@ -124,6 +215,16 @@ ipcMain.handle("check-editor-installed", (_event, editorName: string) => {
 app.whenReady().then(() => {
   // Start the MCP server
   startMcpServer({ port: MCP_SERVER_PORT, tokenless: true });
+
+  const registered = globalShortcut.register(QUICK_SIDEBAR_HOTKEY, () => {
+    void toggleQuickSidebar().catch((error) => {
+      console.error("Quick sidebar toggle failed:", error);
+    });
+  });
+
+  if (!registered) {
+    console.warn(`Failed to register hotkey ${QUICK_SIDEBAR_HOTKEY}`);
+  }
 
   createWindow().catch((error) => {
     console.error("Failed to create window:", error);
@@ -142,6 +243,11 @@ app.whenReady().then(() => {
 
 app.on("before-quit", () => {
   stopMcpServer();
+});
+
+app.on("will-quit", () => {
+  globalShortcut.unregister(QUICK_SIDEBAR_HOTKEY);
+  globalShortcut.unregisterAll();
 });
 
 app.on("window-all-closed", () => {

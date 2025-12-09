@@ -33,4 +33,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   installMcp: (tool: string) => ipcRenderer.invoke("mcp/install", tool),
   getMcpServerStatus: () => ipcRenderer.invoke("mcp/server-status"),
   restartMcpServer: () => ipcRenderer.invoke("mcp/restart-server"),
+  toggleQuickSidebar: () => ipcRenderer.invoke("quick-sidebar/toggle"),
+  hideQuickSidebar: () => ipcRenderer.invoke("quick-sidebar/hide"),
 });
