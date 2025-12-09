@@ -15,4 +15,5 @@ export interface Environment {
   createdAt: number;
   bindings: EnvironmentBinding[];
   envVars?: Record<string, string>;
+  configFiles?: Record<string, string>;
 }
