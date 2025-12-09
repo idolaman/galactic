@@ -50,6 +50,13 @@ export interface ElectronAPI {
   installMcp: (tool: string) => Promise<{ success: boolean; error?: string }>;
   getMcpServerStatus: () => Promise<{ running: boolean; url: string; port: number }>;
   restartMcpServer: () => Promise<{ success: boolean }>;
+  readConfigFile: (projectPath: string, relativePath: string) => Promise<string | null>;
+  applyConfigFile: (
+    projectPath: string,
+    relativePath: string,
+    content: string,
+    ip: string
+  ) => Promise<{ success: boolean; error?: string }>;
 }
 
 declare global {

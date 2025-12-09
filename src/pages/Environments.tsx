@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import * as yaml from "js-yaml";
 import {
+  AlertCircle,
   HardDrive,
   Network,
   Pencil,
@@ -8,6 +10,8 @@ import {
   ShieldCheck,
   Trash2,
   X,
+  FileCode,
+  Save,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +56,7 @@ import {
   Tabs,
   TabsList,
   TabsTrigger,
+  TabsContent,
 } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useEnvironmentManager } from "@/hooks/use-environment-manager";
@@ -61,7 +66,7 @@ import { writeCodeWorkspace } from "@/services/workspace";
 import { markWorkspaceRequiresRelaunch } from "@/services/workspace-state";
 
 export default function Environments() {
-  const { environments, createEnvironment, updateEnvironment, deleteEnvironment, unassignTarget } =
+  const { environments, createEnvironment, updateEnvironment, deleteEnvironment, unassignTarget, applyConfigFilesToProjects } =
     useEnvironmentManager();
   const { toast } = useToast();
 
@@ -77,6 +82,13 @@ export default function Environments() {
   const [newVarSuffix, setNewVarSuffix] = useState("");
   const [newVarProtocol, setNewVarProtocol] = useState<string>("none");
   const [renameName, setRenameName] = useState("");
+
+  // Config Files state
+  const [configFiles, setConfigFiles] = useState<Record<string, string>>({});
+  const [newFilePath, setNewFilePath] = useState("");
+  const [selectedConfigFile, setSelectedConfigFile] = useState<string | null>(null);
+  const [isApplyingConfig, setIsApplyingConfig] = useState(false);
+  const [hasUnsavedConfigChanges, setHasUnsavedConfigChanges] = useState(false);
 
   const [isCreating, setIsCreating] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -102,12 +114,19 @@ export default function Environments() {
     [environments, selectedEnvironmentId]
   );
 
-  // Sync local config state with selected environment
+  // Sync local config state with selected environment (only when switching environments)
   useEffect(() => {
-    if (selectedEnvironment) {
-      setEnvVars(selectedEnvironment.envVars || {});
+    if (selectedEnvironmentId) {
+      const env = environments.find((e) => e.id === selectedEnvironmentId);
+      if (env) {
+        setEnvVars(env.envVars || {});
+        setConfigFiles(env.configFiles || {});
+        setSelectedConfigFile(null);
+        setHasUnsavedConfigChanges(false);
+      }
     }
-  }, [selectedEnvironment]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedEnvironmentId]);
 
   const handleAddEnvVar = () => {
     const key = newVarKey.trim();
@@ -132,8 +151,8 @@ export default function Environments() {
     setNewVarSuffix("");
     setNewVarProtocol("none");
 
-    // Trigger auto-save after adding
-    saveConfig(selectedEnvironment.id, next);
+    // Trigger auto-save after adding (env vars changed)
+    saveConfig(selectedEnvironment.id, next, configFiles, { envVarsChanged: true });
   };
 
   const handleRemoveEnvVar = (key: string) => {
@@ -141,16 +160,110 @@ export default function Environments() {
     delete next[key];
     setEnvVars(next);
 
-    // Trigger auto-save after removing
-    saveConfig(selectedEnvironment?.id, next);
+    // Trigger auto-save after removing (env vars changed)
+    saveConfig(selectedEnvironment?.id, next, configFiles, { envVarsChanged: true });
+  };
+
+  const handleAddConfigFile = () => {
+    const path = newFilePath.trim();
+    if (!path || !selectedEnvironment) return;
+
+    if (configFiles[path] !== undefined) {
+      toast({
+        title: "File exists",
+        description: `Config file '${path}' already exists.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const next = { ...configFiles, [path]: "" };
+    setConfigFiles(next);
+    setNewFilePath("");
+    setSelectedConfigFile(path);
+    saveConfig(selectedEnvironment.id, envVars, next);
+  };
+
+  const handleRemoveConfigFile = (path: string) => {
+    const next = { ...configFiles };
+    delete next[path];
+    setConfigFiles(next);
+    if (selectedConfigFile === path) {
+      setSelectedConfigFile(null);
+    }
+    saveConfig(selectedEnvironment?.id, envVars, next);
+  };
+
+  const handleUpdateConfigFile = (path: string, content: string) => {
+    const next = { ...configFiles, [path]: content };
+    setConfigFiles(next);
+    setHasUnsavedConfigChanges(true);
+  };
+
+  const handleSaveAndApplyConfigFiles = async () => {
+    if (!selectedEnvironment) return;
+
+    setIsApplyingConfig(true);
+    try {
+      // First save to localStorage
+      await saveConfig(selectedEnvironment.id, envVars, configFiles);
+      setHasUnsavedConfigChanges(false);
+
+      // Then apply to projects if there are bindings
+      if (selectedEnvironment.bindings.length > 0) {
+        const result = await applyConfigFilesToProjects(selectedEnvironment.id);
+
+        if (result.success) {
+          toast({
+            title: "Config saved & applied",
+            description: `Applied ${result.applied.length} file(s) to bound projects.`,
+          });
+        } else {
+          toast({
+            title: "Saved, but some files failed to apply",
+            description: result.errors.map((e) => `${e.path}: ${e.error}`).join("\n"),
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({
+          title: "Config saved",
+          description: "No projects bound - config saved locally only.",
+        });
+      }
+    } finally {
+      setIsApplyingConfig(false);
+    }
+  };
+
+  // Helper to get file type from path
+  const getFileType = (filePath: string): string => {
+    const ext = filePath.split('.').pop()?.toLowerCase() ?? '';
+    const typeMap: Record<string, string> = {
+      yaml: 'yaml',
+      yml: 'yaml',
+      json: 'json',
+      toml: 'toml',
+      xml: 'xml',
+      ini: 'ini',
+      env: 'env',
+      properties: 'properties',
+    };
+    return typeMap[ext] ?? 'text';
   };
 
   // Helper to debounce/unify save logic
-  const saveConfig = async (envId: string | undefined, vars: Record<string, string>) => {
+  const saveConfig = async (
+    envId: string | undefined,
+    vars: Record<string, string>,
+    files: Record<string, string>,
+    options?: { envVarsChanged?: boolean }
+  ) => {
     if (!envId || !selectedEnvironment) return;
 
     const result = await updateEnvironment(envId, {
       envVars: vars,
+      configFiles: files,
     });
 
     if (!result.success) {
@@ -162,17 +275,18 @@ export default function Environments() {
       return;
     }
 
-    // Update all .code-workspace files
-    const updatePromises = selectedEnvironment.bindings.map(async (binding) => {
-      await writeCodeWorkspace(binding.targetPath, {
-        address: selectedEnvironment.address,
-        envVars: vars,
+    // Only update .code-workspace files and mark for relaunch when env vars change
+    if (options?.envVarsChanged) {
+      const updatePromises = selectedEnvironment.bindings.map(async (binding) => {
+        await writeCodeWorkspace(binding.targetPath, {
+          address: selectedEnvironment.address,
+          envVars: vars,
+        });
+        markWorkspaceRequiresRelaunch(binding.targetPath);
       });
-      markWorkspaceRequiresRelaunch(binding.targetPath);
-    });
-    await Promise.all(updatePromises);
-
-    toast({ title: "Settings saved", description: "Environment configuration updated." });
+      await Promise.all(updatePromises);
+      toast({ title: "Settings saved", description: "Environment configuration updated." });
+    }
   };
 
   const handleCreateEnvironment = async () => {
@@ -452,72 +566,195 @@ export default function Environments() {
                           Configure how your project connects to this environment.
                         </CardDescription>
                       </CardHeader>
-                      <CardContent className="p-6 grid gap-6">
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <Label className="text-sm font-medium">Environment Variables</Label>
+                      <CardContent className="p-0">
+                        <Tabs defaultValue="variables" className="w-full">
+                          <div className="border-b px-6 pt-4">
+                            <TabsList className="w-full justify-start h-auto p-0 bg-transparent gap-6">
+                              <TabsTrigger
+                                value="variables"
+                                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none border-b-2 border-transparent px-0 py-2"
+                              >
+                                Environment Variables
+                              </TabsTrigger>
+                              <TabsTrigger
+                                value="files"
+                                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none border-b-2 border-transparent px-0 py-2"
+                              >
+                                Config Files
+                              </TabsTrigger>
+                            </TabsList>
                           </div>
 
-                          <div className="grid gap-3">
-                            <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
-                              <Input
-                                placeholder="Key (e.g. HOST)"
-                                className="font-mono text-xs"
-                                value={newVarKey}
-                                onChange={(e) => setNewVarKey(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleAddEnvVar()}
-                              />
-                              <div className="flex items-center rounded-md border border-input bg-transparent ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 overflow-hidden h-10">
-                                <Select value={newVarProtocol} onValueChange={setNewVarProtocol}>
-                                  <SelectTrigger className="w-[100px] h-full border-0 border-r rounded-none px-3 text-xs bg-muted/50 focus:ring-0 text-muted-foreground font-mono hover:bg-muted/70 transition-colors">
-                                    <SelectValue placeholder="Proto" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="none">None</SelectItem>
-                                    <SelectItem value="http">http://</SelectItem>
-                                    <SelectItem value="https">https://</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                <div className="px-3 h-full flex items-center justify-center text-xs text-muted-foreground bg-muted/20 border-r font-mono shrink-0 select-none">
-                                  {selectedEnvironment.address}
-                                </div>
+                          <TabsContent value="variables" className="p-6 space-y-4 m-0">
+                            <div className="grid gap-3">
+                              <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
                                 <Input
-                                  placeholder=":3000 (optional)"
-                                  className="font-mono text-xs border-0 shadow-none focus-visible:ring-0 px-3 h-full rounded-none flex-1"
-                                  value={newVarSuffix}
-                                  onChange={(e) => setNewVarSuffix(e.target.value)}
+                                  placeholder="Key (e.g. HOST)"
+                                  className="font-mono text-xs"
+                                  value={newVarKey}
+                                  onChange={(e) => setNewVarKey(e.target.value)}
                                   onKeyDown={(e) => e.key === 'Enter' && handleAddEnvVar()}
                                 />
+                                <div className="flex items-center rounded-md border border-input bg-transparent ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 overflow-hidden h-10">
+                                  <Select value={newVarProtocol} onValueChange={setNewVarProtocol}>
+                                    <SelectTrigger className="w-[100px] h-full border-0 border-r rounded-none px-3 text-xs bg-muted/50 focus:ring-0 text-muted-foreground font-mono hover:bg-muted/70 transition-colors">
+                                      <SelectValue placeholder="Proto" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none">None</SelectItem>
+                                      <SelectItem value="http">http://</SelectItem>
+                                      <SelectItem value="https">https://</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <div className="px-3 h-full flex items-center justify-center text-xs text-muted-foreground bg-muted/20 border-r font-mono shrink-0 select-none">
+                                    {selectedEnvironment.address}
+                                  </div>
+                                  <Input
+                                    placeholder=":3000 (optional)"
+                                    className="font-mono text-xs border-0 shadow-none focus-visible:ring-0 px-3 h-full rounded-none flex-1"
+                                    value={newVarSuffix}
+                                    onChange={(e) => setNewVarSuffix(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleAddEnvVar()}
+                                  />
+                                </div>
+                                <Button size="icon" variant="secondary" onClick={handleAddEnvVar}>
+                                  <Plus className="h-4 w-4" />
+                                </Button>
                               </div>
-                              <Button size="icon" variant="secondary" onClick={handleAddEnvVar}>
-                                <Plus className="h-4 w-4" />
-                              </Button>
-                            </div>
 
-                            {Object.entries(envVars).length > 0 && (
-                              <div className="rounded-md border bg-muted/10 divide-y">
-                                {Object.entries(envVars).map(([key, value]) => (
-                                  <div key={key} className="grid grid-cols-[1fr_1fr_auto] gap-2 p-2 items-center">
-                                    <div className="font-mono text-xs font-medium truncate" title={key}>{key}</div>
-                                    <div className="font-mono text-xs text-muted-foreground truncate" title={value}>{value}</div>
+                              {Object.entries(envVars).length > 0 && (
+                                <div className="rounded-md border bg-muted/10 divide-y">
+                                  {Object.entries(envVars).map(([key, value]) => (
+                                    <div key={key} className="grid grid-cols-[1fr_1fr_auto] gap-2 p-2 items-center">
+                                      <div className="font-mono text-xs font-medium truncate" title={key}>{key}</div>
+                                      <div className="font-mono text-xs text-muted-foreground truncate" title={value}>{value}</div>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                        onClick={() => handleRemoveEnvVar(key)}
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            <p className="text-[13px] text-muted-foreground">
+                              Variables are automatically prefixed with the environment's IP address ({selectedEnvironment.address}).
+                              Add optional ports and paths (e.g., :3000/api) as needed. If left empty, it will point directly to the IP.
+                            </p>
+                          </TabsContent>
+
+                          <TabsContent value="files" className="m-0 flex flex-col h-[500px]">
+                            <div className="grid grid-cols-[250px_1fr] flex-1 divide-x">
+                              {/* Sidebar List */}
+                              <div className="flex flex-col h-full bg-muted/10">
+                                <div className="p-3 border-b">
+                                  <div className="relative">
+                                    <Input
+                                      placeholder="Add file path..."
+                                      className="h-8 text-xs pr-8"
+                                      value={newFilePath}
+                                      onChange={(e) => setNewFilePath(e.target.value)}
+                                      onKeyDown={(e) => e.key === 'Enter' && handleAddConfigFile()}
+                                    />
                                     <Button
                                       size="icon"
                                       variant="ghost"
-                                      className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                                      onClick={() => handleRemoveEnvVar(key)}
+                                      className="absolute right-0 top-0 h-8 w-8 text-muted-foreground hover:text-primary"
+                                      onClick={handleAddConfigFile}
                                     >
-                                      <X className="h-3 w-3" />
+                                      <Plus className="h-4 w-4" />
                                     </Button>
                                   </div>
-                                ))}
+                                </div>
+                                <ScrollArea className="flex-1">
+                                  {Object.keys(configFiles).length === 0 ? (
+                                    <div className="p-4 text-center text-xs text-muted-foreground">
+                                      No files added yet.
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-col">
+                                      {Object.keys(configFiles).sort().map((path) => (
+                                        <div
+                                          key={path}
+                                          className={cn(
+                                            "flex items-center justify-between px-3 py-2 text-xs font-mono cursor-pointer hover:bg-muted/50 border-l-2 border-transparent",
+                                            selectedConfigFile === path && "bg-background border-primary shadow-sm"
+                                          )}
+                                          onClick={() => setSelectedConfigFile(path)}
+                                        >
+                                          <span className="truncate flex-1" title={path}>{path}</span>
+                                          <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="h-5 w-5 text-muted-foreground hover:text-destructive opacity-50 hover:opacity-100 ml-2"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleRemoveConfigFile(path);
+                                            }}
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </ScrollArea>
                               </div>
-                            )}
-                          </div>
-                          <p className="text-[13px] text-muted-foreground">
-                            Variables are automatically prefixed with the environment's IP address ({selectedEnvironment.address}).
-                            Add optional ports and paths (e.g., :3000/api) as needed. If left empty, it will point directly to the IP.
-                          </p>
-                        </div>
+
+                              {/* Editor Area */}
+                              <div className="flex flex-col h-full bg-card">
+                                {selectedConfigFile ? (
+                                  <>
+                                    <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/20">
+                                      <div className="flex items-center gap-2">
+                                        <FileCode className="h-4 w-4 text-muted-foreground" />
+                                        <span className="text-xs font-mono font-medium">{selectedConfigFile}</span>
+                                        <Badge variant="secondary" className="text-[10px] h-5 uppercase">
+                                          {getFileType(selectedConfigFile)}
+                                        </Badge>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        {hasUnsavedConfigChanges && (
+                                          <span className="text-[10px] text-muted-foreground">Unsaved changes</span>
+                                        )}
+                                        <Button
+                                          size="sm"
+                                          variant={hasUnsavedConfigChanges ? "default" : "outline"}
+                                          onMouseDown={(e) => e.preventDefault()}
+                                          onClick={handleSaveAndApplyConfigFiles}
+                                          disabled={!hasUnsavedConfigChanges || isApplyingConfig}
+                                          className="h-7 text-xs"
+                                        >
+                                          <Save className="h-3 w-3 mr-1" />
+                                          {isApplyingConfig ? "Saving..." : "Save & Apply"}
+                                        </Button>
+                                      </div>
+                                    </div>
+                                    <textarea
+                                      className="flex-1 p-4 font-mono text-xs bg-transparent resize-none focus:outline-none"
+                                      placeholder="Enter file content..."
+                                      spellCheck={false}
+                                      value={configFiles[selectedConfigFile] || ""}
+                                      onChange={(e) => handleUpdateConfigFile(selectedConfigFile, e.target.value)}
+                                    />
+                                    <div className="px-4 py-2 border-t bg-muted/10 text-[11px] text-muted-foreground">
+                                      Use <code className="bg-muted px-1 py-0.5 rounded">{"{{IP}}"}</code> to insert the environment IP ({selectedEnvironment.address})
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="flex flex-col items-center justify-center flex-1 text-muted-foreground p-6 text-center">
+                                    <FileCode className="h-8 w-8 mb-3 opacity-20" />
+                                    <p className="text-sm">Select or add a file to edit</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </TabsContent>
+                        </Tabs>
                       </CardContent>
                     </Card>
 
