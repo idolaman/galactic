@@ -33,4 +33,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   installMcp: (tool: string) => ipcRenderer.invoke("mcp/install", tool),
   getMcpServerStatus: () => ipcRenderer.invoke("mcp/server-status"),
   restartMcpServer: () => ipcRenderer.invoke("mcp/restart-server"),
+  readConfigFile: (projectPath: string, relativePath: string) =>
+    ipcRenderer.invoke("config/read-file", projectPath, relativePath),
+  applyConfigFile: (projectPath: string, relativePath: string, content: string, ip: string) =>
+    ipcRenderer.invoke("config/apply-file", projectPath, relativePath, content, ip),
 });

@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import type { Environment, EnvironmentBinding } from "@/types/environment";
 import {
   environmentStorage,
@@ -8,13 +8,20 @@ import {
 } from "@/services/environments";
 import { writeCodeWorkspace } from "@/services/workspace";
 import { markWorkspaceRequiresRelaunch } from "@/services/workspace-state";
+import { applyAllConfigFiles } from "@/services/config-files";
+
+interface ApplyConfigResult {
+  success: boolean;
+  applied: string[];
+  errors: Array<{ path: string; error: string }>;
+}
 
 interface EnvironmentContextValue {
   environments: Environment[];
   createEnvironment: (name: string) => Promise<{ success: boolean; error?: string; address?: string; id?: string }>;
   updateEnvironment: (
     id: string,
-    updates: { name?: string; envVars?: Record<string, string> },
+    updates: { name?: string; envVars?: Record<string, string>; configFiles?: Record<string, string> },
   ) => Promise<{ success: boolean; error?: string }>;
   deleteEnvironment: (id: string) => Promise<{ success: boolean; error?: string }>;
   assignTarget: (
@@ -23,6 +30,7 @@ interface EnvironmentContextValue {
   ) => { success: boolean; error?: string; reassigned?: boolean };
   unassignTarget: (targetPath: string) => void;
   environmentForTarget: (targetPath: string) => Environment | null;
+  applyConfigFilesToProjects: (environmentId: string) => Promise<ApplyConfigResult>;
 }
 
 const EnvironmentContext = createContext<EnvironmentContextValue | null>(null);
@@ -64,7 +72,7 @@ export const EnvironmentProvider = ({ children }: { children: ReactNode }) => {
 
   const updateEnvironment = async (
     id: string,
-    updates: { name?: string; envVars?: Record<string, string> },
+    updates: { name?: string; envVars?: Record<string, string>; configFiles?: Record<string, string> },
   ) => {
     if (updates.name !== undefined && !updates.name.trim()) {
       return { success: false, error: "Environment name cannot be empty." };
@@ -80,11 +88,12 @@ export const EnvironmentProvider = ({ children }: { children: ReactNode }) => {
 
       const next = prev.map((env) =>
         env.id === id
-          ?             {
-              ...env,
-              name: updates.name !== undefined ? updates.name.trim() : env.name,
-              envVars: updates.envVars !== undefined ? updates.envVars : env.envVars,
-            }
+          ? {
+            ...env,
+            name: updates.name !== undefined ? updates.name.trim() : env.name,
+            envVars: updates.envVars !== undefined ? updates.envVars : env.envVars,
+            configFiles: updates.configFiles !== undefined ? updates.configFiles : env.configFiles,
+          }
           : env,
       );
       environmentStorage.save(next);
@@ -178,6 +187,33 @@ export const EnvironmentProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const applyConfigFilesToProjects = async (environmentId: string): Promise<ApplyConfigResult> => {
+    const environment = environments.find((env) => env.id === environmentId);
+    if (!environment) {
+      return { success: false, applied: [], errors: [{ path: "", error: "Environment not found." }] };
+    }
+
+    const configFiles = environment.configFiles ?? {};
+    if (Object.keys(configFiles).length === 0) {
+      return { success: true, applied: [], errors: [] };
+    }
+
+    const allApplied: string[] = [];
+    const allErrors: Array<{ path: string; error: string }> = [];
+
+    for (const binding of environment.bindings) {
+      const result = await applyAllConfigFiles(binding.targetPath, configFiles, environment.address);
+      allApplied.push(...result.applied.map((p) => `${binding.targetPath}/${p}`));
+      allErrors.push(...result.errors.map((e) => ({ path: `${binding.targetPath}/${e.path}`, error: e.error })));
+    }
+
+    return {
+      success: allErrors.length === 0,
+      applied: allApplied,
+      errors: allErrors,
+    };
+  };
+
   const value: EnvironmentContextValue = {
     environments,
     createEnvironment,
@@ -186,6 +222,7 @@ export const EnvironmentProvider = ({ children }: { children: ReactNode }) => {
     assignTarget,
     unassignTarget,
     environmentForTarget,
+    applyConfigFilesToProjects,
   };
 
   return <EnvironmentContext.Provider value={value}>{children}</EnvironmentContext.Provider>;

@@ -742,6 +742,10 @@ ipcMain.handle(
 
 import { updateMcpConfig, checkMcpConfig } from "./utils/config.js";
 import {
+  readConfigFile,
+  applyConfigFile,
+} from "./utils/config-file-merger.js";
+import {
   startMcpServer,
   stopMcpServer,
   isMcpServerRunning,
@@ -814,3 +818,48 @@ ipcMain.handle("mcp/restart-server", () => {
   restartMcpServer({ port: MCP_SERVER_PORT, tokenless: true });
   return { success: true };
 });
+
+ipcMain.handle(
+  "config/read-file",
+  async (_event, projectPath: string, relativePath: string): Promise<string | null> => {
+    if (!projectPath || !relativePath) {
+      return null;
+    }
+
+    try {
+      return await readConfigFile(projectPath, relativePath);
+    } catch (error) {
+      console.error(`Failed to read config file ${relativePath}:`, error);
+      return null;
+    }
+  },
+);
+
+ipcMain.handle(
+  "config/apply-file",
+  async (
+    _event,
+    projectPath: string,
+    relativePath: string,
+    content: string,
+    ip: string,
+  ): Promise<{ success: boolean; error?: string }> => {
+    if (!projectPath || !relativePath) {
+      return { success: false, error: "Project path and file path are required." };
+    }
+
+    if (!existsSync(projectPath)) {
+      return { success: false, error: "Project path does not exist." };
+    }
+
+    try {
+      return await applyConfigFile(projectPath, relativePath, content, ip);
+    } catch (error) {
+      console.error(`Failed to apply config file ${relativePath}:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to apply config file.",
+      };
+    }
+  },
+);
