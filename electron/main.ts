@@ -763,6 +763,10 @@ ipcMain.handle("mcp/check-installed", async (_event, tool: string) => {
     return await checkMcpConfig(path.join(os.homedir(), ".cursor", "mcp.json"), MCP_SERVER_NAME);
   }
 
+  if (tool === "VSCode") {
+    return await checkMcpConfig(path.join(os.homedir(), "Library", "Application Support", "Code", "User", "mcp.json"), MCP_SERVER_NAME);
+  }
+
   if (tool === "Claude") {
     return await checkMcpConfig(path.join(os.homedir(), ".claude.json"), MCP_SERVER_NAME);
   }
@@ -778,6 +782,14 @@ ipcMain.handle("mcp/install", async (_event, tool: string) => {
   if (tool === "Cursor") {
     return await updateMcpConfig(
       path.join(os.homedir(), ".cursor", "mcp.json"),
+      MCP_SERVER_NAME,
+      THINKING_LOGGER_CONFIG
+    );
+  }
+
+  if (tool === "VSCode") {
+    return await updateMcpConfig(
+      path.join(os.homedir(), "Library", "Application Support", "Code", "User", "mcp.json"),
       MCP_SERVER_NAME,
       THINKING_LOGGER_CONFIG
     );

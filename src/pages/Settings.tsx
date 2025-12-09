@@ -202,7 +202,10 @@ export default function Settings() {
           <CardDescription>Connect your favorite tools to Galactic to monitor AI agent statuses.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card className="flex flex-col items-center justify-between gap-4 border bg-background/70 p-6 text-center shadow-sm transition-all hover:border-primary/50 hover:shadow-md">
+          <Card className="group relative flex flex-col items-center justify-between gap-4 border bg-background/70 p-6 text-center shadow-sm transition-all hover:border-primary/50 hover:shadow-md">
+            <Button variant="ghost" size="icon" className="absolute right-2 top-2 h-6 w-6 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" onClick={() => setSelectedConfig("VSCode")}>
+              <Info className="h-4 w-4" />
+            </Button>
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#007acc]/10 text-[#007acc] shadow-sm ring-1 ring-[#007acc]/20">
               <img src={vscodeIcon} alt="VSCode" className="h-8 w-8 object-contain" />
             </div>
@@ -338,6 +341,7 @@ export default function Settings() {
               <div className="space-y-2">
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Target File</Label>
                 <div className="rounded-md bg-muted px-3 py-2 text-sm font-mono text-foreground border border-border">
+                  {selectedConfig === "VSCode" && "~/Library/Application Support/Code/User/mcp.json"}
                   {selectedConfig === "Cursor" && "~/.cursor/mcp.json"}
                   {selectedConfig === "Claude" && "~/.claude.json"}
                   {selectedConfig === "Codex" && "~/.codex/config.toml"}
