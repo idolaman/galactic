@@ -138,8 +138,17 @@ const toggleQuickSidebar = async () => {
   }
 
   positionQuickSidebar(quickSidebarWindow);
-  quickSidebarWindow.show();
+
+  // Ensure the app is in the foreground on macOS
+  if (process.platform === "darwin") {
+    app.show();
+    app.focus({ steal: true });
+  }
+
+  quickSidebarWindow.showInactive();
   quickSidebarWindow.focus();
+  // Force always on top to ensure visibility
+  quickSidebarWindow.setAlwaysOnTop(true, "floating");
 };
 
 const createWindow = async () => {
