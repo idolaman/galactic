@@ -1,6 +1,5 @@
-import { useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { openProjectInEditor, type EditorName } from "@/services/editor";
+import { getPreferredEditor, openProjectInEditor } from "@/services/editor";
 import { getCodeWorkspacePath } from "@/services/workspace";
 import { useEnvironmentManager } from "@/hooks/use-environment-manager";
 
@@ -8,14 +7,9 @@ export function useEditorLauncher() {
   const { toast } = useToast();
   const { environmentForTarget } = useEnvironmentManager();
 
-  const preferredEditor = useMemo<EditorName>(() => {
-    if (typeof window === "undefined") return "Cursor";
-    const stored = window.localStorage.getItem("preferredEditor");
-    return stored === "VSCode" ? "VSCode" : "Cursor";
-  }, []);
-
   const launchWorkspace = async (targetPath: string) => {
     const env = environmentForTarget(targetPath);
+    const preferredEditor = getPreferredEditor();
     let openPath = targetPath;
 
     // Always use .code-workspace file if it exists
@@ -41,6 +35,5 @@ export function useEditorLauncher() {
     return false;
   };
 
-  return { launchWorkspace, preferredEditor };
+  return { launchWorkspace };
 }
-

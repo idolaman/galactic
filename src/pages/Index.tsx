@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ProjectList } from "@/components/ProjectList";
 import { ProjectDetail } from "@/components/ProjectDetail";
 import { useToast } from "@/hooks/use-toast";
 import { chooseProjectDirectory } from "@/services/os";
 import { createWorktree, getGitInfo, listBranches as listGitBranches, removeWorktree, getWorktrees, fetchBranches } from "@/services/git";
 import { projectStorage, type StoredProject } from "@/services/projects";
-import { openProjectInEditor, type EditorName } from "@/services/editor";
+import { getPreferredEditor, openProjectInEditor } from "@/services/editor";
 import type { Workspace } from "@/types/workspace";
 import { copyProjectFilesToWorktree, searchProjectFiles } from "@/services/files";
 import { useEnvironmentManager } from "@/hooks/use-environment-manager";
@@ -18,12 +18,6 @@ type Project = StoredProject;
 const Index = () => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const { toast } = useToast();
-
-  const preferredEditor = useMemo<EditorName>(() => {
-    if (typeof window === "undefined") return "Cursor";
-    const stored = window.localStorage.getItem("preferredEditor");
-    return stored === "VSCode" ? "VSCode" : "Cursor";
-  }, []);
 
   const [projects, setProjects] = useState<Project[]>(() => projectStorage.load());
   const [projectBranches, setProjectBranches] = useState<string[]>([]);
@@ -427,6 +421,7 @@ const Index = () => {
   }, [selectedProject?.id]);
 
   const handleOpenInEditor = async (targetPath: string) => {
+    const preferredEditor = getPreferredEditor();
     const env = environmentForTarget(targetPath);
     let openPath = targetPath;
 
