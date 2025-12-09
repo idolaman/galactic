@@ -17,6 +17,7 @@ interface HttpServerConfig {
 type McpServerConfig = StdioServerConfig | HttpServerConfig;
 
 interface McpConfig {
+    servers?: Record<string, McpServerConfig>;
     mcpServers?: Record<string, McpServerConfig>;
     mcp_servers?: Record<string, McpServerConfig>;
 }
@@ -34,7 +35,7 @@ const serializeConfig = (config: McpConfig, isToml: boolean): string =>
     isToml ? toml.stringify(config) : JSON.stringify(config, null, 2);
 
 const getServersKey = (isToml: boolean): keyof McpConfig =>
-    isToml ? "mcp_servers" : "mcpServers";
+    isToml ? "mcp_servers" : "servers";
 
 const readConfigFile = async (configPath: string): Promise<McpConfig> => {
     if (!existsSync(configPath)) return {};
@@ -84,8 +85,16 @@ export const checkMcpConfig = async (
 ): Promise<boolean> => {
     try {
         const config = await readConfigFile(configPath);
-        const serversKey = getServersKey(isTomlFile(configPath));
-        return serverName in (config[serversKey] ?? {});
+
+        if (isTomlFile(configPath)) {
+            // TOML files use mcp_servers
+            return serverName in (config.mcp_servers ?? {});
+        }
+
+        // JSON files: check both servers and mcpServers (legacy)
+        const inServers = serverName in (config.servers ?? {});
+        const inMcpServers = serverName in (config.mcpServers ?? {});
+        return inServers || inMcpServers;
     } catch {
         return false;
     }
