@@ -52,6 +52,9 @@ export interface ElectronAPI {
   restartMcpServer: () => Promise<{ success: boolean }>;
   toggleQuickSidebar: () => Promise<{ visible: boolean }>;
   hideQuickSidebar: () => Promise<{ hidden: boolean }>;
+  // Session sync between windows
+  broadcastSessionDismiss: (sessionId: string, signature: string) => Promise<{ success: boolean }>;
+  onSessionDismissed: (callback: (sessionId: string, signature: string) => void) => () => void;
 }
 
 declare global {

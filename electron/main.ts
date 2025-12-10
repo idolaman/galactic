@@ -63,7 +63,9 @@ const VITE_DEV_SERVER_URL =
 
 let mainWindow: BrowserWindow | null = null;
 let quickSidebarWindow: BrowserWindow | null = null;
-const QUICK_SIDEBAR_HOTKEY = "CommandOrControl+Shift+G";
+const QUICK_SIDEBAR_HOTKEY = "Command+Shift+G";
+const QUICK_SIDEBAR_WIDTH = 420;
+const QUICK_SIDEBAR_MARGIN = 16;
 
 const loadAppUrl = async (windowRef: BrowserWindow, hash: string) => {
   if (VITE_DEV_SERVER_URL) {
@@ -73,19 +75,49 @@ const loadAppUrl = async (windowRef: BrowserWindow, hash: string) => {
   await windowRef.loadFile(path.join(__dirname, "../dist/index.html"), { hash });
 };
 
+const getLeftmostDisplay = () => {
+  const displays = screen.getAllDisplays();
+  return displays.reduce(
+    (leftmost, current) => (current.bounds.x < leftmost.bounds.x ? current : leftmost),
+    displays[0],
+  );
+};
+
+const getQuickSidebarHeight = () => {
+  const { height } = getLeftmostDisplay().workArea;
+  return Math.max(360, height - QUICK_SIDEBAR_MARGIN * 2);
+};
+
 const positionQuickSidebar = (windowRef: BrowserWindow) => {
-  const cursorPoint = screen.getCursorScreenPoint();
-  const display = screen.getDisplayNearestPoint(cursorPoint);
-  const { x, y } = display.workArea;
-  const windowWidth = 420;
-  const windowHeight = 560;
-  const margin = 16;
+  const leftmostDisplay = getLeftmostDisplay();
+  const { x, y } = leftmostDisplay.workArea;
+  const height = getQuickSidebarHeight();
 
-  // Position at top-left
-  const targetX = x + margin;
-  const targetY = Math.max(y + margin, y);
+  windowRef.setBounds({
+    x: Math.round(x + QUICK_SIDEBAR_MARGIN),
+    y: Math.round(y + QUICK_SIDEBAR_MARGIN),
+    width: QUICK_SIDEBAR_WIDTH,
+    height,
+  });
+};
 
-  windowRef.setBounds({ x: targetX, y: targetY, width: windowWidth, height: windowHeight });
+const setQuickSidebarWorkspaceBehavior = (windowRef: BrowserWindow) => {
+  if (process.platform !== "darwin") {
+    return;
+  }
+
+  windowRef.setVisibleOnAllWorkspaces(true, {
+    visibleOnFullScreen: true,
+    skipTransformProcessType: true,
+  });
+};
+
+const showQuickSidebar = (windowRef: BrowserWindow) => {
+  setQuickSidebarWorkspaceBehavior(windowRef);
+  windowRef.setAlwaysOnTop(true, "screen-saver");
+  windowRef.moveTop();
+  windowRef.show();
+  windowRef.focus();
 };
 
 const createQuickSidebarWindow = async () => {
@@ -94,16 +126,19 @@ const createQuickSidebarWindow = async () => {
   }
 
   quickSidebarWindow = new BrowserWindow({
-    width: 420,
-    height: 560,
+    width: QUICK_SIDEBAR_WIDTH,
+    height: getQuickSidebarHeight(),
     resizable: false,
     maximizable: false,
     fullscreenable: false,
     show: false,
     frame: false,
+    transparent: true,
+    hasShadow: true,
     skipTaskbar: true,
     alwaysOnTop: true,
-    backgroundColor: "#0f172a",
+    type: "panel",
+    backgroundColor: "#00000000",
     titleBarStyle: "hidden",
     autoHideMenuBar: true,
     webPreferences: {
@@ -113,9 +148,7 @@ const createQuickSidebarWindow = async () => {
     },
   });
 
-  quickSidebarWindow.on("blur", () => {
-    quickSidebarWindow?.hide();
-  });
+  setQuickSidebarWorkspaceBehavior(quickSidebarWindow);
 
   quickSidebarWindow.on("closed", () => {
     quickSidebarWindow = null;
@@ -138,17 +171,7 @@ const toggleQuickSidebar = async () => {
   }
 
   positionQuickSidebar(quickSidebarWindow);
-
-  // Ensure the app is in the foreground on macOS
-  if (process.platform === "darwin") {
-    app.show();
-    app.focus({ steal: true });
-  }
-
-  quickSidebarWindow.showInactive();
-  quickSidebarWindow.focus();
-  // Force always on top to ensure visibility
-  quickSidebarWindow.setAlwaysOnTop(true, "floating");
+  showQuickSidebar(quickSidebarWindow);
 };
 
 const createWindow = async () => {
@@ -207,6 +230,23 @@ ipcMain.handle("quick-sidebar/toggle", async () => {
 ipcMain.handle("quick-sidebar/hide", () => {
   quickSidebarWindow?.hide();
   return { hidden: true };
+});
+
+// Session sync between windows - broadcast dismissal to all windows except sender
+ipcMain.handle("session/broadcast-dismiss", (event, sessionId: string, signature: string) => {
+  const senderWebContentsId = event.sender.id;
+
+  // Broadcast to main window if it exists and isn't the sender
+  if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents.id !== senderWebContentsId) {
+    mainWindow.webContents.send("session/dismissed", sessionId, signature);
+  }
+
+  // Broadcast to quick sidebar if it exists and isn't the sender
+  if (quickSidebarWindow && !quickSidebarWindow.isDestroyed() && quickSidebarWindow.webContents.id !== senderWebContentsId) {
+    quickSidebarWindow.webContents.send("session/dismissed", sessionId, signature);
+  }
+
+  return { success: true };
 });
 
 ipcMain.handle("check-editor-installed", (_event, editorName: string) => {

@@ -14,6 +14,8 @@ interface SessionState {
     startPolling: () => void;
     stopPolling: () => void;
     ackSession: (id: string, runId: "run" | "done") => void;
+    // Internal method for receiving dismissals from other windows
+    _receiveDismissal: (sessionId: string, signature: string) => void;
 }
 
 export const useSessionStore = create<SessionState>((set, get) => {
@@ -157,13 +159,36 @@ export const useSessionStore = create<SessionState>((set, get) => {
             const targetSession = currentSessions.find((s) => s.id === id);
             if (targetSession) {
                 const key = getKey(targetSession);
-                dismissedSessions.set(key, getSignature(targetSession));
+                const signature = getSignature(targetSession);
+                dismissedSessions.set(key, signature);
+
+                // Broadcast to other windows via IPC
+                window.electronAPI?.broadcastSessionDismiss?.(key, signature);
             }
 
             // Update local state immediately to hide it
             set({
                 sessions: currentSessions.filter((s) => s.id !== id)
             });
+        },
+
+        _receiveDismissal: (sessionId, signature) => {
+            // Add to dismissed sessions map
+            dismissedSessions.set(sessionId, signature);
+
+            // Remove from current sessions if present
+            const currentSessions = get().sessions;
+            const filtered = currentSessions.filter((s) => getKey(s) !== sessionId);
+            if (filtered.length !== currentSessions.length) {
+                set({ sessions: filtered });
+            }
         }
     };
 });
+
+// Set up IPC listener for session dismissals from other windows
+if (typeof window !== 'undefined' && window.electronAPI?.onSessionDismissed) {
+    window.electronAPI.onSessionDismissed((sessionId, signature) => {
+        useSessionStore.getState()._receiveDismissal(sessionId, signature);
+    });
+}

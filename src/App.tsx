@@ -46,6 +46,13 @@ const App = () => {
     });
   };
 
+  const toastLayers = isQuickSidebar ? null : (
+    <>
+      <Toaster />
+      <Sonner />
+    </>
+  );
+
   const content = isQuickSidebar ? (
     <HashRouter>
       <Routes>
@@ -85,8 +92,7 @@ const App = () => {
         <StarsBackground />
         <EnvironmentProvider>
           <TooltipProvider>
-            <Toaster />
-            <Sonner />
+            {toastLayers}
             {content}
           </TooltipProvider>
         </EnvironmentProvider>
