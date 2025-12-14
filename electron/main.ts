@@ -112,8 +112,23 @@ const setQuickSidebarWorkspaceBehavior = (windowRef: BrowserWindow) => {
   });
 };
 
+const reattachQuickSidebarToCurrentWorkspace = (windowRef: BrowserWindow) => {
+  if (process.platform !== "darwin") {
+    return;
+  }
+
+  // Toggling this flag on show makes macOS rebind the window to the active Space
+  // on the leftmost display instead of leaving it stuck to the last Space.
+  windowRef.setVisibleOnAllWorkspaces(false);
+  windowRef.setVisibleOnAllWorkspaces(true, {
+    visibleOnFullScreen: true,
+    skipTransformProcessType: true,
+  });
+};
+
 const showQuickSidebar = (windowRef: BrowserWindow) => {
   setQuickSidebarWorkspaceBehavior(windowRef);
+  reattachQuickSidebarToCurrentWorkspace(windowRef);
   windowRef.setAlwaysOnTop(true, "screen-saver");
   windowRef.moveTop();
   windowRef.show();
