@@ -14,23 +14,41 @@ interface SessionState {
     startPolling: () => void;
     stopPolling: () => void;
     ackSession: (id: string, runId: "run" | "done") => void;
+    // Internal method for receiving dismissals from other windows
+    _receiveDismissal: (sessionId: string, signature: string) => void;
 }
 
 export const useSessionStore = create<SessionState>((set, get) => {
     let pollTimer: ReturnType<typeof setInterval> | null = null;
     let mcpSession: { sessionId: string; protocolVersion: string } | null = null;
 
-    // Track dismissed sessions in-memory only to prevent resurfacing until a new session with the same chat_id arrives.
+    // Track dismissed sessions in-memory only; allow re-appearance when the status changes.
     const dismissedSessions = new Map<string, string>();
-
-    const isDismissed = (session: SessionSummary) => {
-        const key = session.chat_id || session.id;
-        return dismissedSessions.get(key) === session.id;
-    };
+    // Maintain stable ordering across status updates.
+    const ordering = new Map<string, number>();
+    let orderCounter = 0;
 
     const getTimestamp = (session: SessionSummary) => {
         const ts = new Date(session.ended_at || session.started_at || 0).getTime();
         return Number.isNaN(ts) ? 0 : ts;
+    };
+
+    const getKey = (session: SessionSummary) => session.chat_id || session.id;
+
+    const getSignature = (session: SessionSummary) =>
+        `${session.id}:${session.status}:${session.started_at ?? ""}:${session.ended_at ?? ""}`;
+
+    const isDismissed = (session: SessionSummary) => {
+        const key = getKey(session);
+        const currentSignature = getSignature(session);
+        const storedSignature = dismissedSessions.get(key);
+
+        if (!storedSignature) return false;
+        if (storedSignature === currentSignature) return true;
+
+        // Status changed; remove stale dismissal so updates show again.
+        dismissedSessions.delete(key);
+        return false;
     };
 
     const dedupeByChatId = (list: SessionSummary[]) => {
@@ -74,10 +92,24 @@ export const useSessionStore = create<SessionState>((set, get) => {
                 protocolVersion: mcpSession.protocolVersion
             });
 
-            // Keep only the latest session per chat_id, then filter out dismissed ones.
+            // Keep only the latest session per chat_id, then filter out dismissed ones and maintain stable order.
             const deduped = dedupeByChatId(sessions);
             const filtered = deduped.filter((s) => !isDismissed(s));
-            set({ sessions: filtered, loading: false, error: null, lastPoll: Date.now() });
+
+            const ordered = filtered
+                .map((session) => {
+                    const key = getKey(session);
+                    const existingOrder = ordering.get(key);
+                    if (existingOrder === undefined) {
+                        orderCounter += 1;
+                        ordering.set(key, orderCounter);
+                    }
+                    return { session, order: ordering.get(key)! };
+                })
+                .sort((a, b) => a.order - b.order)
+                .map((entry) => entry.session);
+
+            set({ sessions: ordered, loading: false, error: null, lastPoll: Date.now() });
 
         } catch (err) {
             console.error('Session polling failed', err);
@@ -126,14 +158,37 @@ export const useSessionStore = create<SessionState>((set, get) => {
             const currentSessions = get().sessions;
             const targetSession = currentSessions.find((s) => s.id === id);
             if (targetSession) {
-                const key = targetSession.chat_id || targetSession.id;
-                dismissedSessions.set(key, targetSession.id);
+                const key = getKey(targetSession);
+                const signature = getSignature(targetSession);
+                dismissedSessions.set(key, signature);
+
+                // Broadcast to other windows via IPC
+                window.electronAPI?.broadcastSessionDismiss?.(key, signature);
             }
 
             // Update local state immediately to hide it
             set({
                 sessions: currentSessions.filter((s) => s.id !== id)
             });
+        },
+
+        _receiveDismissal: (sessionId, signature) => {
+            // Add to dismissed sessions map
+            dismissedSessions.set(sessionId, signature);
+
+            // Remove from current sessions if present
+            const currentSessions = get().sessions;
+            const filtered = currentSessions.filter((s) => getKey(s) !== sessionId);
+            if (filtered.length !== currentSessions.length) {
+                set({ sessions: filtered });
+            }
         }
     };
 });
+
+// Set up IPC listener for session dismissals from other windows
+if (typeof window !== 'undefined' && window.electronAPI?.onSessionDismissed) {
+    window.electronAPI.onSessionDismissed((sessionId, signature) => {
+        useSessionStore.getState()._receiveDismissal(sessionId, signature);
+    });
+}

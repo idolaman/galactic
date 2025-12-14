@@ -37,6 +37,7 @@ import { workspaceNeedsRelaunch, clearWorkspaceRelaunchFlag } from "@/services/w
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useSessionStore } from "@/stores/session-store";
+import { QuickLauncherHint } from "@/components/QuickLauncherHint";
 
 const navItems = [
   { title: "Projects", url: "/", icon: FolderGit2 },
@@ -295,6 +296,9 @@ export function AppSidebar() {
 
         {projects.length > 0 && (
           <SidebarGroup>
+            <SidebarGroupContent className="px-2 pb-2">
+              <QuickLauncherHint />
+            </SidebarGroupContent>
             <SidebarGroupLabel>Workspaces</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>

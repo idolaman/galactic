@@ -33,4 +33,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
   installMcp: (tool: string) => ipcRenderer.invoke("mcp/install", tool),
   getMcpServerStatus: () => ipcRenderer.invoke("mcp/server-status"),
   restartMcpServer: () => ipcRenderer.invoke("mcp/restart-server"),
+  toggleQuickSidebar: () => ipcRenderer.invoke("quick-sidebar/toggle"),
+  hideQuickSidebar: () => ipcRenderer.invoke("quick-sidebar/hide"),
+  // Session sync between windows
+  broadcastSessionDismiss: (sessionId: string, signature: string) =>
+    ipcRenderer.invoke("session/broadcast-dismiss", sessionId, signature),
+  onSessionDismissed: (callback: (sessionId: string, signature: string) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, sessionId: string, signature: string) => {
+      callback(sessionId, signature);
+    };
+    ipcRenderer.on("session/dismissed", handler);
+    return () => ipcRenderer.removeListener("session/dismissed", handler);
+  },
 });
