@@ -59,6 +59,9 @@ export const EnvironmentProvider = ({ children }: { children: ReactNode }) => {
       return next;
     });
 
+    // Track analytics
+    window.electronAPI?.trackEnvironmentCreated?.(nextAddress);
+
     return { success: true, address: nextAddress, id: environment.id };
   };
 
