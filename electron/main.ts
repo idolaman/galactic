@@ -5,6 +5,8 @@ import {
   ipcMain,
   dialog,
   type OpenDialogOptions,
+  globalShortcut,
+  screen,
 } from "electron";
 import path from "node:path";
 import process from "node:process";
@@ -60,6 +62,132 @@ const VITE_DEV_SERVER_URL =
   process.env.ELECTRON_START_URL || process.env.VITE_DEV_SERVER_URL;
 
 let mainWindow: BrowserWindow | null = null;
+let quickSidebarWindow: BrowserWindow | null = null;
+const QUICK_SIDEBAR_HOTKEY = "Command+Shift+G";
+const QUICK_SIDEBAR_WIDTH = 420;
+const QUICK_SIDEBAR_MARGIN = 16;
+
+const loadAppUrl = async (windowRef: BrowserWindow, hash: string) => {
+  if (VITE_DEV_SERVER_URL) {
+    await windowRef.loadURL(`${VITE_DEV_SERVER_URL}/#${hash}`);
+    return;
+  }
+  await windowRef.loadFile(path.join(__dirname, "../dist/index.html"), { hash });
+};
+
+const getLeftmostDisplay = () => {
+  const displays = screen.getAllDisplays();
+  return displays.reduce(
+    (leftmost, current) => (current.bounds.x < leftmost.bounds.x ? current : leftmost),
+    displays[0],
+  );
+};
+
+const getQuickSidebarHeight = () => {
+  const { height } = getLeftmostDisplay().workArea;
+  return Math.max(360, height - QUICK_SIDEBAR_MARGIN * 2);
+};
+
+const positionQuickSidebar = (windowRef: BrowserWindow) => {
+  const leftmostDisplay = getLeftmostDisplay();
+  const { x, y } = leftmostDisplay.workArea;
+  const height = getQuickSidebarHeight();
+
+  windowRef.setBounds({
+    x: Math.round(x + QUICK_SIDEBAR_MARGIN),
+    y: Math.round(y + QUICK_SIDEBAR_MARGIN),
+    width: QUICK_SIDEBAR_WIDTH,
+    height,
+  });
+};
+
+const setQuickSidebarWorkspaceBehavior = (windowRef: BrowserWindow) => {
+  if (process.platform !== "darwin") {
+    return;
+  }
+
+  windowRef.setVisibleOnAllWorkspaces(true, {
+    visibleOnFullScreen: true,
+    skipTransformProcessType: true,
+  });
+};
+
+const reattachQuickSidebarToCurrentWorkspace = (windowRef: BrowserWindow) => {
+  if (process.platform !== "darwin") {
+    return;
+  }
+
+  // Toggling this flag on show makes macOS rebind the window to the active Space
+  // on the leftmost display instead of leaving it stuck to the last Space.
+  windowRef.setVisibleOnAllWorkspaces(false);
+  windowRef.setVisibleOnAllWorkspaces(true, {
+    visibleOnFullScreen: true,
+    skipTransformProcessType: true,
+  });
+};
+
+const showQuickSidebar = (windowRef: BrowserWindow) => {
+  setQuickSidebarWorkspaceBehavior(windowRef);
+  reattachQuickSidebarToCurrentWorkspace(windowRef);
+  windowRef.setAlwaysOnTop(true, "screen-saver");
+  windowRef.moveTop();
+  windowRef.show();
+  windowRef.focus();
+};
+
+const createQuickSidebarWindow = async () => {
+  if (quickSidebarWindow) {
+    return;
+  }
+
+  quickSidebarWindow = new BrowserWindow({
+    width: QUICK_SIDEBAR_WIDTH,
+    height: getQuickSidebarHeight(),
+    resizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    show: false,
+    frame: false,
+    transparent: true,
+    hasShadow: true,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    type: "panel",
+    backgroundColor: "#00000000",
+    titleBarStyle: "hidden",
+    autoHideMenuBar: true,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+
+  setQuickSidebarWorkspaceBehavior(quickSidebarWindow);
+
+  quickSidebarWindow.on("closed", () => {
+    quickSidebarWindow = null;
+  });
+
+  await loadAppUrl(quickSidebarWindow, "/quick-sidebar");
+};
+
+const toggleQuickSidebar = async () => {
+  if (!quickSidebarWindow) {
+    await createQuickSidebarWindow();
+  }
+  if (!quickSidebarWindow) {
+    return;
+  }
+
+  if (quickSidebarWindow.isVisible()) {
+    quickSidebarWindow.hide();
+    return;
+  }
+
+  positionQuickSidebar(quickSidebarWindow);
+  showQuickSidebar(quickSidebarWindow);
+};
 
 const createWindow = async () => {
   mainWindow = new BrowserWindow({
@@ -109,6 +237,33 @@ ipcMain.handle("ping", () => {
   return "pong";
 });
 
+ipcMain.handle("quick-sidebar/toggle", async () => {
+  await toggleQuickSidebar();
+  return { visible: quickSidebarWindow?.isVisible() ?? false };
+});
+
+ipcMain.handle("quick-sidebar/hide", () => {
+  quickSidebarWindow?.hide();
+  return { hidden: true };
+});
+
+// Session sync between windows - broadcast dismissal to all windows except sender
+ipcMain.handle("session/broadcast-dismiss", (event, sessionId: string, signature: string) => {
+  const senderWebContentsId = event.sender.id;
+
+  // Broadcast to main window if it exists and isn't the sender
+  if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents.id !== senderWebContentsId) {
+    mainWindow.webContents.send("session/dismissed", sessionId, signature);
+  }
+
+  // Broadcast to quick sidebar if it exists and isn't the sender
+  if (quickSidebarWindow && !quickSidebarWindow.isDestroyed() && quickSidebarWindow.webContents.id !== senderWebContentsId) {
+    quickSidebarWindow.webContents.send("session/dismissed", sessionId, signature);
+  }
+
+  return { success: true };
+});
+
 ipcMain.handle("check-editor-installed", (_event, editorName: string) => {
   const editorPaths: Record<string, string> = {
     Cursor: "/Applications/Cursor.app",
@@ -124,6 +279,16 @@ ipcMain.handle("check-editor-installed", (_event, editorName: string) => {
 app.whenReady().then(() => {
   // Start the MCP server
   startMcpServer({ port: MCP_SERVER_PORT, tokenless: true });
+
+  const registered = globalShortcut.register(QUICK_SIDEBAR_HOTKEY, () => {
+    void toggleQuickSidebar().catch((error) => {
+      console.error("Quick sidebar toggle failed:", error);
+    });
+  });
+
+  if (!registered) {
+    console.warn(`Failed to register hotkey ${QUICK_SIDEBAR_HOTKEY}`);
+  }
 
   createWindow().catch((error) => {
     console.error("Failed to create window:", error);
@@ -142,6 +307,11 @@ app.whenReady().then(() => {
 
 app.on("before-quit", () => {
   stopMcpServer();
+});
+
+app.on("will-quit", () => {
+  globalShortcut.unregister(QUICK_SIDEBAR_HOTKEY);
+  globalShortcut.unregisterAll();
 });
 
 app.on("window-all-closed", () => {

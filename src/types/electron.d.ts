@@ -50,6 +50,11 @@ export interface ElectronAPI {
   installMcp: (tool: string) => Promise<{ success: boolean; error?: string }>;
   getMcpServerStatus: () => Promise<{ running: boolean; url: string; port: number }>;
   restartMcpServer: () => Promise<{ success: boolean }>;
+  toggleQuickSidebar: () => Promise<{ visible: boolean }>;
+  hideQuickSidebar: () => Promise<{ hidden: boolean }>;
+  // Session sync between windows
+  broadcastSessionDismiss: (sessionId: string, signature: string) => Promise<{ success: boolean }>;
+  onSessionDismissed: (callback: (sessionId: string, signature: string) => void) => () => void;
 }
 
 declare global {

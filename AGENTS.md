@@ -29,6 +29,7 @@ ALWAYS:
 
 HARD LIMIT:
 - No file should exceed ~140 lines of code
+- Applies to both new and existing files; if your edits would push a file past ~140 lines, split it before finishing.
 
 If a file approaches 140 lines, you MUST:
 - Split logic into custom hooks or utilities
