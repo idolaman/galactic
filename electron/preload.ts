@@ -45,4 +45,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("session/dismissed", handler);
     return () => ipcRenderer.removeListener("session/dismissed", handler);
   },
+  // Analytics
+  trackEnvironmentCreated: (address: string) =>
+    ipcRenderer.invoke("analytics/track-environment-created", address),
 });

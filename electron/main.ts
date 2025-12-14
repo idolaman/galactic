@@ -17,6 +17,7 @@ import { promises as fsPromises } from "node:fs";
 import { execFile, exec, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import type { ExecFileException } from "node:child_process";
+import { initAnalytics, analytics } from "./analytics.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const execFileAsync = promisify(execFile);
@@ -182,11 +183,13 @@ const toggleQuickSidebar = async () => {
 
   if (quickSidebarWindow.isVisible()) {
     quickSidebarWindow.hide();
+    analytics.quickLauncherToggled(false);
     return;
   }
 
   positionQuickSidebar(quickSidebarWindow);
   showQuickSidebar(quickSidebarWindow);
+  analytics.quickLauncherToggled(true);
 };
 
 const createWindow = async () => {
@@ -277,6 +280,10 @@ ipcMain.handle("check-editor-installed", (_event, editorName: string) => {
 });
 
 app.whenReady().then(() => {
+  // Initialize analytics and track app launch
+  initAnalytics();
+  analytics.appLaunched();
+
   // Start the MCP server
   startMcpServer({ port: MCP_SERVER_PORT, tokenless: true });
 
@@ -376,6 +383,7 @@ ipcMain.handle(
 
     try {
       await execAsync(commandString);
+      analytics.editorLaunched(editorName);
       return { success: true };
     } catch (error) {
       console.error(`Failed to open ${editorName} for ${projectPath}:`, error);
@@ -417,11 +425,13 @@ ipcMain.handle("git/create-worktree", async (_event, projectPath: string, branch
 
   try {
     await execFileAsync("git", ["worktree", "add", targetPath, branch], { cwd: projectPath });
+    analytics.workspaceCreated(branch);
     return { success: true, path: targetPath };
   } catch (error) {
     console.error(`Failed to create worktree for ${branch} at ${projectPath}:`, error);
     const execError = error as ExecFileException & { stderr?: string };
     const errorMessage = execError?.stderr || execError?.message || "Unknown error creating worktree.";
+    analytics.gitFailed("worktree-add", errorMessage);
     return {
       success: false,
       error: errorMessage,
@@ -448,6 +458,7 @@ ipcMain.handle("git/remove-worktree", async (_event, projectPath: string, worktr
     console.error(`Failed to remove worktree ${worktreePath}:`, error);
     const execError = error as ExecFileException & { stderr?: string };
     const errorMessage = execError?.stderr || execError?.message || "Unknown error removing worktree.";
+    analytics.gitFailed("worktree-remove", errorMessage);
     return {
       success: false,
       error: errorMessage,
@@ -572,9 +583,11 @@ ipcMain.handle("git/fetch-branches", async (_event, projectPath: string) => {
   } catch (error) {
     console.warn(`Failed to fetch branches for ${projectPath}:`, error);
     const execError = error as ExecFileException & { stderr?: string };
+    const errorMessage = execError?.stderr || execError?.message || "Unknown error fetching branches.";
+    analytics.gitFailed("fetch", errorMessage);
     return {
       success: false,
-      error: execError?.stderr || execError?.message || "Unknown error fetching branches.",
+      error: errorMessage,
     };
   }
 });
@@ -949,39 +962,41 @@ ipcMain.handle("mcp/check-installed", async (_event, tool: string) => {
 });
 
 ipcMain.handle("mcp/install", async (_event, tool: string) => {
+  let result: { success: boolean; error?: string };
+
   if (tool === "Cursor") {
-    return await updateMcpConfig(
+    result = await updateMcpConfig(
       path.join(os.homedir(), ".cursor", "mcp.json"),
       MCP_SERVER_NAME,
       THINKING_LOGGER_CONFIG
     );
-  }
-
-  if (tool === "VSCode") {
-    return await updateMcpConfig(
+  } else if (tool === "VSCode") {
+    result = await updateMcpConfig(
       path.join(os.homedir(), "Library", "Application Support", "Code", "User", "mcp.json"),
       MCP_SERVER_NAME,
       THINKING_LOGGER_CONFIG
     );
-  }
-
-  if (tool === "Claude") {
-    return await updateMcpConfig(
+  } else if (tool === "Claude") {
+    result = await updateMcpConfig(
       path.join(os.homedir(), ".claude.json"),
       MCP_SERVER_NAME,
       THINKING_LOGGER_CONFIG
     );
-  }
-
-  if (tool === "Codex") {
-    return await updateMcpConfig(
+  } else if (tool === "Codex") {
+    result = await updateMcpConfig(
       path.join(os.homedir(), ".codex", "config.toml"),
       MCP_SERVER_NAME,
       THINKING_LOGGER_CONFIG
     );
+  } else {
+    return { success: false, error: "Tool not supported yet." };
   }
 
-  return { success: false, error: "Tool not supported yet." };
+  if (result.success) {
+    analytics.mcpConnected(tool);
+  }
+
+  return result;
 });
 
 ipcMain.handle("mcp/server-status", () => {
@@ -994,5 +1009,11 @@ ipcMain.handle("mcp/server-status", () => {
 
 ipcMain.handle("mcp/restart-server", () => {
   restartMcpServer({ port: MCP_SERVER_PORT, tokenless: true });
+  return { success: true };
+});
+
+// Analytics tracking from renderer
+ipcMain.handle("analytics/track-environment-created", (_event, address: string) => {
+  analytics.environmentCreated(address);
   return { success: true };
 });
