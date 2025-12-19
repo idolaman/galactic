@@ -17,7 +17,7 @@ import { promises as fsPromises } from "node:fs";
 import { execFile, exec, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import type { ExecFileException } from "node:child_process";
-import { initAnalytics, analytics } from "./analytics.js";
+import { initAnalytics, analytics, isAnalyticsEvent, trackEvent } from "./analytics.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const execFileAsync = promisify(execFile);
@@ -173,7 +173,7 @@ const createQuickSidebarWindow = async () => {
   await loadAppUrl(quickSidebarWindow, "/quick-sidebar");
 };
 
-const toggleQuickSidebar = async () => {
+const toggleQuickSidebar = async (source: "shortcut" | "renderer" | "internal" = "internal") => {
   if (!quickSidebarWindow) {
     await createQuickSidebarWindow();
   }
@@ -183,13 +183,13 @@ const toggleQuickSidebar = async () => {
 
   if (quickSidebarWindow.isVisible()) {
     quickSidebarWindow.hide();
-    analytics.quickLauncherToggled(false);
+    analytics.quickLauncherToggled(false, source);
     return;
   }
 
   positionQuickSidebar(quickSidebarWindow);
   showQuickSidebar(quickSidebarWindow);
-  analytics.quickLauncherToggled(true);
+  analytics.quickLauncherToggled(true, source);
 };
 
 const createWindow = async () => {
@@ -241,11 +241,14 @@ ipcMain.handle("ping", () => {
 });
 
 ipcMain.handle("quick-sidebar/toggle", async () => {
-  await toggleQuickSidebar();
+  await toggleQuickSidebar("renderer");
   return { visible: quickSidebarWindow?.isVisible() ?? false };
 });
 
 ipcMain.handle("quick-sidebar/hide", () => {
+  if (quickSidebarWindow?.isVisible()) {
+    analytics.quickLauncherToggled(false, "renderer");
+  }
   quickSidebarWindow?.hide();
   return { hidden: true };
 });
@@ -288,7 +291,7 @@ app.whenReady().then(() => {
   startMcpServer({ port: MCP_SERVER_PORT, tokenless: true });
 
   const registered = globalShortcut.register(QUICK_SIDEBAR_HOTKEY, () => {
-    void toggleQuickSidebar().catch((error) => {
+    void toggleQuickSidebar("shortcut").catch((error) => {
       console.error("Quick sidebar toggle failed:", error);
     });
   });
@@ -453,6 +456,7 @@ ipcMain.handle("git/remove-worktree", async (_event, projectPath: string, worktr
 
   try {
     await execFileAsync("git", ["worktree", "remove", resolvedWorktreePath], { cwd: projectPath });
+    analytics.workspaceDeleted(path.basename(resolvedWorktreePath));
     return { success: true };
   } catch (error) {
     console.error(`Failed to remove worktree ${worktreePath}:`, error);
@@ -728,9 +732,12 @@ ipcMain.handle(
     }
 
     try {
-      return await copyFilesToWorktree(projectPath, worktreePath, files);
+      const result = await copyFilesToWorktree(projectPath, worktreePath, files);
+      analytics.workspaceFilesCopied(result.copied.length, result.success);
+      return result;
     } catch (error) {
       console.error(`Failed to copy files into worktree ${worktreePath}:`, error);
+      analytics.workspaceFilesCopied(0, false);
       return {
         success: false,
         copied: [],
@@ -1011,6 +1018,18 @@ ipcMain.handle("mcp/restart-server", () => {
   restartMcpServer({ port: MCP_SERVER_PORT, tokenless: true });
   return { success: true };
 });
+
+ipcMain.handle(
+  "analytics/track-event",
+  (_event, eventName: string, payload?: Record<string, string | number | boolean>) => {
+    if (!isAnalyticsEvent(eventName)) {
+      console.warn(`[Analytics] Ignoring unknown event: ${eventName}`);
+      return { success: false };
+    }
+    trackEvent(eventName, payload);
+    return { success: true };
+  },
+);
 
 // Analytics tracking from renderer
 ipcMain.handle("analytics/track-environment-created", (_event, address: string) => {
