@@ -8,6 +8,13 @@ import {
 } from "@/services/environments";
 import { writeCodeWorkspace } from "@/services/workspace";
 import { markWorkspaceRequiresRelaunch } from "@/services/workspace-state";
+import {
+  trackEnvironmentAttached,
+  trackEnvironmentCreated,
+  trackEnvironmentDeleted,
+  trackEnvironmentDetached,
+  trackEnvironmentUpdated,
+} from "@/services/analytics";
 
 interface EnvironmentContextValue {
   environments: Environment[];
@@ -59,6 +66,9 @@ export const EnvironmentProvider = ({ children }: { children: ReactNode }) => {
       return next;
     });
 
+    // Track analytics
+    trackEnvironmentCreated(nextAddress);
+
     return { success: true, address: nextAddress, id: environment.id };
   };
 
@@ -70,6 +80,13 @@ export const EnvironmentProvider = ({ children }: { children: ReactNode }) => {
       return { success: false, error: "Environment name cannot be empty." };
     }
 
+    const currentEnv = environments.find((env) => env.id === id);
+    const previousEnvVars = currentEnv?.envVars ?? {};
+    const envVarsChanged =
+      updates.envVars !== undefined &&
+      JSON.stringify(previousEnvVars) !== JSON.stringify(updates.envVars);
+    const nextEnvVars = updates.envVars ?? previousEnvVars;
+
     let error: string | undefined;
     setEnvironments((prev) => {
       const target = prev.find((env) => env.id === id);
@@ -80,7 +97,7 @@ export const EnvironmentProvider = ({ children }: { children: ReactNode }) => {
 
       const next = prev.map((env) =>
         env.id === id
-          ?             {
+          ? {
               ...env,
               name: updates.name !== undefined ? updates.name.trim() : env.name,
               envVars: updates.envVars !== undefined ? updates.envVars : env.envVars,
@@ -93,6 +110,9 @@ export const EnvironmentProvider = ({ children }: { children: ReactNode }) => {
 
     if (error) {
       return { success: false, error };
+    }
+    if (envVarsChanged) {
+      trackEnvironmentUpdated(Object.keys(nextEnvVars ?? {}).length);
     }
     return { success: true };
   };
@@ -121,11 +141,13 @@ export const EnvironmentProvider = ({ children }: { children: ReactNode }) => {
       return next;
     });
 
+    trackEnvironmentDeleted(environment.bindings.length);
     return { success: true };
   };
 
   const assignTarget = (environmentId: string, binding: EnvironmentBinding) => {
     const owning = findEnvironmentOwningTarget(environments, binding.targetPath);
+    const selectedEnvironment = environments.find((env) => env.id === environmentId);
     const previousProjectBinding = environments
       .map((env) => ({
         env,
@@ -164,10 +186,16 @@ export const EnvironmentProvider = ({ children }: { children: ReactNode }) => {
       return { success: false, error };
     }
 
+    if (selectedEnvironment) {
+      const envVarsCount = Object.keys(selectedEnvironment.envVars ?? {}).length;
+      trackEnvironmentAttached(binding.kind, envVarsCount, reassigned);
+    }
+
     return { success: true, reassigned };
   };
 
   const unassignTarget = (targetPath: string) => {
+    const owning = findEnvironmentOwningTarget(environments, targetPath);
     setEnvironments((prev) => {
       const next = prev.map((env) => ({
         ...env,
@@ -176,6 +204,9 @@ export const EnvironmentProvider = ({ children }: { children: ReactNode }) => {
       environmentStorage.save(next);
       return next;
     });
+    if (owning) {
+      trackEnvironmentDetached(owning.binding.kind);
+    }
   };
 
   const value: EnvironmentContextValue = {

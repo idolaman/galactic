@@ -12,6 +12,7 @@ import { useEnvironmentManager } from "@/hooks/use-environment-manager";
 import type { EnvironmentBinding } from "@/types/environment";
 import { writeCodeWorkspace, getCodeWorkspacePath, deleteCodeWorkspace } from "@/services/workspace";
 import { markWorkspaceRequiresRelaunch, clearWorkspaceRelaunchFlag } from "@/services/workspace-state";
+import { trackConfigFileAdded } from "@/services/analytics";
 
 type Project = StoredProject;
 
@@ -403,6 +404,7 @@ const Index = () => {
       configFiles: [...existing, normalized],
     };
     updateSelectedProject(updatedProject);
+    trackConfigFileAdded(normalized);
   };
 
   const handleRemoveConfigFile = (filePath: string) => {

@@ -11,6 +11,7 @@ import {
 import { useProjects } from "@/hooks/use-projects";
 import { useSessionStore } from "@/stores/session-store";
 import { useEditorLauncher } from "@/hooks/use-editor-launcher";
+import { useQuickLauncherAnalytics } from "@/hooks/use-quick-launcher-analytics";
 import { cn } from "@/lib/utils";
 import type { SessionSummary } from "@/services/session-rpc";
 
@@ -152,6 +153,7 @@ export function QuickSidebar() {
   const [search, setSearch] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [selectedId, setSelectedId] = useState<string>("");
+  useQuickLauncherAnalytics({ selectedId, sessions });
 
   useEffect(() => {
     startPolling();

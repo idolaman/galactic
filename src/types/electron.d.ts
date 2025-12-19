@@ -55,6 +55,12 @@ export interface ElectronAPI {
   // Session sync between windows
   broadcastSessionDismiss: (sessionId: string, signature: string) => Promise<{ success: boolean }>;
   onSessionDismissed: (callback: (sessionId: string, signature: string) => void) => () => void;
+  // Analytics
+  trackAnalyticsEvent: (
+    event: string,
+    payload?: Record<string, string | number | boolean>
+  ) => Promise<{ success: boolean }>;
+  trackEnvironmentCreated: (address: string) => Promise<{ success: boolean }>;
 }
 
 declare global {
