@@ -1,4 +1,5 @@
 import type { Workspace } from "@/types/workspace";
+import { trackProjectAdded, trackProjectRemoved } from "@/services/analytics";
 
 export interface StoredProject {
   id: string;
@@ -67,15 +68,21 @@ export const projectStorage = {
       nextProjects[existingIndex] = project;
     } else {
       nextProjects.unshift(project);
+      trackProjectAdded(project.isGitRepo, project.worktrees ?? 0);
     }
     writeAll(nextProjects);
     dispatchChange();
     return nextProjects;
   },
   remove(projectId: string): StoredProject[] {
-    const nextProjects = readAll().filter((project) => project.id !== projectId);
+    const currentProjects = readAll();
+    const removedProject = currentProjects.find((project) => project.id === projectId);
+    const nextProjects = currentProjects.filter((project) => project.id !== projectId);
     writeAll(nextProjects);
     dispatchChange();
+    if (removedProject) {
+      trackProjectRemoved(removedProject.worktrees ?? 0, removedProject.configFiles?.length ?? 0);
+    }
     return nextProjects;
   },
 };
