@@ -24,6 +24,10 @@ mac:
         - x64
         - arm64
   icon: src/assets/icon.png
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
 
 dmg:
   contents:
