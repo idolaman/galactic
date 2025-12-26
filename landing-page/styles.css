@@ -74,9 +74,6 @@ h3 {
 /* Navigation */
 nav {
     padding: 1.5rem 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     backdrop-filter: blur(10px);
     position: fixed;
     top: 0;
@@ -87,11 +84,23 @@ nav {
     border-bottom: 1px solid var(--glass-border);
 }
 
+nav .container {
+    display: flex;
+    justify-content: flex-end;
+    /* Push nav links to the right */
+    align-items: center;
+    position: relative;
+    height: 100%;
+}
+
 .logo-container {
     display: flex;
     align-items: center;
     gap: 0.8rem;
     cursor: pointer;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
 }
 
 .logo-icon {
@@ -101,6 +110,7 @@ nav {
     display: flex;
     align-items: center;
     justify-content: center;
+    transform-style: preserve-3d;
 }
 
 .planet {
@@ -109,7 +119,8 @@ nav {
     background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
     border-radius: 50%;
     box-shadow: 0 0 20px rgba(124, 58, 237, 0.5);
-    z-index: 2;
+    transform: translateZ(0);
+    /* Remove z-index, use 3D positioning */
 }
 
 .orbit {
@@ -119,6 +130,8 @@ nav {
     border: 2px solid rgba(255, 255, 255, 0.3);
     border-radius: 50%;
     transform: rotateX(75deg);
+    /* Re-added static transform for horizontal appearance */
+    transform-style: preserve-3d;
     animation: spin 4s linear infinite;
 }
 
@@ -186,6 +199,8 @@ nav {
     transform: translateY(-2px);
     box-shadow: 0 8px 30px rgba(124, 58, 237, 0.5);
 }
+
+
 
 /* Hero Section */
 .hero {
