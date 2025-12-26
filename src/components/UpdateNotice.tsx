@@ -9,6 +9,7 @@ export const UpdateNotice = () => {
   if (
     state.status === "idle" ||
     state.status === "checking" ||
+    state.status === "available" ||
     state.status === "not-available" ||
     state.status === "unsupported"
   ) {
@@ -51,12 +52,7 @@ export const UpdateNotice = () => {
           <RefreshCw className="h-4 w-4" />
           Retry
         </Button>
-      ) : (
-        <div className="flex items-center gap-2 text-xs text-indigo-200">
-          <RefreshCw className="h-4 w-4 animate-spin" />
-          Downloading…
-        </div>
-      )}
+      ) : null}
     </div>
   );
 };
