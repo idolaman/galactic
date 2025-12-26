@@ -43,3 +43,9 @@ dmg:
 
 extraMetadata:
   main: dist-electron/main.js
+
+publish:
+  provider: github
+  owner: idolaman
+  repo: galactic-binaries
+  releaseType: release

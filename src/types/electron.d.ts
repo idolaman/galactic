@@ -52,6 +52,11 @@ export interface ElectronAPI {
   restartMcpServer: () => Promise<{ success: boolean }>;
   toggleQuickSidebar: () => Promise<{ visible: boolean }>;
   hideQuickSidebar: () => Promise<{ hidden: boolean }>;
+  checkForUpdates: () => Promise<{ supported: boolean; updateAvailable?: boolean; version?: string | null; message?: string; error?: string }>;
+  applyUpdate: () => Promise<{ success: boolean; error?: string }>;
+  onUpdateEvent: (
+    callback: (status: string, payload: Record<string, unknown>) => void
+  ) => () => void;
   // Session sync between windows
   broadcastSessionDismiss: (sessionId: string, signature: string) => Promise<{ success: boolean }>;
   onSessionDismissed: (callback: (sessionId: string, signature: string) => void) => () => void;
