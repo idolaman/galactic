@@ -21,6 +21,7 @@ export interface WorkspaceEnvConfig {
 
 export interface ElectronAPI {
   ping: () => Promise<string>;
+  getAppVersion: () => Promise<string>;
   checkEditorInstalled: (editorName: string) => Promise<boolean>;
   chooseProjectDirectory: () => Promise<string | null>;
   getGitInfo: (projectPath: string) => Promise<GitInfo>;

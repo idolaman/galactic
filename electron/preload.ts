@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from "electron";
 
 contextBridge.exposeInMainWorld("electronAPI", {
   ping: () => ipcRenderer.invoke("ping"),
+  getAppVersion: () => ipcRenderer.invoke("app/get-version"),
   checkEditorInstalled: (editorName: string) =>
     ipcRenderer.invoke("check-editor-installed", editorName),
   chooseProjectDirectory: () => ipcRenderer.invoke("os/choose-project-directory"),

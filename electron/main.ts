@@ -332,6 +332,10 @@ ipcMain.handle("ping", () => {
   return "pong";
 });
 
+ipcMain.handle("app/get-version", () => {
+  return app.getVersion();
+});
+
 ipcMain.handle("quick-sidebar/toggle", async () => {
   await toggleQuickSidebar("renderer");
   return { visible: quickSidebarWindow?.isVisible() ?? false };
