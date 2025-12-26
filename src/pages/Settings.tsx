@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { CheckCircle2, Info } from "lucide-react";
+import { ArrowDownToLine, CheckCircle2, Info, Loader2, RefreshCw } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import vscodeIcon from "@/assets/vscode-icon.png";
@@ -13,9 +13,11 @@ import { type EditorName } from "@/services/editor";
 import { cn } from "@/lib/utils";
 import { projectStorage } from "@/services/projects";
 import { markAllWorkspacesRequireRelaunch } from "@/services/workspace-state";
+import { useUpdate } from "@/hooks/use-update";
 
 export default function Settings() {
   const { toast } = useToast();
+  const { state: updateState, checkForUpdates, installUpdate } = useUpdate();
   const [preferredEditor, setPreferredEditor] = useState<EditorName>(() => {
     const saved = typeof window !== "undefined" ? window.localStorage.getItem("preferredEditor") : null;
     return (saved === "Cursor" || saved === "VSCode") ? saved : "Cursor";
@@ -31,6 +33,7 @@ export default function Settings() {
   });
   const [installing, setInstalling] = useState<Record<string, boolean>>({});
   const [selectedConfig, setSelectedConfig] = useState<string | null>(null);
+  const [appVersion, setAppVersion] = useState<string | null>(null);
 
   useEffect(() => {
     window.localStorage.setItem("preferredEditor", preferredEditor);
@@ -60,6 +63,7 @@ export default function Settings() {
   useEffect(() => {
     checkEditors();
     checkMcpStatus();
+    window.electronAPI?.getAppVersion?.().then(setAppVersion);
   }, [checkEditors, checkMcpStatus]);
 
   const handleEditorChange = (value: string) => {
@@ -325,6 +329,69 @@ export default function Settings() {
               {mcpInstalled["Codex"] ? "Installed" : installing["Codex"] ? "Installing..." : "Install"}
             </Button>
           </Card>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border bg-card">
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Galactic Updates</CardTitle>
+              <CardDescription>Check for new versions of Galactic and install updates.</CardDescription>
+            </div>
+            {appVersion && (
+              <Badge variant="outline" className="text-xs">
+                v{appVersion}
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-sm font-medium">
+                {updateState.status === "checking" && "Checking for updates..."}
+                {updateState.status === "idle" && "You're up to date"}
+                {updateState.status === "available" && `Update available: v${updateState.version}`}
+                {updateState.status === "downloaded" && `Ready to install: v${updateState.version}`}
+                {updateState.status === "not-available" && "No updates available"}
+                {updateState.status === "error" && "Update check failed"}
+                {updateState.status === "unsupported" && "Updates not supported"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {updateState.status === "checking" && "Please wait while we check for updates..."}
+                {updateState.status === "idle" && "Galactic is running the latest version."}
+                {updateState.status === "available" && "A new version is available for download."}
+                {updateState.status === "downloaded" && "Click install to update and restart Galactic."}
+                {updateState.status === "not-available" && "You're running the latest version."}
+                {updateState.status === "error" && (updateState.message ?? "Unable to check for updates.")}
+                {updateState.status === "unsupported" && (updateState.message ?? "Auto-updates are not available in this environment.")}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              {updateState.status === "checking" ? (
+                <Button variant="outline" disabled>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Checking...
+                </Button>
+              ) : updateState.status === "downloaded" ? (
+                <Button variant="secondary" onClick={installUpdate} className="gap-2">
+                  <ArrowDownToLine className="h-4 w-4" />
+                  Install & Restart
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  onClick={checkForUpdates}
+                  disabled={updateState.status === "unsupported"}
+                  className="gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Check for Updates
+                </Button>
+              )}
+            </div>
+          </div>
         </CardContent>
       </Card>
 
