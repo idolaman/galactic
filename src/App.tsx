@@ -8,6 +8,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { GitHubAuth } from "@/components/GitHubAuth";
 import { Header } from "@/components/Header";
+import { UpdateNotice } from "@/components/UpdateNotice";
 import Index from "./pages/Index";
 import { QuickSidebar } from "@/pages/QuickSidebar";
 import Environments from "./pages/Environments";
@@ -69,6 +70,7 @@ const App = () => {
           <AppSidebar />
           <SidebarInset>
             <Header user={user} onLogout={handleLogout} />
+            <UpdateNotice />
             <div className="flex-1 overflow-hidden">
               <div className="h-full overflow-auto">
                 <Routes>

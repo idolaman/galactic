@@ -8,6 +8,10 @@ import {
   globalShortcut,
   screen,
 } from "electron";
+import updaterPackage from "electron-updater";
+import type { UpdateInfo, UpdateCheckResult } from "electron-updater";
+
+const { autoUpdater } = updaterPackage;
 import path from "node:path";
 import process from "node:process";
 import os from "node:os";
@@ -67,6 +71,31 @@ let quickSidebarWindow: BrowserWindow | null = null;
 const QUICK_SIDEBAR_HOTKEY = "Command+Shift+G";
 const QUICK_SIDEBAR_WIDTH = 420;
 const QUICK_SIDEBAR_MARGIN = 16;
+let lastDownloadedVersion: string | null = null;
+const UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
+let updateCheckTimer: NodeJS.Timeout | null = null;
+let updateCheckInFlight: Promise<UpdateCheckResult | null> | null = null;
+const UPDATE_FEED_URL = (
+  process.env.GALACTIC_UPDATE_URL ??
+  "***REDACTED***"
+).trim();
+const isUpdateEnabled = () => UPDATE_FEED_URL.length > 0;
+
+type UpdateEvent =
+  | "available"
+  | "downloaded"
+  | "not-available"
+  | "error";
+
+const broadcastUpdateEvent = (status: UpdateEvent, payload: Record<string, unknown> = {}) => {
+  const message = ["update/event", status, payload] as const;
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(...message);
+  }
+  if (quickSidebarWindow && !quickSidebarWindow.isDestroyed()) {
+    quickSidebarWindow.webContents.send(...message);
+  }
+};
 
 const loadAppUrl = async (windowRef: BrowserWindow, hash: string) => {
   if (VITE_DEV_SERVER_URL) {
@@ -192,6 +221,69 @@ const toggleQuickSidebar = async (source: "shortcut" | "renderer" | "internal" =
   analytics.quickLauncherToggled(true, source);
 };
 
+const setupAutoUpdater = () => {
+  if (!app.isPackaged || !isUpdateEnabled()) {
+    return;
+  }
+
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.disableDifferentialDownload = true;
+  autoUpdater.setFeedURL(UPDATE_FEED_URL);
+
+  autoUpdater.on("update-available", (info: UpdateInfo) => {
+    broadcastUpdateEvent("available", { version: info.version });
+  });
+
+  autoUpdater.on("update-not-available", () => {
+    broadcastUpdateEvent("not-available");
+  });
+
+  autoUpdater.on("update-downloaded", (info: UpdateInfo) => {
+    lastDownloadedVersion = info.version ?? null;
+    broadcastUpdateEvent("downloaded", { version: info.version, releaseDate: info.releaseDate });
+  });
+
+  autoUpdater.on("error", (error: Error) => {
+    console.error("Auto-updater error:", error);
+    broadcastUpdateEvent("error", { message: error?.message ?? "Update failed" });
+  });
+};
+
+const scheduleUpdateChecks = () => {
+  if (!app.isPackaged || !isUpdateEnabled() || updateCheckTimer) {
+    return;
+  }
+
+  updateCheckTimer = setInterval(() => {
+    performUpdateCheck().catch((error: Error) => {
+      console.warn("Update check failed:", error);
+    });
+  }, UPDATE_CHECK_INTERVAL_MS);
+};
+
+const performUpdateCheck = () => {
+  if (!app.isPackaged || !isUpdateEnabled()) {
+    return Promise.resolve(null);
+  }
+
+  if (updateCheckInFlight) {
+    return updateCheckInFlight;
+  }
+
+  updateCheckInFlight = autoUpdater
+    .checkForUpdates()
+    .catch((error: Error) => {
+      console.warn("Update check failed:", error);
+      throw error;
+    })
+    .finally(() => {
+      updateCheckInFlight = null;
+    });
+
+  return updateCheckInFlight;
+};
+
 const createWindow = async () => {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -286,6 +378,13 @@ app.whenReady().then(() => {
   // Initialize analytics and track app launch
   initAnalytics();
   analytics.appLaunched();
+  setupAutoUpdater();
+  if (app.isPackaged && isUpdateEnabled()) {
+    performUpdateCheck().catch((error: Error) => {
+      console.warn("Update check failed:", error);
+    });
+    scheduleUpdateChecks();
+  }
 
   // Start the MCP server
   startMcpServer({ port: MCP_SERVER_PORT, tokenless: true });
@@ -316,6 +415,10 @@ app.whenReady().then(() => {
 });
 
 app.on("before-quit", () => {
+  if (updateCheckTimer) {
+    clearInterval(updateCheckTimer);
+    updateCheckTimer = null;
+  }
   stopMcpServer();
 });
 
@@ -929,6 +1032,55 @@ ipcMain.handle(
     }
   },
 );
+
+ipcMain.handle("update/check", async () => {
+  if (!app.isPackaged) {
+    return { supported: false, message: "Updates are only available in packaged builds." };
+  }
+  if (!isUpdateEnabled()) {
+    return { supported: false, message: "Update feed URL is not configured." };
+  }
+
+  try {
+    const result = await performUpdateCheck();
+    const version = result?.updateInfo?.version ?? null;
+    return {
+      supported: true,
+      updateAvailable: Boolean(version && version !== app.getVersion()),
+      version,
+    };
+  } catch (error) {
+    console.warn("Update check failed:", error);
+    return {
+      supported: true,
+      updateAvailable: false,
+      error: error instanceof Error ? error.message : "Update check failed.",
+    };
+  }
+});
+
+ipcMain.handle("update/apply", async () => {
+  if (!app.isPackaged) {
+    return { success: false, error: "Updates are only available in packaged builds." };
+  }
+  if (!isUpdateEnabled()) {
+    return { success: false, error: "Update feed URL is not configured." };
+  }
+
+  try {
+    if (!lastDownloadedVersion) {
+      return { success: false, error: "Update is not ready yet." };
+    }
+    if (lastDownloadedVersion) {
+      analytics.updateCompleted(lastDownloadedVersion);
+    }
+    autoUpdater.quitAndInstall();
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to apply update:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Failed to install update." };
+  }
+});
 
 import { updateMcpConfig, checkMcpConfig } from "./utils/config.js";
 import {

@@ -35,6 +35,17 @@ contextBridge.exposeInMainWorld("electronAPI", {
   restartMcpServer: () => ipcRenderer.invoke("mcp/restart-server"),
   toggleQuickSidebar: () => ipcRenderer.invoke("quick-sidebar/toggle"),
   hideQuickSidebar: () => ipcRenderer.invoke("quick-sidebar/hide"),
+  checkForUpdates: () => ipcRenderer.invoke("update/check"),
+  applyUpdate: () => ipcRenderer.invoke("update/apply"),
+  onUpdateEvent: (
+    callback: (status: string, payload: Record<string, unknown>) => void,
+  ) => {
+    const handler = (_event: Electron.IpcRendererEvent, status: string, payload: Record<string, unknown>) => {
+      callback(status, payload);
+    };
+    ipcRenderer.on("update/event", handler);
+    return () => ipcRenderer.removeListener("update/event", handler);
+  },
   // Session sync between windows
   broadcastSessionDismiss: (sessionId: string, signature: string) =>
     ipcRenderer.invoke("session/broadcast-dismiss", sessionId, signature),
