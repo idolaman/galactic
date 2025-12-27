@@ -14,6 +14,7 @@ import Environments from "./pages/Environments";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import { useToast } from "@/hooks/use-toast";
+import { useUpdateListener } from "@/hooks/use-update";
 import { ThemeProvider } from "@/components/theme-provider";
 import { EnvironmentProvider } from "@/hooks/use-environment-manager";
 import { StarsBackground } from "@/components/StarsBackground";
@@ -29,6 +30,9 @@ const App = () => {
   const [user, setUser] = useState<User | null>(null);
   const { toast } = useToast();
   const isQuickSidebar = typeof window !== "undefined" && window.location.hash.includes("quick-sidebar");
+
+  // Subscribe to update events and show toasts at app level
+  useUpdateListener();
 
   const handleAuthSuccess = (userData: User) => {
     setUser(userData);
