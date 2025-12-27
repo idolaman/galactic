@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from "electron";
 
 contextBridge.exposeInMainWorld("electronAPI", {
   ping: () => ipcRenderer.invoke("ping"),
+  getAppVersion: () => ipcRenderer.invoke("app/get-version"),
   checkEditorInstalled: (editorName: string) =>
     ipcRenderer.invoke("check-editor-installed", editorName),
   chooseProjectDirectory: () => ipcRenderer.invoke("os/choose-project-directory"),
@@ -35,6 +36,17 @@ contextBridge.exposeInMainWorld("electronAPI", {
   restartMcpServer: () => ipcRenderer.invoke("mcp/restart-server"),
   toggleQuickSidebar: () => ipcRenderer.invoke("quick-sidebar/toggle"),
   hideQuickSidebar: () => ipcRenderer.invoke("quick-sidebar/hide"),
+  checkForUpdates: () => ipcRenderer.invoke("update/check"),
+  applyUpdate: () => ipcRenderer.invoke("update/apply"),
+  onUpdateEvent: (
+    callback: (status: string, payload: Record<string, unknown>) => void,
+  ) => {
+    const handler = (_event: Electron.IpcRendererEvent, status: string, payload: Record<string, unknown>) => {
+      callback(status, payload);
+    };
+    ipcRenderer.on("update/event", handler);
+    return () => ipcRenderer.removeListener("update/event", handler);
+  },
   // Session sync between windows
   broadcastSessionDismiss: (sessionId: string, signature: string) =>
     ipcRenderer.invoke("session/broadcast-dismiss", sessionId, signature),
