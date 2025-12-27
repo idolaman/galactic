@@ -8,13 +8,13 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { GitHubAuth } from "@/components/GitHubAuth";
 import { Header } from "@/components/Header";
-import { UpdateNotice } from "@/components/UpdateNotice";
 import Index from "./pages/Index";
 import { QuickSidebar } from "@/pages/QuickSidebar";
 import Environments from "./pages/Environments";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import { useToast } from "@/hooks/use-toast";
+import { useUpdateListener } from "@/hooks/use-update";
 import { ThemeProvider } from "@/components/theme-provider";
 import { EnvironmentProvider } from "@/hooks/use-environment-manager";
 import { StarsBackground } from "@/components/StarsBackground";
@@ -30,6 +30,9 @@ const App = () => {
   const [user, setUser] = useState<User | null>(null);
   const { toast } = useToast();
   const isQuickSidebar = typeof window !== "undefined" && window.location.hash.includes("quick-sidebar");
+
+  // Subscribe to update events and show toasts at app level
+  useUpdateListener();
 
   const handleAuthSuccess = (userData: User) => {
     setUser(userData);
@@ -70,7 +73,6 @@ const App = () => {
           <AppSidebar />
           <SidebarInset>
             <Header user={user} onLogout={handleLogout} />
-            <UpdateNotice />
             <div className="flex-1 overflow-hidden">
               <div className="h-full overflow-auto">
                 <Routes>

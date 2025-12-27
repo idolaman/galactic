@@ -1,3 +1,4 @@
+// Types
 type UpdateStatus = "available" | "downloaded" | "not-available" | "error";
 
 export interface UpdateEventPayload {
@@ -7,19 +8,28 @@ export interface UpdateEventPayload {
   releaseDate?: string;
 }
 
+export interface CheckUpdateResult {
+  supported: boolean;
+  updateAvailable?: boolean;
+  version?: string | null;
+  message?: string;
+  error?: string;
+}
+
+export interface ApplyUpdateResult {
+  success: boolean;
+  error?: string;
+}
+
+// Type guard
 const isUpdateStatus = (value: string): value is UpdateStatus =>
   value === "available" ||
   value === "downloaded" ||
   value === "not-available" ||
   value === "error";
 
-export const checkForUpdates = async (): Promise<{
-  supported: boolean;
-  updateAvailable?: boolean;
-  version?: string | null;
-  message?: string;
-  error?: string;
-}> => {
+// API functions
+export async function checkForUpdates(): Promise<CheckUpdateResult> {
   if (typeof window === "undefined") {
     return { supported: false, message: "Updates require the desktop app." };
   }
@@ -34,9 +44,9 @@ export const checkForUpdates = async (): Promise<{
       error: error instanceof Error ? error.message : "Failed to check for updates.",
     };
   }
-};
+}
 
-export const applyUpdate = async (): Promise<{ success: boolean; error?: string }> => {
+export async function applyUpdate(): Promise<ApplyUpdateResult> {
   if (typeof window === "undefined") {
     return { success: false, error: "Updates require the desktop app." };
   }
@@ -45,13 +55,16 @@ export const applyUpdate = async (): Promise<{ success: boolean; error?: string 
     const result = await window.electronAPI?.applyUpdate?.();
     return result ?? { success: false, error: "Update bridge unavailable." };
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Failed to install update." };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to install update.",
+    };
   }
-};
+}
 
-export const subscribeToUpdateEvents = (
+export function subscribeToUpdateEvents(
   handler: (payload: UpdateEventPayload) => void,
-): (() => void) => {
+): () => void {
   if (typeof window === "undefined") {
     return () => {};
   }
@@ -67,4 +80,21 @@ export const subscribeToUpdateEvents = (
   });
 
   return unsubscribe ?? (() => {});
-};
+}
+
+// Toast dismissal tracking (localStorage-based cooldown)
+const DISMISS_KEY = "galactic-ide:update-toast-dismissed";
+const COOLDOWN_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+export function setUpdateToastDismissed(): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(DISMISS_KEY, Date.now().toString());
+}
+
+export function shouldShowUpdateToast(): boolean {
+  if (typeof window === "undefined") return false;
+  const stored = localStorage.getItem(DISMISS_KEY);
+  if (!stored) return true;
+  const lastDismissed = parseInt(stored, 10);
+  return Date.now() - lastDismissed > COOLDOWN_MS;
+}
