@@ -5,7 +5,8 @@
       "mcp__galactic__start_message_log",
       "mcp__galactic__end_message_log",
       "mcp__galactic__before_command_log",
-      "mcp__galactic__after_command_log"
+      "mcp__galactic__after_command_log",
+      "Bash(npx tsc:*)"
     ]
   }
 }
