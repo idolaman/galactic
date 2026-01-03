@@ -69,7 +69,6 @@ export default function Settings() {
   const handleEditorChange = (value: string) => {
     const nextValue: EditorName = value === "VSCode" ? "VSCode" : "Cursor";
     setPreferredEditor(nextValue);
-    toast({ title: "Default editor updated", description: `${nextValue} selected.` });
   };
 
   const handleInstallMcp = async (tool: string) => {
