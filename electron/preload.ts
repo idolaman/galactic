@@ -37,7 +37,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   toggleQuickSidebar: () => ipcRenderer.invoke("quick-sidebar/toggle"),
   hideQuickSidebar: () => ipcRenderer.invoke("quick-sidebar/hide"),
   checkForUpdates: () => ipcRenderer.invoke("update/check"),
-  applyUpdate: () => ipcRenderer.invoke("update/apply"),
+  applyUpdate: (preferredEditor?: string) => ipcRenderer.invoke("update/apply", preferredEditor),
   onUpdateEvent: (
     callback: (status: string, payload: Record<string, unknown>) => void,
   ) => {

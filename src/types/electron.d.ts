@@ -54,7 +54,7 @@ export interface ElectronAPI {
   toggleQuickSidebar: () => Promise<{ visible: boolean }>;
   hideQuickSidebar: () => Promise<{ hidden: boolean }>;
   checkForUpdates: () => Promise<{ supported: boolean; updateAvailable?: boolean; version?: string | null; message?: string; error?: string }>;
-  applyUpdate: () => Promise<{ success: boolean; error?: string }>;
+  applyUpdate: (preferredEditor?: string) => Promise<{ success: boolean; error?: string }>;
   onUpdateEvent: (
     callback: (status: string, payload: Record<string, unknown>) => void
   ) => () => void;

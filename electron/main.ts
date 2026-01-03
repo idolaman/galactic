@@ -81,6 +81,74 @@ const UPDATE_FEED_URL = (
 ).trim();
 const isUpdateEnabled = () => UPDATE_FEED_URL.length > 0;
 
+// Editor restart persistence for post-update relaunch
+const PENDING_EDITOR_RESTART_FILE = "pending-editor-restart.json";
+
+const getPendingEditorRestartPath = () =>
+  path.join(app.getPath("userData"), PENDING_EDITOR_RESTART_FILE);
+
+const savePendingEditorRestart = (editor: string): void => {
+  try {
+    const filePath = getPendingEditorRestartPath();
+    const data = JSON.stringify({ editor });
+    require("fs").writeFileSync(filePath, data, "utf-8");
+  } catch (error) {
+    console.error("Failed to save pending editor restart:", error);
+  }
+};
+
+const getPendingEditorRestart = (): string | null => {
+  try {
+    const filePath = getPendingEditorRestartPath();
+    if (!existsSync(filePath)) return null;
+    const data = require("fs").readFileSync(filePath, "utf-8");
+    const parsed = JSON.parse(data);
+    return typeof parsed.editor === "string" ? parsed.editor : null;
+  } catch (error) {
+    console.error("Failed to read pending editor restart:", error);
+    return null;
+  }
+};
+
+const clearPendingEditorRestart = (): void => {
+  try {
+    const filePath = getPendingEditorRestartPath();
+    if (existsSync(filePath)) {
+      require("fs").unlinkSync(filePath);
+    }
+  } catch (error) {
+    console.error("Failed to clear pending editor restart:", error);
+  }
+};
+
+const restartEditorAfterUpdate = async (): Promise<void> => {
+  const pendingEditor = getPendingEditorRestart();
+  if (!pendingEditor) return;
+
+  console.log(`Restarting ${pendingEditor} after update...`);
+
+  const editorAppName = pendingEditor === "VSCode" ? "Visual Studio Code" : pendingEditor;
+
+  try {
+    // Gracefully quit the editor (saves session state)
+    await execAsync(`osascript -e 'quit app "${editorAppName}"'`).catch(() => {
+      // Editor might not be running, that's fine
+    });
+
+    // Small delay to ensure quit completes
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Reopen the editor (session restore handles windows)
+    await execAsync(`open -a "${editorAppName}"`);
+
+    console.log(`${pendingEditor} restarted successfully`);
+  } catch (error) {
+    console.error(`Failed to restart ${pendingEditor}:`, error);
+  } finally {
+    clearPendingEditorRestart();
+  }
+};
+
 type UpdateEvent =
   | "available"
   | "downloaded"
@@ -378,10 +446,13 @@ ipcMain.handle("check-editor-installed", (_event, editorName: string) => {
   return existsSync(editorPath);
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // Initialize analytics and track app launch
   initAnalytics();
   analytics.appLaunched();
+
+  // Check if we need to restart an editor after update
+  await restartEditorAfterUpdate();
   setupAutoUpdater();
   if (app.isPackaged && isUpdateEnabled()) {
     performUpdateCheck().catch((error: Error) => {
@@ -1063,7 +1134,7 @@ ipcMain.handle("update/check", async () => {
   }
 });
 
-ipcMain.handle("update/apply", async () => {
+ipcMain.handle("update/apply", async (_event, preferredEditor?: string) => {
   if (!app.isPackaged) {
     return { success: false, error: "Updates are only available in packaged builds." };
   }
@@ -1078,6 +1149,12 @@ ipcMain.handle("update/apply", async () => {
     if (lastDownloadedVersion) {
       analytics.updateCompleted(lastDownloadedVersion);
     }
+
+    // Save the preferred editor for restart after update
+    if (preferredEditor) {
+      savePendingEditorRestart(preferredEditor);
+    }
+
     autoUpdater.quitAndInstall();
     return { success: true };
   } catch (error) {
