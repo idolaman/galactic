@@ -142,25 +142,23 @@ const setQuickSidebarWorkspaceBehavior = (windowRef: BrowserWindow) => {
   });
 };
 
-const reattachQuickSidebarToCurrentWorkspace = (windowRef: BrowserWindow) => {
-  if (process.platform !== "darwin") {
+const showQuickSidebar = (windowRef: BrowserWindow) => {
+  setQuickSidebarWorkspaceBehavior(windowRef);
+  windowRef.setAlwaysOnTop(true, "screen-saver");
+  windowRef.moveTop();
+
+  if (process.platform === "darwin") {
+    windowRef.setFocusable(false);
+    windowRef.showInactive();
+    windowRef.setFocusable(true);
+    setTimeout(() => {
+      if (!windowRef.isDestroyed()) {
+        windowRef.focus();
+      }
+    }, 50);
     return;
   }
 
-  // Toggling this flag on show makes macOS rebind the window to the active Space
-  // on the leftmost display instead of leaving it stuck to the last Space.
-  windowRef.setVisibleOnAllWorkspaces(false);
-  windowRef.setVisibleOnAllWorkspaces(true, {
-    visibleOnFullScreen: true,
-    skipTransformProcessType: true,
-  });
-};
-
-const showQuickSidebar = (windowRef: BrowserWindow) => {
-  setQuickSidebarWorkspaceBehavior(windowRef);
-  reattachQuickSidebarToCurrentWorkspace(windowRef);
-  windowRef.setAlwaysOnTop(true, "screen-saver");
-  windowRef.moveTop();
   windowRef.show();
   windowRef.focus();
 };
@@ -380,7 +378,7 @@ ipcMain.handle("check-editor-installed", (_event, editorName: string) => {
 
 app.whenReady().then(() => {
   // Initialize analytics and track app launch
-  initAnalytics();
+   initAnalytics();
   analytics.appLaunched();
   setupAutoUpdater();
   if (app.isPackaged && isUpdateEnabled()) {
