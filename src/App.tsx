@@ -36,18 +36,12 @@ const App = () => {
 
   const handleAuthSuccess = (userData: User) => {
     setUser(userData);
-    toast({
-      title: "Welcome back!",
-      description: "Successfully signed in with GitHub",
-    });
+
   };
 
   const handleLogout = () => {
     setUser(null);
-    toast({
-      title: "Signed out",
-      description: "You've been logged out successfully",
-    });
+
   };
 
   const toastLayers = isQuickSidebar ? null : (

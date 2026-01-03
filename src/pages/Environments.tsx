@@ -172,7 +172,7 @@ export default function Environments() {
     });
     await Promise.all(updatePromises);
 
-    toast({ title: "Settings saved", description: "Environment configuration updated." });
+
   };
 
   const handleCreateEnvironment = async () => {

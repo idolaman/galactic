@@ -29,10 +29,7 @@ export function useEditorLauncher() {
         const targetType = env ? "with-env" : "standard";
         trackQuickLauncherWorkspaceOpened(targetType, source);
       }
-      toast({
-        title: `Opening in ${preferredEditor}`,
-        description: env ? `${targetPath} (with ${env.name} environment)` : targetPath,
-      });
+
       return true;
     }
 
