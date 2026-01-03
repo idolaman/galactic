@@ -195,10 +195,7 @@ const Index = () => {
           variant: "destructive",
         });
       } else if (copyResult.copied.length > 0) {
-        toast({
-          title: "Config files copied",
-          description: `${copyResult.copied.length} file(s) synced into the new workspace.`,
-        });
+
       }
     }
 
@@ -435,10 +432,7 @@ const Index = () => {
 
     const result = await openProjectInEditor(preferredEditor, openPath);
     if (result.success) {
-      toast({
-        title: `Opening in ${preferredEditor}`,
-        description: env ? `${targetPath} (with ${env.name} environment)` : targetPath,
-      });
+
       return;
     }
 
