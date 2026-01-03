@@ -28,7 +28,6 @@ interface User {
 
 const App = () => {
   const [user, setUser] = useState<User | null>(null);
-  const { toast } = useToast();
   const isQuickSidebar = typeof window !== "undefined" && window.location.hash.includes("quick-sidebar");
 
   // Subscribe to update events and show toasts at app level
@@ -36,18 +35,10 @@ const App = () => {
 
   const handleAuthSuccess = (userData: User) => {
     setUser(userData);
-    toast({
-      title: "Welcome back!",
-      description: "Successfully signed in with GitHub",
-    });
   };
 
   const handleLogout = () => {
     setUser(null);
-    toast({
-      title: "Signed out",
-      description: "You've been logged out successfully",
-    });
   };
 
   const toastLayers = isQuickSidebar ? null : (
