@@ -17,7 +17,7 @@ import { useUpdate } from "@/hooks/use-update";
 
 export default function Settings() {
   const { toast } = useToast();
-  const { state: updateState, checkForUpdates, installUpdate } = useUpdate();
+  const { state: updateState, checkForUpdates, showInstallDialog } = useUpdate();
   const [preferredEditor, setPreferredEditor] = useState<EditorName>(() => {
     const saved = typeof window !== "undefined" ? window.localStorage.getItem("preferredEditor") : null;
     return (saved === "Cursor" || saved === "VSCode") ? saved : "Cursor";
@@ -69,7 +69,7 @@ export default function Settings() {
   const handleEditorChange = (value: string) => {
     const nextValue: EditorName = value === "VSCode" ? "VSCode" : "Cursor";
     setPreferredEditor(nextValue);
-    toast({ title: "Default editor updated", description: `${nextValue} selected.` });
+
   };
 
   const handleInstallMcp = async (tool: string) => {
@@ -375,7 +375,7 @@ export default function Settings() {
                   Checking...
                 </Button>
               ) : updateState.status === "downloaded" ? (
-                <Button variant="secondary" onClick={installUpdate} className="gap-2">
+                <Button variant="secondary" onClick={showInstallDialog} className="gap-2">
                   <ArrowDownToLine className="h-4 w-4" />
                   Install & Restart
                 </Button>
