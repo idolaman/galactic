@@ -226,10 +226,10 @@ const reattachQuickSidebarToCurrentWorkspace = (windowRef: BrowserWindow) => {
 
 const showQuickSidebar = (windowRef: BrowserWindow) => {
   setQuickSidebarWorkspaceBehavior(windowRef);
-  windowRef.setAlwaysOnTop(true, "screen-saver");
-  windowRef.show();
   reattachQuickSidebarToCurrentWorkspace(windowRef);
+  windowRef.setAlwaysOnTop(true, "screen-saver");
   windowRef.moveTop();
+  windowRef.show();
   windowRef.focus();
 };
 
