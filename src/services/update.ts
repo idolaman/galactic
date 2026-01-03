@@ -46,13 +46,13 @@ export async function checkForUpdates(): Promise<CheckUpdateResult> {
   }
 }
 
-export async function applyUpdate(): Promise<ApplyUpdateResult> {
+export async function applyUpdate(preferredEditor?: string): Promise<ApplyUpdateResult> {
   if (typeof window === "undefined") {
     return { success: false, error: "Updates require the desktop app." };
   }
 
   try {
-    const result = await window.electronAPI?.applyUpdate?.();
+    const result = await window.electronAPI?.applyUpdate?.(preferredEditor);
     return result ?? { success: false, error: "Update bridge unavailable." };
   } catch (error) {
     return {

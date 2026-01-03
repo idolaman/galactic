@@ -14,7 +14,8 @@ import Environments from "./pages/Environments";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import { useToast } from "@/hooks/use-toast";
-import { useUpdateListener } from "@/hooks/use-update";
+import { useUpdateListener, useUpdate } from "@/hooks/use-update";
+import { UpdateConfirmDialog } from "@/components/UpdateConfirmDialog";
 import { ThemeProvider } from "@/components/theme-provider";
 import { EnvironmentProvider } from "@/hooks/use-environment-manager";
 import { StarsBackground } from "@/components/StarsBackground";
@@ -33,6 +34,14 @@ const App = () => {
 
   // Subscribe to update events and show toasts at app level
   useUpdateListener();
+
+  // Dialog state for update confirmation (shared across app)
+  const {
+    state: updateState,
+    confirmDialogOpen,
+    handleDialogOpenChange,
+    handleConfirmInstall,
+  } = useUpdate();
 
   const handleAuthSuccess = (userData: User) => {
     setUser(userData);
@@ -92,6 +101,12 @@ const App = () => {
           <TooltipProvider>
             {toastLayers}
             {content}
+            <UpdateConfirmDialog
+              open={confirmDialogOpen}
+              onOpenChange={handleDialogOpenChange}
+              onConfirm={handleConfirmInstall}
+              version={updateState.version}
+            />
           </TooltipProvider>
         </EnvironmentProvider>
       </ThemeProvider>

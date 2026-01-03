@@ -7,6 +7,7 @@ import {
   shouldShowUpdateToast,
   type UpdateEventPayload,
 } from "@/services/update";
+import { getPreferredEditor } from "@/services/editor";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 
@@ -31,6 +32,29 @@ let globalState: UpdateState = { status: "idle" };
 const listeners: Array<(state: UpdateState) => void> = [];
 let isLaunchCheck = true;
 let suppressToast = false;
+
+// Dialog state (shared across all hook instances)
+let confirmDialogOpen = false;
+const dialogListeners: Array<(open: boolean) => void> = [];
+
+function notifyDialogListeners() {
+  dialogListeners.forEach((listener) => listener(confirmDialogOpen));
+}
+
+function setConfirmDialogOpen(open: boolean) {
+  confirmDialogOpen = open;
+  notifyDialogListeners();
+}
+
+function subscribeToDialog(listener: (open: boolean) => void) {
+  dialogListeners.push(listener);
+  return () => {
+    const index = dialogListeners.indexOf(listener);
+    if (index > -1) {
+      dialogListeners.splice(index, 1);
+    }
+  };
+}
 
 function notifyListeners() {
   listeners.forEach((listener) => listener(globalState));
@@ -69,7 +93,7 @@ export function useUpdateListener() {
         description: `${versionLabel} is ready. Restart to update.`,
         duration: Infinity,
         action: (
-          <ToastAction altText="Install & Restart" onClick={() => void applyUpdate()}>
+          <ToastAction altText="Install & Restart" onClick={() => setConfirmDialogOpen(true)}>
             Install & Restart
           </ToastAction>
         ),
@@ -122,9 +146,14 @@ export function useUpdateListener() {
 export function useUpdate() {
   const { toast } = useToast();
   const [, forceUpdate] = useState(0);
+  const [dialogOpen, setDialogOpen] = useState(confirmDialogOpen);
 
   useEffect(() => {
     return subscribe(() => forceUpdate((n) => n + 1));
+  }, []);
+
+  useEffect(() => {
+    return subscribeToDialog((open) => setDialogOpen(open));
   }, []);
 
   const handleCheck = useCallback(async () => {
@@ -160,7 +189,7 @@ export function useUpdate() {
   }, [toast]);
 
   const handleInstall = useCallback(async () => {
-    const result = await applyUpdate();
+    const result = await applyUpdate(getPreferredEditor());
     if (!result.success) {
       toast({
         title: "Update failed",
@@ -170,9 +199,27 @@ export function useUpdate() {
     }
   }, [toast]);
 
+  const showInstallDialog = useCallback(() => {
+    setConfirmDialogOpen(true);
+  }, []);
+
+  const handleDialogOpenChange = useCallback((open: boolean) => {
+    setConfirmDialogOpen(open);
+  }, []);
+
+  const handleConfirmInstall = useCallback(async () => {
+    setConfirmDialogOpen(false);
+    await handleInstall();
+  }, [handleInstall]);
+
   return {
     state: globalState,
     checkForUpdates: handleCheck,
     installUpdate: handleInstall,
+    // Dialog-related
+    confirmDialogOpen: dialogOpen,
+    showInstallDialog,
+    handleDialogOpenChange,
+    handleConfirmInstall,
   };
 }
