@@ -373,6 +373,11 @@ export default function Settings() {
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   Checking...
                 </Button>
+              ) : updateState.status === "available" ? (
+                <Button variant="outline" disabled>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Downloading...
+                </Button>
               ) : updateState.status === "downloaded" ? (
                 <Button variant="secondary" onClick={installUpdate} className="gap-2">
                   <ArrowDownToLine className="h-4 w-4" />
