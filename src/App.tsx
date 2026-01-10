@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -32,9 +32,25 @@ const App = () => {
   const [user, setUser] = useState<User | null>(null);
   const isQuickSidebar = typeof window !== "undefined" && window.location.hash.includes("quick-sidebar");
   const { status: timebombStatus, isLoading: isTimebombLoading, isBlocked } = useTimebomb();
+  const { toast } = useToast();
 
   // Subscribe to update events and show toasts at app level
   useUpdateListener();
+
+  // Show timebomb message toast after user enters the app
+  useEffect(() => {
+    if (!user || !timebombStatus?.message) return;
+
+    const timeout = setTimeout(() => {
+      toast({
+        title: "Notice",
+        description: timebombStatus.message,
+        duration: Infinity,
+      });
+    }, 1000);
+
+    return () => clearTimeout(timeout);
+  }, [user, timebombStatus?.message, toast]);
 
   const handleAuthSuccess = (userData: User) => {
     setUser(userData);
