@@ -22,11 +22,31 @@ export const useSessionStore = create<SessionState>((set, get) => {
     let pollTimer: ReturnType<typeof setInterval> | null = null;
     let mcpSession: { sessionId: string; protocolVersion: string } | null = null;
 
-    // Track dismissed sessions in-memory only; allow re-appearance when the status changes.
+    // Track dismissed sessions in-memory; hydrate from main so new windows inherit dismissals.
     const dismissedSessions = new Map<string, string>();
+    let dismissedHydrated = false;
+    let dismissedHydrationPromise: Promise<void> | null = null;
+    let cacheHydrated = false;
+    let cacheHydrationPromise: Promise<void> | null = null;
     // Maintain stable ordering across status updates.
     const ordering = new Map<string, number>();
     let orderCounter = 0;
+    const initialDismissed = typeof window !== 'undefined'
+        ? window.electronAPI?.initialDismissedSessions
+        : null;
+
+    if (Array.isArray(initialDismissed)) {
+        for (const entry of initialDismissed) {
+            if (!Array.isArray(entry) || entry.length < 2) {
+                continue;
+            }
+            const [key, signature] = entry;
+            if (typeof key === 'string' && typeof signature === 'string') {
+                dismissedSessions.set(key, signature);
+            }
+        }
+        dismissedHydrated = true;
+    }
 
     const getTimestamp = (session: SessionSummary) => {
         const ts = new Date(session.ended_at || session.started_at || 0).getTime();
@@ -75,11 +95,113 @@ export const useSessionStore = create<SessionState>((set, get) => {
         return [...withoutChat, ...latestByChat.values()];
     };
 
+    const buildOrderedSessions = (list: SessionSummary[]) => {
+        const deduped = dedupeByChatId(list);
+        const filtered = deduped.filter((s) => !isDismissed(s));
+
+        return filtered
+            .map((session) => {
+                const key = getKey(session);
+                const existingOrder = ordering.get(key);
+                if (existingOrder === undefined) {
+                    orderCounter += 1;
+                    ordering.set(key, orderCounter);
+                }
+                return { session, order: ordering.get(key)! };
+            })
+            .sort((a, b) => a.order - b.order)
+            .map((entry) => entry.session);
+    };
+
+    const initialCache = typeof window !== 'undefined'
+        ? window.electronAPI?.initialSessionCache
+        : null;
+    const initialSessions = Array.isArray(initialCache) && initialCache.length > 0
+        ? buildOrderedSessions(initialCache as SessionSummary[])
+        : [];
+
+    if (initialSessions.length > 0) {
+        cacheHydrated = true;
+    }
+
+    const hydrateDismissedSessions = async () => {
+        if (dismissedHydrated) {
+            return;
+        }
+        if (dismissedHydrationPromise) {
+            return dismissedHydrationPromise;
+        }
+
+        dismissedHydrationPromise = (async () => {
+            if (typeof window === 'undefined' || !window.electronAPI?.getDismissedSessions) {
+                dismissedHydrated = true;
+                return;
+            }
+
+            try {
+                const entries = await window.electronAPI.getDismissedSessions();
+                if (Array.isArray(entries)) {
+                    for (const entry of entries) {
+                        if (!Array.isArray(entry) || entry.length < 2) {
+                            continue;
+                        }
+                        const [key, signature] = entry;
+                        if (typeof key === 'string' && typeof signature === 'string') {
+                            dismissedSessions.set(key, signature);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn('Failed to hydrate dismissed sessions', err);
+            } finally {
+                dismissedHydrated = true;
+                dismissedHydrationPromise = null;
+            }
+        })();
+
+        return dismissedHydrationPromise;
+    };
+
+    const hydrateCachedSessions = async () => {
+        if (cacheHydrated) {
+            return;
+        }
+        if (cacheHydrationPromise) {
+            return cacheHydrationPromise;
+        }
+
+        cacheHydrationPromise = (async () => {
+            if (typeof window === 'undefined' || !window.electronAPI?.getCachedSessions) {
+                cacheHydrated = true;
+                return;
+            }
+
+            try {
+                await hydrateDismissedSessions();
+                const cached = await window.electronAPI.getCachedSessions();
+                if (Array.isArray(cached) && cached.length > 0) {
+                    const ordered = buildOrderedSessions(cached as SessionSummary[]);
+                    if (ordered.length > 0) {
+                        set({ sessions: ordered });
+                    }
+                }
+            } catch (err) {
+                console.warn('Failed to hydrate cached sessions', err);
+            } finally {
+                cacheHydrated = true;
+                cacheHydrationPromise = null;
+            }
+        })();
+
+        return cacheHydrationPromise;
+    };
+
     const fetchSessions = async () => {
         const { serverUrl, token } = get();
         if (!serverUrl || !token) return;
 
         try {
+            await hydrateDismissedSessions();
             // Initialize if needed
             if (!mcpSession) {
                 mcpSession = await initialize({ baseUrl: serverUrl, token });
@@ -93,23 +215,12 @@ export const useSessionStore = create<SessionState>((set, get) => {
             });
 
             // Keep only the latest session per chat_id, then filter out dismissed ones and maintain stable order.
-            const deduped = dedupeByChatId(sessions);
-            const filtered = deduped.filter((s) => !isDismissed(s));
-
-            const ordered = filtered
-                .map((session) => {
-                    const key = getKey(session);
-                    const existingOrder = ordering.get(key);
-                    if (existingOrder === undefined) {
-                        orderCounter += 1;
-                        ordering.set(key, orderCounter);
-                    }
-                    return { session, order: ordering.get(key)! };
-                })
-                .sort((a, b) => a.order - b.order)
-                .map((entry) => entry.session);
+            const ordered = buildOrderedSessions(sessions);
 
             set({ sessions: ordered, loading: false, error: null, lastPoll: Date.now() });
+            if (typeof window !== 'undefined') {
+                void window.electronAPI?.setCachedSessions?.(ordered);
+            }
 
         } catch (err) {
             console.error('Session polling failed', err);
@@ -119,7 +230,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
     };
 
     return {
-        sessions: [],
+        sessions: initialSessions,
         loading: false,
         error: null,
         serverUrl: 'http://localhost:17890',
@@ -140,6 +251,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
             if (get().polling) return;
             set({ polling: true, loading: true });
 
+            void hydrateCachedSessions();
             // Immediate fetch
             void fetchSessions();
 
