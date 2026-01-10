@@ -59,6 +59,11 @@ export interface ElectronAPI {
     callback: (status: string, payload: Record<string, unknown>) => void
   ) => () => void;
   // Session sync between windows
+  initialSessionCache?: unknown[];
+  initialDismissedSessions?: Array<[string, string]>;
+  getCachedSessions: () => Promise<unknown[]>;
+  getDismissedSessions: () => Promise<Array<[string, string]>>;
+  setCachedSessions: (sessions: unknown[]) => Promise<{ success: boolean }>;
   broadcastSessionDismiss: (sessionId: string, signature: string) => Promise<{ success: boolean }>;
   onSessionDismissed: (callback: (sessionId: string, signature: string) => void) => () => void;
   // Analytics

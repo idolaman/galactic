@@ -68,6 +68,8 @@ const VITE_DEV_SERVER_URL =
 
 let mainWindow: BrowserWindow | null = null;
 let quickSidebarWindow: BrowserWindow | null = null;
+const dismissedSessions = new Map<string, string>();
+let cachedSessions: unknown[] = [];
 const QUICK_SIDEBAR_HOTKEY = "Command+Shift+G";
 const QUICK_SIDEBAR_WIDTH = 420;
 const QUICK_SIDEBAR_MARGIN = 16;
@@ -105,23 +107,20 @@ const loadAppUrl = async (windowRef: BrowserWindow, hash: string) => {
   await windowRef.loadFile(path.join(__dirname, "../dist/index.html"), { hash });
 };
 
-const getLeftmostDisplay = () => {
-  const displays = screen.getAllDisplays();
-  return displays.reduce(
-    (leftmost, current) => (current.bounds.x < leftmost.bounds.x ? current : leftmost),
-    displays[0],
-  );
+const getActiveDisplay = () => {
+  const cursorPoint = screen.getCursorScreenPoint();
+  return screen.getDisplayNearestPoint(cursorPoint) ?? screen.getPrimaryDisplay();
 };
 
-const getQuickSidebarHeight = () => {
-  const { height } = getLeftmostDisplay().workArea;
+const getQuickSidebarHeight = (display = getActiveDisplay()) => {
+  const { height } = display.workArea;
   return Math.max(360, height - QUICK_SIDEBAR_MARGIN * 2);
 };
 
 const positionQuickSidebar = (windowRef: BrowserWindow) => {
-  const leftmostDisplay = getLeftmostDisplay();
-  const { x, y } = leftmostDisplay.workArea;
-  const height = getQuickSidebarHeight();
+  const activeDisplay = getActiveDisplay();
+  const { x, y } = activeDisplay.workArea;
+  const height = getQuickSidebarHeight(activeDisplay);
 
   windowRef.setBounds({
     x: Math.round(x + QUICK_SIDEBAR_MARGIN),
@@ -142,24 +141,63 @@ const setQuickSidebarWorkspaceBehavior = (windowRef: BrowserWindow) => {
   });
 };
 
+const withSuppressedWindowFocus = (targetWindow: BrowserWindow, action: () => void) => {
+  if (process.platform !== "darwin") {
+    action();
+    return;
+  }
+
+  const focusableWindows = BrowserWindow.getAllWindows().filter((windowRef) => {
+    if (windowRef.id === targetWindow.id || windowRef.isDestroyed()) {
+      return false;
+    }
+    return windowRef.isVisible() && windowRef.isFocusable();
+  });
+
+  focusableWindows.forEach((windowRef) => windowRef.setFocusable(false));
+  action();
+  setTimeout(() => {
+    focusableWindows.forEach((windowRef) => {
+      if (!windowRef.isDestroyed()) {
+        windowRef.setFocusable(true);
+      }
+    });
+  }, 80);
+};
+
+const destroyQuickSidebarWindow = () => {
+  if (quickSidebarWindow && !quickSidebarWindow.isDestroyed()) {
+    quickSidebarWindow.destroy();
+  }
+  quickSidebarWindow = null;
+};
+
 const showQuickSidebar = (windowRef: BrowserWindow) => {
   setQuickSidebarWorkspaceBehavior(windowRef);
   windowRef.setAlwaysOnTop(true, "screen-saver");
-  windowRef.moveTop();
 
   if (process.platform === "darwin") {
-    windowRef.setFocusable(false);
-    windowRef.showInactive();
-    windowRef.setFocusable(true);
-    setTimeout(() => {
-      if (!windowRef.isDestroyed()) {
-        windowRef.focus();
+    // Cherry Studio pattern: show inactive to avoid space switching.
+    withSuppressedWindowFocus(windowRef, () => {
+      if (windowRef.isDestroyed()) {
+        return;
       }
-    }, 50);
+      windowRef.setFocusable(false);
+      windowRef.showInactive();
+      windowRef.setFocusable(true);
+      windowRef.moveTop();
+      setTimeout(() => {
+        if (!windowRef.isDestroyed()) {
+          windowRef.focus();
+          windowRef.webContents.focus();
+        }
+      }, 20);
+    });
     return;
   }
 
   windowRef.show();
+  windowRef.moveTop();
   windowRef.focus();
 };
 
@@ -176,14 +214,20 @@ const createQuickSidebarWindow = async () => {
     fullscreenable: false,
     show: false,
     frame: false,
-    transparent: true,
+    transparent: false,
     hasShadow: true,
     skipTaskbar: true,
     alwaysOnTop: true,
     type: "panel",
-    backgroundColor: "#00000000",
+    backgroundColor: "#050510",
     titleBarStyle: "hidden",
     autoHideMenuBar: true,
+    ...(process.platform === "darwin"
+      ? {
+          hiddenInMissionControl: true,
+          acceptFirstMouse: true,
+        }
+      : {}),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       nodeIntegration: false,
@@ -193,6 +237,20 @@ const createQuickSidebarWindow = async () => {
 
   setQuickSidebarWorkspaceBehavior(quickSidebarWindow);
 
+  quickSidebarWindow.on("blur", () => {
+    if (process.platform !== "darwin" && quickSidebarWindow?.isVisible()) {
+      destroyQuickSidebarWindow();
+    }
+    if (process.platform === "darwin" && quickSidebarWindow?.isVisible()) {
+      setTimeout(() => {
+        if (quickSidebarWindow?.isVisible() && !quickSidebarWindow.isDestroyed()) {
+          quickSidebarWindow.focus();
+          quickSidebarWindow.webContents.focus();
+        }
+      }, 40);
+    }
+  });
+
   quickSidebarWindow.on("closed", () => {
     quickSidebarWindow = null;
   });
@@ -201,16 +259,18 @@ const createQuickSidebarWindow = async () => {
 };
 
 const toggleQuickSidebar = async (source: "shortcut" | "renderer" | "internal" = "internal") => {
-  if (!quickSidebarWindow) {
-    await createQuickSidebarWindow();
-  }
-  if (!quickSidebarWindow) {
+  if (quickSidebarWindow?.isVisible()) {
+    destroyQuickSidebarWindow();
+    analytics.quickLauncherToggled(false, source);
     return;
   }
 
-  if (quickSidebarWindow.isVisible()) {
-    quickSidebarWindow.hide();
-    analytics.quickLauncherToggled(false, source);
+  if (quickSidebarWindow) {
+    destroyQuickSidebarWindow();
+  }
+
+  await createQuickSidebarWindow();
+  if (!quickSidebarWindow) {
     return;
   }
 
@@ -343,13 +403,16 @@ ipcMain.handle("quick-sidebar/hide", () => {
   if (quickSidebarWindow?.isVisible()) {
     analytics.quickLauncherToggled(false, "renderer");
   }
-  quickSidebarWindow?.hide();
+  if (quickSidebarWindow) {
+    destroyQuickSidebarWindow();
+  }
   return { hidden: true };
 });
 
 // Session sync between windows - broadcast dismissal to all windows except sender
 ipcMain.handle("session/broadcast-dismiss", (event, sessionId: string, signature: string) => {
   const senderWebContentsId = event.sender.id;
+  dismissedSessions.set(sessionId, signature);
 
   // Broadcast to main window if it exists and isn't the sender
   if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents.id !== senderWebContentsId) {
@@ -362,6 +425,27 @@ ipcMain.handle("session/broadcast-dismiss", (event, sessionId: string, signature
   }
 
   return { success: true };
+});
+
+ipcMain.handle("session/set-cache", (_event, sessions: unknown) => {
+  cachedSessions = Array.isArray(sessions) ? sessions : [];
+  return { success: true };
+});
+
+ipcMain.handle("session/get-cache", () => {
+  return cachedSessions;
+});
+
+ipcMain.on("session/get-cache-sync", (event) => {
+  event.returnValue = cachedSessions;
+});
+
+ipcMain.handle("session/get-dismissed", () => {
+  return Array.from(dismissedSessions.entries());
+});
+
+ipcMain.on("session/get-dismissed-sync", (event) => {
+  event.returnValue = Array.from(dismissedSessions.entries());
 });
 
 ipcMain.handle("check-editor-installed", (_event, editorName: string) => {
