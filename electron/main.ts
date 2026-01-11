@@ -241,14 +241,6 @@ const createQuickSidebarWindow = async () => {
     if (process.platform !== "darwin" && quickSidebarWindow?.isVisible()) {
       destroyQuickSidebarWindow();
     }
-    if (process.platform === "darwin" && quickSidebarWindow?.isVisible()) {
-      setTimeout(() => {
-        if (quickSidebarWindow?.isVisible() && !quickSidebarWindow.isDestroyed()) {
-          quickSidebarWindow.focus();
-          quickSidebarWindow.webContents.focus();
-        }
-      }, 40);
-    }
   });
 
   quickSidebarWindow.on("closed", () => {
@@ -260,6 +252,13 @@ const createQuickSidebarWindow = async () => {
 
 const toggleQuickSidebar = async (source: "shortcut" | "renderer" | "internal" = "internal") => {
   if (quickSidebarWindow?.isVisible()) {
+    // If visible but not focused, refocus instead of closing
+    if (!quickSidebarWindow.isFocused()) {
+      quickSidebarWindow.focus();
+      quickSidebarWindow.webContents.focus();
+      return;
+    }
+    // If focused, close it
     destroyQuickSidebarWindow();
     analytics.quickLauncherToggled(false, source);
     return;

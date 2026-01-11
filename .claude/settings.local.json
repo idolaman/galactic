@@ -9,7 +9,10 @@
       "Bash(npx tsc:*)",
       "WebFetch(domain:gist.github.com)",
       "Bash(grep:*)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:syobochim.medium.com)"
     ]
   }
 }
