@@ -223,8 +223,8 @@ export function QuickSidebar() {
     });
   }, [projects, searchLower]);
 
-  const handleLaunch = (path: string) => {
-    launchWorkspace(path);
+  const handleLaunch = async (path: string) => {
+    await launchWorkspace(path);
     window.electronAPI?.hideQuickSidebar?.();
   };
 
