@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, GitBranch, GitMerge, FolderOpen, AlertTriangle, Trash2, FileCode, X, Loader2, RefreshCw, HardDrive, Info } from "lucide-react";
+import { ArrowLeft, GitBranch, GitMerge, FolderOpen, AlertTriangle, Trash2, FileCode, X, Loader2, RefreshCw, HardDrive, Info, Plus, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Command,
@@ -178,14 +178,13 @@ export const ProjectDetail = ({
                     <div className="space-y-1">
                       <p className="font-medium text-foreground">What is a Workspace?</p>
                       <p>
-                        A Workspace is an isolated copy of your project (powered by <strong className="font-semibold text-primary/80">Git Worktrees</strong>).
+                        A Workspace is an isolated copy of your branch (powered by <strong className="font-semibold text-primary/80">Git Worktrees</strong>).
                         It lets you verify, debug, and work on multiple branches simultaneously without switching context.
                       </p>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <p className="text-sm font-medium">Select a branch to check out</p>
                     <Command className="rounded-lg border border-border bg-background">
                       <CommandInput
                         ref={branchInputRef}
@@ -213,12 +212,20 @@ export const ProjectDetail = ({
                                   key={branchName}
                                   value={branchName}
                                   onSelect={() => handleCreateWorkspace(branchName)}
-                                  className="flex items-center justify-between cursor-pointer"
+                                  className="flex items-center gap-3 cursor-pointer py-2.5 px-2 group"
                                 >
-                                  <Badge variant="secondary" className="font-mono">
-                                    {branchName}
-                                  </Badge>
-                                  <span className="text-[11px] text-muted-foreground">Create workspace</span>
+                                  <div className="flex h-6 w-6 items-center justify-center rounded-md border border-muted bg-background group-data-[selected=true]:border-primary/30 group-data-[selected=true]:bg-primary/10 transition-colors shrink-0">
+                                    <GitBranch className="h-3.5 w-3.5 text-muted-foreground group-data-[selected=true]:text-primary transition-colors" />
+                                  </div>
+                                  <div className="flex-1 min-w-0 grid">
+                                    <p className="font-mono text-sm truncate group-data-[selected=true]:text-accent-foreground" title={branchName}>
+                                      {branchName}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 pr-1 opacity-0 group-data-[selected=true]:opacity-100 transition-all duration-200">
+                                    <span className="text-[10px] font-medium text-primary uppercase tracking-wider">Create</span>
+                                    <Plus className="h-3.5 w-3.5 text-primary" />
+                                  </div>
                                 </CommandItem>
                               ))}
                             </CommandGroup>
@@ -303,7 +310,11 @@ export const ProjectDetail = ({
                 <div className="flex items-start justify-between">
                   <div className="space-y-1 min-w-0 max-w-[85%]">
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 font-mono text-sm py-1 px-2.5 rounded-md">
+                      <Badge
+                        variant="outline"
+                        className="bg-primary/10 text-primary border-primary/20 font-mono text-sm py-1 px-2.5 rounded-md max-w-full truncate"
+                        title={branch.name}
+                      >
                         {branch.name}
                       </Badge>
                     </div>
@@ -380,7 +391,7 @@ export const ProjectDetail = ({
                 <div className="space-y-1">
                   <p className="font-medium text-foreground">Sync your .env files</p>
                   <p className="text-xs">
-                    Files selected here will be automatically copied into every new workspace.
+                    Files selected here will be automatically copied from <code className="font-mono bg-muted/50 px-1 rounded">{project.path}</code> into every new workspace.
                   </p>
                 </div>
               </div>

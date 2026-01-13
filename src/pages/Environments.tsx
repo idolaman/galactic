@@ -205,10 +205,6 @@ export default function Environments() {
         return;
       }
 
-      toast({
-        title: "Environment created",
-        description: `${trimmed} (${result.address}) is ready.`,
-      });
       setNewEnvName("");
       setIsCreateDialogOpen(false);
       if (result.id) {
@@ -259,7 +255,6 @@ export default function Environments() {
       return;
     }
 
-    toast({ title: "Environment renamed", description: `Renamed to ${trimmed}.` });
     setIsRenameDialogOpen(false);
   };
 
@@ -276,26 +271,17 @@ export default function Environments() {
         });
         return;
       }
-      toast({
-        title: "Environment deleted",
-        description: `${environmentToDelete.name} has been removed.`,
-      });
     } finally {
       setEnvironmentToDelete(null);
     }
   };
 
-  const handleUnassign = async (targetPath: string, targetLabel: string) => {
+  const handleUnassign = async (targetPath: string) => {
     unassignTarget(targetPath);
 
     // Clear configuration and request relaunch
     await writeCodeWorkspace(targetPath, null);
     markWorkspaceRequiresRelaunch(targetPath);
-
-    toast({
-      title: "Binding removed",
-      description: `${targetLabel} detached from environment.`,
-    });
   };
 
   return (
@@ -542,12 +528,7 @@ export default function Environments() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  onClick={() =>
-                                    handleUnassign(
-                                      binding.targetPath,
-                                      binding.targetLabel
-                                    )
-                                  }
+                                  onClick={() => handleUnassign(binding.targetPath)}
                                   className="absolute right-2 top-2 h-6 w-6 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
                                   <X className="h-3 w-3" />

@@ -78,8 +78,6 @@ export default function Settings() {
     try {
       const result = await window.electronAPI.installMcp(tool);
       if (result.success) {
-        toast({ title: "Installation Successful", description: `Galactic MCP installed for ${tool}.` });
-
         // Mark all workspaces for relaunch
         const projects = projectStorage.load();
         const allPaths: string[] = [];
@@ -201,7 +199,12 @@ export default function Settings() {
 
       <Card className="border-border bg-card" id="mcp-installation">
         <CardHeader className="pb-4">
-          <CardTitle>Install Galactic MCP</CardTitle>
+          <CardTitle className="flex items-center gap-3">
+            Install Galactic MCP
+            <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-normal bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border-amber-500/20">
+              Experimental
+            </Badge>
+          </CardTitle>
           <CardDescription>Connect your favorite tools to Galactic to monitor AI agent statuses.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
