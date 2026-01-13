@@ -38,10 +38,6 @@ const Index = () => {
     const projectPath = await chooseProjectDirectory();
 
     if (!projectPath) {
-      toast({
-        title: "No project selected",
-        description: "Choose a folder to import a project.",
-      });
       return;
     }
 
@@ -98,10 +94,6 @@ const Index = () => {
     clearWorkspaceRelaunchFlag(normalizedPath);
 
     setSelectedProject(newProject);
-    toast({
-      title: "Project added",
-      description: `${projectName} is ready to manage.`,
-    });
   };
 
   const handleViewProject = (project: Project) => {
@@ -155,21 +147,12 @@ const Index = () => {
       clearWorkspaceRelaunchFlag(ws.workspace);
     });
 
-    toast({
-      title: "Project removed",
-      description: `${projectToDelete.name} deleted from your project list.`,
-    });
   };
 
   const handleCreateWorkspace = async (branch: string) => {
     if (!selectedProject) {
       return;
     }
-
-    toast({
-      title: "Creating workspace",
-      description: `Setting up workspace for ${branch}`,
-    });
 
     const configFiles = selectedProject.configFiles ?? [];
     const result = await createWorktree(selectedProject.path, branch);
@@ -232,11 +215,6 @@ const Index = () => {
       return next;
     });
 
-    toast({
-      title: "Workspace created",
-      description: `Git worktree ready at ${result.path}`,
-    });
-
     return true;
   };
 
@@ -280,11 +258,6 @@ const Index = () => {
 
       return next;
     });
-
-    toast({
-      title: "Workspace removed",
-      description: `Removed ${branchName} worktree`,
-    });
   };
 
   const handleEnvironmentChange = async (environmentId: string | null, binding: EnvironmentBinding) => {
@@ -299,10 +272,6 @@ const Index = () => {
       // a relaunch to apply the "no environment" state.
       await writeCodeWorkspace(binding.targetPath, null);
       markWorkspaceRequiresRelaunch(binding.targetPath);
-      toast({
-        title: "Environment detached",
-        description: `${binding.targetLabel} is no longer isolated.`,
-      });
       return;
     }
 
@@ -329,15 +298,6 @@ const Index = () => {
     if (!workspaceResult.success) {
       console.warn("Failed to update .code-workspace file:", workspaceResult.error);
     }
-
-    toast({
-      title: "Environment attached",
-      description:
-        `${binding.targetLabel} now uses ${selectedEnv?.name ?? "environment"}.` +
-        (result.reassigned && previousProjectEnvironment
-          ? ` Moved from ${previousProjectEnvironment.name} to keep one workspace per project.`
-          : ""),
-    });
   };
 
   const getEnvironmentIdForTarget = (targetPath: string) => {
