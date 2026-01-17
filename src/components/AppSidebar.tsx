@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { FolderGit2, Settings2, Settings as SettingsIcon, Rocket, ChevronRight, HardDrive, GitBranch, Check, X, ExternalLink } from "lucide-react";
+import { ArrowUpRight, FolderGit2, Settings2, Settings as SettingsIcon, Rocket, ChevronRight, HardDrive, GitBranch, Check, X, ExternalLink } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -8,6 +9,7 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarMenuSub,
@@ -158,6 +160,7 @@ function SidebarWorkspaceItem({ path, name, icon: Icon, variant = "default", ses
 
 export function AppSidebar() {
   const { open } = useSidebar();
+  const navigate = useNavigate();
   const projects = useProjects();
   const { sessions, startPolling, stopPolling } = useSessionStore();
   const [showMcpBanner, setShowMcpBanner] = useState(true);
@@ -241,13 +244,30 @@ export function AppSidebar() {
                 {projects.map((project) => (
                   <Collapsible key={project.id} defaultOpen={true} className="group/collapsible" asChild>
                     <SidebarMenuItem>
-                      <CollapsibleTrigger asChild>
-                        <SidebarMenuButton tooltip={project.name}>
-                          <FolderGit2 className="text-muted-foreground" />
-                          <span>{project.name}</span>
-                          <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
-                        </SidebarMenuButton>
-                      </CollapsibleTrigger>
+                      <div className="group/project-item relative">
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton tooltip={project.name}>
+                            <FolderGit2 className="text-muted-foreground" />
+                            <span>{project.name}</span>
+                            <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        <SidebarMenuAction
+                          className="pointer-events-none opacity-0 transition-opacity group-hover/project-item:pointer-events-auto group-hover/project-item:opacity-100 group-focus-within/project-item:pointer-events-auto group-focus-within/project-item:opacity-100"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            navigate({
+                              pathname: "/",
+                              search: `?project=${encodeURIComponent(project.id)}`,
+                            });
+                          }}
+                          aria-label={`Jump to ${project.name}`}
+                          title={`Jump to ${project.name}`}
+                        >
+                          <ArrowUpRight className="h-4 w-4" />
+                        </SidebarMenuAction>
+                      </div>
                       <CollapsibleContent>
                         <SidebarMenuSub>
                           {/* Repository Root */}
