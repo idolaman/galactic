@@ -12,7 +12,9 @@
       "mcp__ide__getDiagnostics",
       "WebSearch",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:syobochim.medium.com)"
+      "WebFetch(domain:syobochim.medium.com)",
+      "Bash(find:*)",
+      "Bash(curl:*)"
     ]
   }
 }

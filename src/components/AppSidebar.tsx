@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { FolderGit2, Settings2, Settings as SettingsIcon, Rocket, ChevronRight, HardDrive, GitBranch, RefreshCw, Check, X, ExternalLink } from "lucide-react";
+import { FolderGit2, Settings2, Settings as SettingsIcon, Rocket, ChevronRight, HardDrive, GitBranch, Check, X, ExternalLink } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -20,20 +20,9 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { useProjects } from "@/hooks/use-projects";
 import { useEditorLauncher } from "@/hooks/use-editor-launcher";
-import { workspaceNeedsRelaunch, clearWorkspaceRelaunchFlag } from "@/services/workspace-state";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useSessionStore } from "@/stores/session-store";
@@ -139,22 +128,6 @@ interface SidebarWorkspaceItemProps {
 
 function SidebarWorkspaceItem({ path, name, icon: Icon, variant = "default", sessions = [] }: SidebarWorkspaceItemProps) {
   const { launchWorkspace } = useEditorLauncher();
-  const [showDialog, setShowDialog] = useState(false);
-  const needsRelaunch = workspaceNeedsRelaunch(path);
-
-  const handleLaunch = () => {
-    launchWorkspace(path);
-    clearWorkspaceRelaunchFlag(path);
-    setShowDialog(false);
-  };
-
-  const onClick = () => {
-    if (needsRelaunch) {
-      setShowDialog(true);
-    } else {
-      handleLaunch();
-    }
-  };
 
   return (
     <>
@@ -163,59 +136,21 @@ function SidebarWorkspaceItem({ path, name, icon: Icon, variant = "default", ses
           <div>
             <Icon className={cn("h-4 w-4", variant === "root" ? "text-primary/70" : "text-muted-foreground")} />
             <span className="truncate flex-1">{name}</span>
-            {needsRelaunch ? (
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-6 w-6 shrink-0 hover:bg-background/50 hover:text-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
-                onClick={onClick}
-              >
-                <RefreshCw className="h-3.5 w-3.5 text-orange-500 animate-pulse" />
-              </Button>
-            ) : (
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-6 w-6 shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-background/50 hover:text-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
-                onClick={handleLaunch}
-              >
-                <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
-              </Button>
-            )}
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-6 w-6 shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-background/50 hover:text-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
+              onClick={() => launchWorkspace(path)}
+            >
+              <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+            </Button>
           </div>
         </SidebarMenuSubButton>
       </SidebarMenuSubItem>
 
-      {/* Render sessions for this workspace */}
       {sessions.map(s => (
         <SidebarSessionItem key={s.id} session={s} />
       ))}
-
-      <AlertDialog open={showDialog} onOpenChange={setShowDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Relaunch Required</AlertDialogTitle>
-            <AlertDialogDescription>
-              To apply environment changes, you must manually close the existing editor window for this workspace.
-              <br />
-              <br />
-              Once closed, click <strong>Launch</strong> to re-open it with the new settings.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <Button
-              variant="secondary"
-              onClick={() => launchWorkspace(path)}
-            >
-              Focus Window
-            </Button>
-            <AlertDialogAction onClick={handleLaunch}>
-              Launch
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }

@@ -11,7 +11,7 @@ import { copyProjectFilesToWorktree, searchProjectFiles } from "@/services/files
 import { useEnvironmentManager } from "@/hooks/use-environment-manager";
 import type { EnvironmentBinding } from "@/types/environment";
 import { writeCodeWorkspace, getCodeWorkspacePath, deleteCodeWorkspace } from "@/services/workspace";
-import { markWorkspaceRequiresRelaunch, clearWorkspaceRelaunchFlag } from "@/services/workspace-state";
+import { clearWorkspaceRelaunchFlag, ensureLaunchedEnvironment } from "@/services/workspace-state";
 import { trackConfigFileAdded } from "@/services/analytics";
 
 type Project = StoredProject;
@@ -261,17 +261,16 @@ const Index = () => {
   };
 
   const handleEnvironmentChange = async (environmentId: string | null, binding: EnvironmentBinding) => {
-    const previousProjectEnvironment = environments.find((env) =>
-      env.bindings.some((entry) => entry.projectId === binding.projectId),
-    );
+    const currentEnvironmentId = environmentForTarget(binding.targetPath)?.id ?? null;
+    if (currentEnvironmentId === environmentId) {
+      return;
+    }
+
+    ensureLaunchedEnvironment(binding.targetPath, currentEnvironmentId);
 
     if (!environmentId) {
       unassignTarget(binding.targetPath);
-      // Overwrite .code-workspace without env vars. Because the underlying
-      // editor window still has the previous env configuration, we still need
-      // a relaunch to apply the "no environment" state.
       await writeCodeWorkspace(binding.targetPath, null);
-      markWorkspaceRequiresRelaunch(binding.targetPath);
       return;
     }
 
@@ -285,15 +284,11 @@ const Index = () => {
       return;
     }
 
-    // Overwrite .code-workspace file with environment config
     const selectedEnv = environments.find((env) => env.id === environmentId);
     const workspaceResult = await writeCodeWorkspace(binding.targetPath, {
       address: selectedEnv?.address,
       envVars: selectedEnv?.envVars,
     });
-
-    // Environment attachment or change requires a relaunch to apply in the editor.
-    markWorkspaceRequiresRelaunch(binding.targetPath);
 
     if (!workspaceResult.success) {
       console.warn("Failed to update .code-workspace file:", workspaceResult.error);
