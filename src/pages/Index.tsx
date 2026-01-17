@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ProjectList } from "@/components/ProjectList";
 import { ProjectDetail } from "@/components/ProjectDetail";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +20,8 @@ type Project = StoredProject;
 const Index = () => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const { toast } = useToast();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const [projects, setProjects] = useState<Project[]>(() => projectStorage.load());
   const [projectBranches, setProjectBranches] = useState<string[]>([]);
@@ -96,7 +99,7 @@ const Index = () => {
     setSelectedProject(newProject);
   };
 
-  const handleViewProject = (project: Project) => {
+  const handleViewProject = useCallback((project: Project) => {
     const workspaces = projectWorkspaces[project.id] ?? project.workspaces ?? [];
     setProjectWorkspaces((prev) => {
       if (prev[project.id]) {
@@ -111,7 +114,30 @@ const Index = () => {
 
     setSelectedProject({ ...project, workspaces });
     setProjectBranches([]);
-  };
+  }, [projectWorkspaces]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const projectId = params.get("project");
+    if (!projectId) {
+      return;
+    }
+
+    const targetProject = projects.find((project) => project.id === projectId);
+    if (targetProject) {
+      handleViewProject(targetProject);
+    }
+
+    params.delete("project");
+    const nextSearch = params.toString();
+    navigate(
+      {
+        pathname: "/",
+        search: nextSearch ? `?${nextSearch}` : "",
+      },
+      { replace: true },
+    );
+  }, [handleViewProject, location.search, navigate, projects]);
 
   const handleDeleteProject = (projectId: string) => {
     const projectToDelete = projects.find((project) => project.id === projectId);
