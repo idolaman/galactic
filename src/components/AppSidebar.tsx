@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { FolderGit2, Settings2, Settings as SettingsIcon, Rocket, ChevronRight, HardDrive, GitBranch, Check, X, ExternalLink } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -23,10 +23,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { useProjects } from "@/hooks/use-projects";
 import { useEditorLauncher } from "@/hooks/use-editor-launcher";
-import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useSessionStore } from "@/stores/session-store";
 import { QuickLauncherHint } from "@/components/QuickLauncherHint";
+import { WorkspaceRelaunchIndicator } from "@/components/WorkspaceRelaunchIndicator";
 
 const navItems = [
   { title: "Projects", url: "/", icon: FolderGit2 },
@@ -136,6 +136,7 @@ function SidebarWorkspaceItem({ path, name, icon: Icon, variant = "default", ses
           <div>
             <Icon className={cn("h-4 w-4", variant === "root" ? "text-primary/70" : "text-muted-foreground")} />
             <span className="truncate flex-1">{name}</span>
+            <WorkspaceRelaunchIndicator path={path} className="shrink-0" />
             <Button
               size="icon"
               variant="ghost"
