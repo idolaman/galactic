@@ -1,4 +1,5 @@
 import { Keyboard } from "lucide-react";
+import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 
 interface QuickLauncherHintProps {
@@ -6,14 +7,9 @@ interface QuickLauncherHintProps {
 }
 
 export function QuickLauncherHint({ className }: QuickLauncherHintProps) {
-  const handleOpen = () => {
-    window.electronAPI?.toggleQuickSidebar?.();
-  };
-
   return (
-    <button
-      type="button"
-      onClick={handleOpen}
+    <NavLink
+      to="/settings#global-hotkey"
       className={cn(
         "flex w-full items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-left text-white shadow-sm transition hover:border-white/20 hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-0",
         className
@@ -29,8 +25,8 @@ export function QuickLauncherHint({ className }: QuickLauncherHintProps) {
             ⌘⇧G
           </span>
         </div>
-        <span className="text-[10px] leading-tight text-white/65">Opens this panel anytime</span>
+        <span className="text-[10px] leading-tight text-white/65">Configure in Settings</span>
       </div>
-    </button>
+    </NavLink>
   );
 }

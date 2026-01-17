@@ -12,10 +12,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { workspaceNeedsRelaunch, clearWorkspaceRelaunchFlag } from "@/services/workspace-state";
+import { setLaunchedEnvironment } from "@/services/workspace-state";
+import { useWorkspaceNeedsRelaunch } from "@/hooks/use-workspace-relaunch";
 
 export interface LaunchButtonProps {
   path: string;
+  environmentId: string | null;
   onLaunch: (path: string) => void;
   children: React.ReactNode;
   className?: string;
@@ -24,17 +26,18 @@ export interface LaunchButtonProps {
 
 export const LaunchButton = ({
   path,
+  environmentId,
   onLaunch,
   children,
   className,
   variant = "default",
 }: LaunchButtonProps) => {
   const [showDialog, setShowDialog] = useState(false);
-  const needsRelaunch = workspaceNeedsRelaunch(path);
+  const needsRelaunch = useWorkspaceNeedsRelaunch(path, environmentId);
 
   const handleLaunch = () => {
     onLaunch(path);
-    clearWorkspaceRelaunchFlag(path);
+    setLaunchedEnvironment(path, environmentId);
     setShowDialog(false);
   };
 

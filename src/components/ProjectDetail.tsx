@@ -32,7 +32,6 @@ import { useEffect, useRef, useState } from "react";
 import type { Workspace } from "@/types/workspace";
 import type { Environment, EnvironmentBinding } from "@/types/environment";
 import { EnvironmentSelector } from "@/components/EnvironmentSelector";
-import { workspaceNeedsRelaunch, clearWorkspaceRelaunchFlag } from "@/services/workspace-state";
 
 interface ProjectDetailProps {
   project: {
@@ -291,6 +290,7 @@ export const ProjectDetail = ({
 
                 <LaunchButton
                   path={project.path}
+                  environmentId={getEnvironmentIdForTarget(project.path)}
                   onLaunch={onOpenInEditor}
                   className="h-9 px-4 text-sm font-medium bg-primary hover:bg-primary/90 shadow-sm shrink-0"
                 >
@@ -362,6 +362,7 @@ export const ProjectDetail = ({
 
                   <LaunchButton
                     path={branch.workspace}
+                    environmentId={getEnvironmentIdForTarget(branch.workspace)}
                     onLaunch={onOpenInEditor}
                     className="h-9 px-4 text-sm font-medium bg-primary hover:bg-primary/90 shadow-sm shrink-0"
                   >

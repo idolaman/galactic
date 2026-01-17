@@ -148,16 +148,7 @@ export const EnvironmentProvider = ({ children }: { children: ReactNode }) => {
   const assignTarget = (environmentId: string, binding: EnvironmentBinding) => {
     const owning = findEnvironmentOwningTarget(environments, binding.targetPath);
     const selectedEnvironment = environments.find((env) => env.id === environmentId);
-    const previousProjectBinding = environments
-      .map((env) => ({
-        env,
-        binding: env.bindings.find((entry) => entry.projectId === binding.projectId),
-      }))
-      .find((entry) => entry.binding !== undefined) ?? null;
-    const reassigned =
-      (owning && owning.environment.id !== environmentId) ||
-      (previousProjectBinding && previousProjectBinding.env.id !== environmentId) ||
-      (previousProjectBinding && previousProjectBinding.binding?.targetPath !== binding.targetPath);
+    const reassigned = owning !== null && owning.environment.id !== environmentId;
     let error: string | undefined;
 
     setEnvironments((prev) => {
@@ -168,10 +159,7 @@ export const EnvironmentProvider = ({ children }: { children: ReactNode }) => {
       }
 
       const next = prev.map((env) => {
-        // Remove any existing attachment for this target and for this project across all environments.
-        const filtered = env.bindings.filter(
-          (entry) => entry.targetPath !== binding.targetPath && entry.projectId !== binding.projectId,
-        );
+        const filtered = env.bindings.filter((entry) => entry.targetPath !== binding.targetPath);
         if (env.id === environmentId) {
           return { ...env, bindings: [...filtered, binding] };
         }
