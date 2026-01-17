@@ -39,6 +39,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   restartMcpServer: () => ipcRenderer.invoke("mcp/restart-server"),
   toggleQuickSidebar: () => ipcRenderer.invoke("quick-sidebar/toggle"),
   hideQuickSidebar: () => ipcRenderer.invoke("quick-sidebar/hide"),
+  getQuickSidebarHotkeyEnabled: () => ipcRenderer.invoke("settings/get-quick-sidebar-hotkey"),
+  setQuickSidebarHotkeyEnabled: (enabled: boolean) =>
+    ipcRenderer.invoke("settings/set-quick-sidebar-hotkey", enabled),
   checkForUpdates: () => ipcRenderer.invoke("update/check"),
   applyUpdate: () => ipcRenderer.invoke("update/apply"),
   onUpdateEvent: (
