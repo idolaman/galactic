@@ -53,6 +53,8 @@ export interface ElectronAPI {
   restartMcpServer: () => Promise<{ success: boolean }>;
   toggleQuickSidebar: () => Promise<{ visible: boolean }>;
   hideQuickSidebar: () => Promise<{ hidden: boolean }>;
+  getQuickSidebarHotkeyEnabled: () => Promise<boolean>;
+  setQuickSidebarHotkeyEnabled: (enabled: boolean) => Promise<{ success: boolean; enabled: boolean; error?: string }>;
   checkForUpdates: () => Promise<{ supported: boolean; updateAvailable?: boolean; version?: string | null; message?: string; error?: string }>;
   applyUpdate: () => Promise<{ success: boolean; error?: string }>;
   onUpdateEvent: (

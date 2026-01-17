@@ -83,6 +83,47 @@ const UPDATE_FEED_URL = (
 ).trim();
 const isUpdateEnabled = () => UPDATE_FEED_URL.length > 0;
 
+interface AppSettings {
+  quickSidebarHotkeyEnabled: boolean;
+}
+
+const APP_SETTINGS_FILE = "settings.json";
+const DEFAULT_APP_SETTINGS: AppSettings = {
+  quickSidebarHotkeyEnabled: false,
+};
+let appSettings: AppSettings = { ...DEFAULT_APP_SETTINGS };
+
+const getAppSettingsPath = () => path.join(app.getPath("userData"), APP_SETTINGS_FILE);
+
+const loadAppSettings = async (): Promise<AppSettings> => {
+  const settingsPath = getAppSettingsPath();
+  if (!existsSync(settingsPath)) {
+    return { ...DEFAULT_APP_SETTINGS };
+  }
+
+  try {
+    const raw = await fsPromises.readFile(settingsPath, "utf-8");
+    const parsed = JSON.parse(raw) as Partial<AppSettings>;
+    return {
+      ...DEFAULT_APP_SETTINGS,
+      quickSidebarHotkeyEnabled: Boolean(parsed.quickSidebarHotkeyEnabled),
+    };
+  } catch (error) {
+    console.warn("Failed to read app settings:", error);
+    return { ...DEFAULT_APP_SETTINGS };
+  }
+};
+
+const saveAppSettings = async (settings: AppSettings) => {
+  try {
+    const settingsPath = getAppSettingsPath();
+    await fsPromises.mkdir(path.dirname(settingsPath), { recursive: true });
+    await fsPromises.writeFile(settingsPath, JSON.stringify(settings, null, 2), "utf-8");
+  } catch (error) {
+    console.warn("Failed to save app settings:", error);
+  }
+};
+
 type UpdateEvent =
   | "available"
   | "downloaded"
@@ -278,6 +319,32 @@ const toggleQuickSidebar = async (source: "shortcut" | "renderer" | "internal" =
   analytics.quickLauncherToggled(true, source);
 };
 
+const applyQuickSidebarHotkeySetting = (enabled: boolean) => {
+  if (enabled) {
+    if (globalShortcut.isRegistered(QUICK_SIDEBAR_HOTKEY)) {
+      return true;
+    }
+
+    const registered = globalShortcut.register(QUICK_SIDEBAR_HOTKEY, () => {
+      void toggleQuickSidebar("shortcut").catch((error) => {
+        console.error("Quick sidebar toggle failed:", error);
+      });
+    });
+
+    if (!registered) {
+      console.warn(`Failed to register hotkey ${QUICK_SIDEBAR_HOTKEY}`);
+    }
+
+    return registered;
+  }
+
+  if (globalShortcut.isRegistered(QUICK_SIDEBAR_HOTKEY)) {
+    globalShortcut.unregister(QUICK_SIDEBAR_HOTKEY);
+  }
+
+  return true;
+};
+
 const setupAutoUpdater = () => {
   if (!app.isPackaged || !isUpdateEnabled()) {
     return;
@@ -408,6 +475,25 @@ ipcMain.handle("quick-sidebar/hide", () => {
   return { hidden: true };
 });
 
+ipcMain.handle("settings/get-quick-sidebar-hotkey", () => {
+  return appSettings.quickSidebarHotkeyEnabled;
+});
+
+ipcMain.handle("settings/set-quick-sidebar-hotkey", async (_event, enabled: boolean) => {
+  const nextValue = Boolean(enabled);
+  const applied = applyQuickSidebarHotkeySetting(nextValue);
+  const resolvedValue = nextValue && applied;
+
+  appSettings = { ...appSettings, quickSidebarHotkeyEnabled: resolvedValue };
+  await saveAppSettings(appSettings);
+
+  if (!applied && nextValue) {
+    return { success: false, enabled: false, error: `Failed to register hotkey ${QUICK_SIDEBAR_HOTKEY}` };
+  }
+
+  return { success: true, enabled: resolvedValue };
+});
+
 // Session sync between windows - broadcast dismissal to all windows except sender
 ipcMain.handle("session/broadcast-dismiss", (event, sessionId: string, signature: string) => {
   const senderWebContentsId = event.sender.id;
@@ -459,7 +545,7 @@ ipcMain.handle("check-editor-installed", (_event, editorName: string) => {
   return existsSync(editorPath);
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // Initialize analytics and track app launch
    initAnalytics();
   analytics.appLaunched();
@@ -474,14 +560,11 @@ app.whenReady().then(() => {
   // Start the MCP server
   startMcpServer({ port: MCP_SERVER_PORT, tokenless: true });
 
-  const registered = globalShortcut.register(QUICK_SIDEBAR_HOTKEY, () => {
-    void toggleQuickSidebar("shortcut").catch((error) => {
-      console.error("Quick sidebar toggle failed:", error);
-    });
-  });
-
-  if (!registered) {
-    console.warn(`Failed to register hotkey ${QUICK_SIDEBAR_HOTKEY}`);
+  appSettings = await loadAppSettings();
+  const hotkeyApplied = applyQuickSidebarHotkeySetting(appSettings.quickSidebarHotkeyEnabled);
+  if (!hotkeyApplied && appSettings.quickSidebarHotkeyEnabled) {
+    appSettings = { ...appSettings, quickSidebarHotkeyEnabled: false };
+    await saveAppSettings(appSettings);
   }
 
   createWindow().catch((error) => {
