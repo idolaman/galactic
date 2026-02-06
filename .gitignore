@@ -32,3 +32,4 @@ bun.lockb
 resources/mcp-server/*.cjs
 
 .env
+.claude/settings.local.json
