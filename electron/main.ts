@@ -77,10 +77,7 @@ let lastDownloadedVersion: string | null = null;
 const UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 let updateCheckTimer: NodeJS.Timeout | null = null;
 let updateCheckInFlight: Promise<UpdateCheckResult | null> | null = null;
-const UPDATE_FEED_URL = (
-  process.env.GALACTIC_UPDATE_URL ??
-  "***REDACTED***"
-).trim();
+const UPDATE_FEED_URL = (process.env.GALACTIC_UPDATE_URL ?? "").trim();
 const isUpdateEnabled = () => UPDATE_FEED_URL.length > 0;
 
 interface AppSettings {
