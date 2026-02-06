@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,15 +8,12 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { GitHubAuth } from "@/components/GitHubAuth";
 import { Header } from "@/components/Header";
-import { ExpiredApp } from "@/components/ExpiredApp";
 import Index from "./pages/Index";
 import { QuickSidebar } from "@/pages/QuickSidebar";
 import Environments from "./pages/Environments";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
-import { useToast } from "@/hooks/use-toast";
 import { useUpdateListener } from "@/hooks/use-update";
-import { useTimebomb } from "@/hooks/use-timebomb";
 import { ThemeProvider } from "@/components/theme-provider";
 import { EnvironmentProvider } from "@/hooks/use-environment-manager";
 import { StarsBackground } from "@/components/StarsBackground";
@@ -31,26 +28,8 @@ interface User {
 const App = () => {
   const [user, setUser] = useState<User | null>(null);
   const isQuickSidebar = typeof window !== "undefined" && window.location.hash.includes("quick-sidebar");
-  const { status: timebombStatus, isLoading: isTimebombLoading, isBlocked } = useTimebomb();
-  const { toast } = useToast();
-
   // Subscribe to update events and show toasts at app level
   useUpdateListener();
-
-  // Show timebomb message toast after user enters the app
-  useEffect(() => {
-    if (!user || !timebombStatus?.message) return;
-
-    const timeout = setTimeout(() => {
-      toast({
-        title: "Notice",
-        description: timebombStatus.message,
-        duration: Infinity,
-      });
-    }, 1000);
-
-    return () => clearTimeout(timeout);
-  }, [user, timebombStatus?.message, toast]);
 
   const handleAuthSuccess = (userData: User) => {
     setUser(userData);
@@ -66,22 +45,6 @@ const App = () => {
       <Sonner />
     </>
   );
-
-  if (isTimebombLoading) {
-    return null;
-  }
-
-  if (isBlocked && timebombStatus) {
-    return (
-      <ThemeProvider attribute="class" defaultTheme="dark" storageKey="galactic-ide-theme">
-        <StarsBackground />
-        <ExpiredApp
-          isKilled={timebombStatus.isKilled}
-          expirationDate={timebombStatus.expirationDate}
-        />
-      </ThemeProvider>
-    );
-  }
 
   const content = isQuickSidebar ? (
     <HashRouter>
