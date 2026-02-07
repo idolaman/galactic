@@ -2,8 +2,7 @@ import TelemetryDeck from "@telemetrydeck/sdk";
 import crypto from "node:crypto";
 import os from "node:os";
 import { app } from "electron";
-
-const TELEMETRYDECK_APP_ID = process.env.TELEMETRYDECK_APP_ID ?? "";
+import { getTelemetryDeckAppId } from "./release-config.js";
 
 let telemetryClient: TelemetryDeck | null = null;
 
@@ -44,14 +43,15 @@ export const isAnalyticsEvent = (value: string): value is AnalyticsEvent =>
 
 export const initAnalytics = (): void => {
   if (telemetryClient) return;
-  if (!TELEMETRYDECK_APP_ID) {
+  const telemetryDeckAppId = getTelemetryDeckAppId();
+  if (!telemetryDeckAppId) {
     console.log("[Analytics] Disabled - no app ID configured");
     return;
   }
 
   try {
     telemetryClient = new TelemetryDeck({
-      appID: TELEMETRYDECK_APP_ID,
+      appID: telemetryDeckAppId,
       clientUser: getUserId(),
       subtleCrypto: crypto.webcrypto.subtle as never,
     });

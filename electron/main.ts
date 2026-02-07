@@ -22,6 +22,7 @@ import { execFile, exec, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import type { ExecFileException } from "node:child_process";
 import { initAnalytics, analytics, isAnalyticsEvent, trackEvent } from "./analytics.js";
+import { getGalacticUpdateUrl } from "./release-config.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const execFileAsync = promisify(execFile);
@@ -77,8 +78,7 @@ let lastDownloadedVersion: string | null = null;
 const UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 let updateCheckTimer: NodeJS.Timeout | null = null;
 let updateCheckInFlight: Promise<UpdateCheckResult | null> | null = null;
-const UPDATE_FEED_URL = (process.env.GALACTIC_UPDATE_URL ?? "").trim();
-const isUpdateEnabled = () => UPDATE_FEED_URL.length > 0;
+const isUpdateEnabled = () => getGalacticUpdateUrl().length > 0;
 
 interface AppSettings {
   quickSidebarHotkeyEnabled: boolean;
@@ -343,14 +343,15 @@ const applyQuickSidebarHotkeySetting = (enabled: boolean) => {
 };
 
 const setupAutoUpdater = () => {
-  if (!app.isPackaged || !isUpdateEnabled()) {
+  const updateFeedUrl = getGalacticUpdateUrl();
+  if (!app.isPackaged || !updateFeedUrl) {
     return;
   }
 
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.disableDifferentialDownload = true;
-  autoUpdater.setFeedURL(UPDATE_FEED_URL);
+  autoUpdater.setFeedURL(updateFeedUrl);
 
   autoUpdater.on("update-available", (info: UpdateInfo) => {
     broadcastUpdateEvent("available", { version: info.version });
