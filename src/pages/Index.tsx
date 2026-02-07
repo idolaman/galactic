@@ -203,7 +203,6 @@ const Index = () => {
           description: errorMessage,
           variant: "destructive",
         });
-      } else if (copyResult.copied.length > 0) {
       }
     }
 

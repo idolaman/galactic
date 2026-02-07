@@ -164,19 +164,20 @@ export async function readClientSessions(params: {
         // Coerce and map to SessionSummary shape
         const sessions: SessionSummary[] = [];
         for (const item of arr) {
+            const rec = item as Record<string, unknown>;
             const s = SessionSummarySchema.safeParse({
-                id: String((item as any)?.id ?? ''),
-                title: String((item as any)?.title ?? 'Untitled task'),
-                started_at: (item as any)?.started_at ? String((item as any)?.started_at) : (undefined as string | undefined),
-                ended_at: (item as any)?.ended_at ? String((item as any)?.ended_at) : (undefined as string | undefined),
-                platform: (item as any)?.platform ? String((item as any)?.platform) : (undefined as string | undefined),
-                project: (item as any)?.project ? String((item as any)?.project) : (undefined as string | undefined),
-                git_branch: (item as any)?.git_branch ? String((item as any)?.git_branch) : (undefined as string | undefined),
-                approval_pending_since: (item as any)?.approval_pending_since ? String((item as any)?.approval_pending_since) : (undefined as string | undefined),
-                workspace_path: (item as any)?.workspace_path ? String((item as any)?.workspace_path) : (undefined as string | undefined),
-                chat_id: (item as any)?.chat_id ? String((item as any)?.chat_id) : (undefined as string | undefined),
-                estimated_duration: (item as any)?.estimated_duration ? Number((item as any)?.estimated_duration) : (undefined as number | undefined),
-                status: (item as any)?.ended_at ? 'done' : 'in_progress',
+                id: String(rec.id ?? ''),
+                title: String(rec.title ?? 'Untitled task'),
+                started_at: rec.started_at ? String(rec.started_at) : undefined,
+                ended_at: rec.ended_at ? String(rec.ended_at) : undefined,
+                platform: rec.platform ? String(rec.platform) : undefined,
+                project: rec.project ? String(rec.project) : undefined,
+                git_branch: rec.git_branch ? String(rec.git_branch) : undefined,
+                approval_pending_since: rec.approval_pending_since ? String(rec.approval_pending_since) : undefined,
+                workspace_path: rec.workspace_path ? String(rec.workspace_path) : undefined,
+                chat_id: rec.chat_id ? String(rec.chat_id) : undefined,
+                estimated_duration: rec.estimated_duration ? Number(rec.estimated_duration) : undefined,
+                status: rec.ended_at ? 'done' : 'in_progress',
             });
             if (s.success) sessions.push(s.data);
         }
