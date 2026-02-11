@@ -84,7 +84,7 @@ Grab the latest signed `.dmg` from [galactic-dev.com](https://galactic-dev.com).
 
 ```sh
 # Clone the repo
-git clone https://github.com/nicholasgalante1997/galactic-ide.git
+git clone https://github.com/idolaman/galactic-ide.git
 cd galactic-ide
 
 # Install dependencies

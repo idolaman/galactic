@@ -1,0 +1,45 @@
+name: Feature Request
+description: Suggest a new feature or improvement for Galactic IDE
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! Please describe the problem you're trying to solve and your proposed solution.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Description
+      description: A clear description of the problem or limitation you're experiencing.
+      placeholder: "I'm always frustrated when..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: A clear description of what you'd like to happen.
+      placeholder: Describe your ideal solution...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Any alternative solutions or workarounds you've considered.
+      placeholder: Describe alternatives...
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other context, mockups, or screenshots about the feature request.
+      placeholder: Add any other context here...
+    validations:
+      required: false

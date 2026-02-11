@@ -696,15 +696,15 @@ ipcMain.handle("git/create-worktree", async (_event, projectPath: string, branch
   const targetPath = path.join(worktreeRoot, sanitizedBranch);
 
   try {
-    const env =
-      process.platform === "darwin"
-        ? {
-            ...process.env,
-            PATH: [process.env.PATH ?? "", "/opt/homebrew/bin", "/usr/local/bin"]
-              .filter(Boolean)
-              .join(path.delimiter),
-          }
-        : process.env;
+    const env: NodeJS.ProcessEnv = {
+      ...process.env,
+      GIT_LFS_SKIP_SMUDGE: "1",
+      ...(process.platform === "darwin" && {
+        PATH: [process.env.PATH ?? "", "/opt/homebrew/bin", "/usr/local/bin"]
+          .filter(Boolean)
+          .join(path.delimiter),
+      }),
+    };
 
     await execFileAsync("git", ["worktree", "add", targetPath, branch], { cwd: projectPath, env });
     analytics.workspaceCreated(branch);

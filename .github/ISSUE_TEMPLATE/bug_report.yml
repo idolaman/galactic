@@ -1,0 +1,101 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in Galactic IDE
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the sections below so we can reproduce and fix the issue.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of the bug.
+      placeholder: Describe the bug...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Step-by-step instructions to reproduce the behavior.
+      placeholder: |
+        1. Open Galactic IDE
+        2. Go to '...'
+        3. Click on '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen instead.
+      placeholder: Describe the expected behavior...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: Which OS are you running Galactic IDE on?
+      options:
+        - macOS
+        - Windows
+        - Linux
+    validations:
+      required: true
+
+  - type: input
+    id: os-version
+    attributes:
+      label: OS Version
+      description: Your operating system version (e.g., macOS 15.3, Windows 11 23H2, Ubuntu 24.04).
+      placeholder: e.g., macOS 15.3
+    validations:
+      required: false
+
+  - type: input
+    id: app-version
+    attributes:
+      label: Galactic IDE Version
+      description: The version of Galactic IDE you are using (check Help > About or the title bar).
+      placeholder: e.g., 1.0.0
+    validations:
+      required: false
+
+  - type: dropdown
+    id: editor
+    attributes:
+      label: Editor / IDE
+      description: Which editor are you using Galactic IDE with?
+      options:
+        - VS Code
+        - Cursor
+        - Standalone
+        - Other
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots or screen recordings to help explain the problem.
+      placeholder: Drag and drop images here...
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other context about the problem (logs, error messages, related issues).
+      placeholder: Add any other context here...
+    validations:
+      required: false
