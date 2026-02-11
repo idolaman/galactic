@@ -1,96 +1,190 @@
-# Galactic — macOS Desktop App
+<p align="center">
+  <img src="src/assets/logo.svg" alt="Galactic" width="80" />
+</p>
 
-Galactic is a Vite + React application bundled as a native macOS desktop experience using Electron. The project ships with a streamlined development workflow, sensible production builds, and packaging via `electron-builder`.
+<h1 align="center">Galactic</h1>
 
----
+<p align="center">
+  <strong>The command center for developers who juggle multiple projects, branches, and environments.</strong>
+</p>
 
-## Prerequisites
+<p align="center">
+  <a href="https://galactic-dev.com">Website</a> &middot;
+  <a href="https://galactic-dev.com">Download</a> &middot;
+  <a href="#features">Features</a> &middot;
+  <a href="#quick-start">Quick Start</a> &middot;
+  <a href="CONTRIBUTING.md">Contributing</a>
+</p>
 
-- **macOS** Sonoma (or newer recommended)
-- **Node.js** ≥ 18 and npm ≥ 9  
-  Install via [nvm](https://github.com/nvm-sh/nvm#installing-and-updating) if you don't already have a compatible runtime.
-- **Xcode Command Line Tools**
-  ```sh
-  xcode-select --install
-  ```
-
----
-
-## Project Structure
-
-```
-galactic-ide/
-├─ electron/          # Main & preload processes (TypeScript)
-├─ src/               # React renderer (Vite)
-├─ dist/              # Renderer production build (generated)
-├─ dist-electron/     # Compiled Electron main/preload JS (generated)
-├─ release/           # Packaged macOS builds (generated)
-├─ electron-builder.yml
-└─ package.json
-```
+<p align="center">
+  <img alt="License" src="https://img.shields.io/badge/license-AGPL--3.0-blue.svg" />
+  <img alt="Platform" src="https://img.shields.io/badge/platform-macOS-lightgrey.svg" />
+  <img alt="Electron" src="https://img.shields.io/badge/electron-32-47848F.svg?logo=electron&logoColor=white" />
+  <img alt="React" src="https://img.shields.io/badge/react-18-61DAFB.svg?logo=react&logoColor=white" />
+  <img alt="TypeScript" src="https://img.shields.io/badge/typescript-5.8-3178C6.svg?logo=typescript&logoColor=white" />
+</p>
 
 ---
 
-## Installation
+## Why Galactic?
 
-Clone the repository and install dependencies once:
+Modern development means working across multiple repositories, branches, microservices, and AI coding agents, often at the same time. Context-switching between them is slow, error-prone, and eats into flow state.
+
+**Galactic** gives you a single native desktop app to manage it all:
+
+- **Launch any project** in Cursor or VS Code with one click
+- **Create isolated Git worktrees** so you can work on multiple branches simultaneously without stashing
+- **Run parallel environments** on the same ports using network isolation, no Docker or VMs needed
+- **Monitor your AI agents** (Cursor, Claude, Codex) in real time through MCP integration
+- **Jump to anything instantly** with a global hotkey launcher
+
+---
+
+## Features
+
+### Project Dashboard
+
+Add Git repos and folders, browse them visually, and open any project in your preferred editor. Galactic remembers your projects across sessions and keeps them organized.
+
+### Git Worktrees
+
+Create fully isolated worktrees for any branch with a single click. Each worktree gets its own `.code-workspace` file and can optionally inherit config files from the main repo. Work on a hotfix while your feature branch stays untouched.
+
+### Network Isolation Environments
+
+The standout feature. Galactic assigns unique loopback addresses (`127.0.0.2`, `127.0.0.3`, ...) to each environment, letting you run **multiple instances of the same stack on the same ports** without conflicts. Bind a project or worktree to an environment and its workspace file is automatically injected with the right environment variables. No containers, no port juggling.
+
+### AI Agent Monitoring (MCP)
+
+Galactic runs an [MCP](https://modelcontextprotocol.io/) server that connects to your AI-powered editors. See active agent sessions from Cursor, VS Code, Claude, and Codex in one place. Get notified when a session finishes, takes too long, or needs your attention. Install the MCP bridge to each tool with one click from Settings.
+
+### Quick Launcher
+
+Press **Cmd+Shift+G** anywhere on your Mac to summon a floating sidebar with all your projects, workspaces, and active agent sessions. Jump into any workspace instantly without switching to Galactic first.
+
+### Dual Editor Support
+
+First-class support for both **Cursor** and **VS Code**. Choose your preferred editor globally, and Galactic handles workspace file generation, environment binding, and smart launch logic for either one.
+
+### Workspace Environment Binding
+
+Attach environments to projects and worktrees. Galactic writes `.code-workspace` files with your environment variables baked in, and detects when variables change so you know to relaunch.
+
+---
+
+## Quick Start
+
+### Download
+
+Grab the latest signed `.dmg` from [galactic-dev.com](https://galactic-dev.com).
+
+### Build from Source
+
+**Prerequisites:** macOS Sonoma or newer, Node.js >= 18, Xcode Command Line Tools
 
 ```sh
-git clone <REPO_URL> galactic-ide
+# Clone the repo
+git clone https://github.com/nicholasgalante1997/galactic-ide.git
 cd galactic-ide
+
+# Install dependencies
 npm install
-```
 
----
-
-## Development Workflow
-
-Electron development runs three processes in parallel: the Vite dev server, the Electron main process compiler watcher, and Electron itself. Start everything with:
-
-```sh
+# Start in development mode
 npm run dev
 ```
 
-What happens behind the scenes:
+This launches Vite (renderer), the Electron main process compiler, and Electron itself concurrently. Hot reload is enabled for the renderer; Electron restarts automatically when main-process files change.
 
-1. `npm run build:main` performs an initial TypeScript compilation of `electron/main.ts` and `electron/preload.ts` into `dist-electron/`.
-2. `npm run dev:vite` launches Vite on `http://127.0.0.1:8080`.
-3. `npm run watch:electron` keeps the main/preload bundle in sync with your changes.
-4. `npm run start:electron` waits for Vite to become available, then opens the Electron shell pointed at the dev server.
+### Production Build
 
-Hot reload is handled by Vite on the renderer side. When you edit Electron files, the watcher recompiles and Electron restarts automatically.
+```sh
+npm run build
+```
 
----
-
-## Useful Scripts
-
-| Command                 | Description |
-| ----------------------- | ----------- |
-| `npm run dev`           | Launch Electron + Vite in development mode |
-| `npm run build:ui`      | Produce only the Vite production build |
-| `npm run build:main`    | Compile Electron main & preload TypeScript once |
-| `npm run lint`          | Run ESLint across the project |
+Outputs a signed `.dmg` and `.zip` to the `release/` directory (arm64 + x64).
 
 ---
 
-## Troubleshooting
+## Architecture
 
-- **Electron window stays blank in dev**
-  Ensure nothing else is running on port 8080, then retry `npm run dev`. If it persists, clear out `dist/` and `dist-electron/`.
+```
+galactic-ide/
+├── electron/            # Main process, preload, MCP server
+│   ├── main.ts          # Electron entry point & IPC handlers
+│   ├── preload.ts       # Secure bridge to renderer
+│   └── mcp-server.ts    # Model Context Protocol server
+├── src/                 # React renderer (Vite)
+│   ├── pages/           # Top-level routes
+│   ├── components/      # React components + shadcn/ui
+│   ├── services/        # Business logic & IPC bridges
+│   ├── hooks/           # Custom React hooks
+│   ├── stores/          # Zustand state
+│   └── types/           # TypeScript definitions
+├── electron-builder.yml # Build & packaging config
+└── package.json
+```
 
-- **TypeScript can't find `electronAPI`**
-  Make sure your editor has picked up `src/types/electron.d.ts`. If not, restart TypeScript language services.
+### Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Desktop Shell | Electron 32 |
+| Frontend | React 18, TypeScript 5.8, Vite 5 |
+| UI Components | shadcn/ui + Radix UI |
+| Styling | Tailwind CSS 3 |
+| State | Zustand, TanStack React Query |
+| Validation | Zod |
+| Icons | Lucide React |
+| Auto-Updates | electron-updater |
 
 ---
 
-## Downloads
+## Scripts
 
-Official signed releases are available from the [Galactic website](https://galactic.dev).
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Launch Electron + Vite in development mode |
+| `npm run build` | Production macOS build (dmg + zip) |
+| `npm run build:ui` | Vite production build only |
+| `npm run build:main` | Compile Electron TypeScript |
+| `npm run lint` | Run ESLint |
 
 ---
 
 ## Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR.
 
-Happy building!
+```sh
+# Fork & clone, then:
+npm install
+npm run dev
+npm run lint   # Must pass before submitting
+```
+
+See [CLAUDE.md](CLAUDE.md) for detailed coding conventions (file size limits, styling rules, import patterns, naming, etc.).
+
+---
+
+## Roadmap
+
+- [ ] Windows and Linux support
+- [ ] Plugin system for custom integrations
+- [ ] Project templates and scaffolding
+- [ ] Team workspace sharing
+- [ ] Built-in terminal with environment awareness
+
+Have an idea? [Open an issue](../../issues) to start a discussion.
+
+---
+
+## License
+
+Galactic is open-source software licensed under the [GNU Affero General Public License v3.0](LICENSE).
+
+---
+
+<p align="center">
+  Built by <a href="https://galactic-dev.com">Galactic Dev</a>
+</p>

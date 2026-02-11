@@ -27,16 +27,6 @@ npm run lint
 
 Please ensure your code passes linting before submitting a PR.
 
-## Code Style
-
-Please refer to `CLAUDE.md` for detailed coding conventions, including:
-
-- File structure and size limits (~140 lines max)
-- Styling rules (Tailwind, shadcn)
-- TypeScript conventions
-- Import ordering
-- Naming conventions
-
 ## Pull Request Process
 
 1. Create a feature branch from `main`
