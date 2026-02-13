@@ -734,7 +734,17 @@ ipcMain.handle("git/remove-worktree", async (_event, projectPath: string, worktr
   const resolvedWorktreePath = resolveWorktreePath(projectPath, worktreePath);
 
   try {
-    await execFileAsync("git", ["worktree", "remove", resolvedWorktreePath], { cwd: projectPath });
+    const env: NodeJS.ProcessEnv = {
+      ...process.env,
+      GIT_LFS_SKIP_SMUDGE: "1",
+      ...(process.platform === "darwin" && {
+        PATH: [process.env.PATH ?? "", "/opt/homebrew/bin", "/usr/local/bin"]
+          .filter(Boolean)
+          .join(path.delimiter),
+      }),
+    };
+
+    await execFileAsync("git", ["worktree", "remove", resolvedWorktreePath], { cwd: projectPath, env });
     analytics.workspaceDeleted(path.basename(resolvedWorktreePath));
     return { success: true };
   } catch (error) {
