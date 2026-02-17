@@ -1,5 +1,11 @@
 import type { Workspace } from "@/types/workspace";
 import { trackProjectAdded, trackProjectRemoved } from "@/services/analytics";
+import {
+  dedupeSyncTargets,
+  sanitizeSyncTarget,
+  toFileSyncTargets,
+} from "@/services/sync-targets";
+import type { SyncTarget } from "@/types/sync-target";
 
 export interface StoredProject {
   id: string;
@@ -8,6 +14,8 @@ export interface StoredProject {
   isGitRepo: boolean;
   worktrees: number;
   workspaces?: Workspace[];
+  syncTargets?: SyncTarget[];
+  // Legacy persisted field kept for compatibility with older app versions.
   configFiles?: string[];
 }
 
@@ -31,17 +39,56 @@ const safeParse = (raw: string | null): StoredProject[] => {
   }
 };
 
+const toValidSyncTargets = (project: StoredProject): SyncTarget[] => {
+  if (Array.isArray(project.syncTargets)) {
+    const cleanedTargets = project.syncTargets
+      .map((target) => sanitizeSyncTarget(target))
+      .filter((target): target is SyncTarget => Boolean(target));
+    return dedupeSyncTargets(cleanedTargets);
+  }
+
+  return dedupeSyncTargets(toFileSyncTargets(project.configFiles));
+};
+
+const normalizeProject = (project: StoredProject): StoredProject | null => {
+  if (!project || typeof project !== "object") {
+    return null;
+  }
+  if (typeof project.id !== "string" || typeof project.name !== "string" || typeof project.path !== "string") {
+    return null;
+  }
+
+  const worktreesValue = Number.isFinite(project.worktrees) ? Number(project.worktrees) : 0;
+  const normalized: StoredProject = {
+    id: project.id,
+    name: project.name,
+    path: project.path,
+    isGitRepo: Boolean(project.isGitRepo),
+    worktrees: Math.max(0, worktreesValue),
+    workspaces: project.workspaces,
+    syncTargets: toValidSyncTargets(project),
+  };
+
+  return normalized;
+};
+
+const normalizeProjects = (projects: StoredProject[]): StoredProject[] => {
+  return projects
+    .map((project) => normalizeProject(project))
+    .filter((project): project is StoredProject => Boolean(project));
+};
+
 const readAll = (): StoredProject[] => {
   const storage = getStorage();
   if (!storage) return [];
-  return safeParse(storage.getItem(STORAGE_KEY));
+  return normalizeProjects(safeParse(storage.getItem(STORAGE_KEY)));
 };
 
 const writeAll = (projects: StoredProject[]): void => {
   const storage = getStorage();
   if (!storage) return;
   try {
-    storage.setItem(STORAGE_KEY, JSON.stringify(projects));
+    storage.setItem(STORAGE_KEY, JSON.stringify(normalizeProjects(projects)));
   } catch (error) {
     console.warn("Failed to save projects:", error);
   }
@@ -55,7 +102,9 @@ const dispatchChange = () => {
 
 export const projectStorage = {
   load(): StoredProject[] {
-    return readAll();
+    const projects = readAll();
+    writeAll(projects);
+    return projects;
   },
   save(projects: StoredProject[]): void {
     writeAll(projects);
@@ -81,7 +130,10 @@ export const projectStorage = {
     writeAll(nextProjects);
     dispatchChange();
     if (removedProject) {
-      trackProjectRemoved(removedProject.worktrees ?? 0, removedProject.configFiles?.length ?? 0);
+      trackProjectRemoved(
+        removedProject.worktrees ?? 0,
+        removedProject.syncTargets?.length ?? removedProject.configFiles?.length ?? 0,
+      );
     }
     return nextProjects;
   },

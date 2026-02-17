@@ -8,12 +8,14 @@ import { createWorktree, getGitInfo, listBranches as listGitBranches, removeWork
 import { projectStorage, type StoredProject } from "@/services/projects";
 import { getPreferredEditor, openProjectInEditor } from "@/services/editor";
 import type { Workspace } from "@/types/workspace";
-import { copyProjectFilesToWorktree, searchProjectFiles } from "@/services/files";
+import { copyProjectSyncTargetsToWorktree, searchProjectSyncTargets } from "@/services/files";
 import { useEnvironmentManager } from "@/hooks/use-environment-manager";
 import type { EnvironmentBinding } from "@/types/environment";
 import { writeCodeWorkspace, getCodeWorkspacePath, deleteCodeWorkspace } from "@/services/workspace";
 import { clearWorkspaceRelaunchFlag, ensureLaunchedEnvironment } from "@/services/workspace-state";
 import { trackConfigFileAdded } from "@/services/analytics";
+import { dedupeSyncTargets, includesSyncTarget, normalizeSyncTargetPath } from "@/services/sync-targets";
+import type { SyncTarget } from "@/types/sync-target";
 
 type Project = StoredProject;
 
@@ -26,6 +28,9 @@ const Index = () => {
   const [projects, setProjects] = useState<Project[]>(() => projectStorage.load());
   const [projectBranches, setProjectBranches] = useState<string[]>([]);
   const [isLoadingBranches, setIsLoadingBranches] = useState(false);
+  const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
+  const [showCreateWorkspaceProgress, setShowCreateWorkspaceProgress] = useState(false);
+  const [createWorkspaceStatusLabel, setCreateWorkspaceStatusLabel] = useState("");
   const [projectWorkspaces, setProjectWorkspaces] = useState<Record<string, Workspace[]>>(() => {
     const loaded = projectStorage.load();
     return loaded.reduce((acc, project) => {
@@ -33,8 +38,8 @@ const Index = () => {
       return acc;
     }, {} as Record<string, Workspace[]>);
   });
-  const [fileSearchResults, setFileSearchResults] = useState<string[]>([]);
-  const [isSearchingFiles, setIsSearchingFiles] = useState(false);
+  const [syncTargetSearchResults, setSyncTargetSearchResults] = useState<SyncTarget[]>([]);
+  const [isSearchingSyncTargets, setIsSearchingSyncTargets] = useState(false);
   const { environments, assignTarget, unassignTarget, environmentForTarget } = useEnvironmentManager();
 
   const handleAddProject = async () => {
@@ -84,7 +89,7 @@ const Index = () => {
       isGitRepo: gitInfo.isGitRepo,
       worktrees: detectedWorktrees,
       workspaces: detectedWorkspaces,
-      configFiles: [],
+      syncTargets: [],
     };
 
     setProjects(projectStorage.upsert(newProject));
@@ -177,70 +182,94 @@ const Index = () => {
 
   const handleCreateWorkspace = async (branch: string) => {
     if (!selectedProject) {
-      return;
-    }
-
-    const configFiles = selectedProject.configFiles ?? [];
-    const result = await createWorktree(selectedProject.path, branch);
-
-    if (!result.success || !result.path) {
-      toast({
-        title: "Failed to create workspace",
-        description: result.error ?? "Unknown error running git worktree.",
-        variant: "destructive",
-      });
       return false;
     }
 
-    if (configFiles.length > 0 && result.path) {
-      const copyResult = await copyProjectFilesToWorktree(selectedProject.path, result.path, configFiles);
-      if (!copyResult.success) {
-        const errorMessage =
-          copyResult.errors?.map((entry) => `${entry.file}: ${entry.message}`).join("\n") ??
-          "Unable to copy configuration files.";
+    let progressTimer: ReturnType<typeof setTimeout> | null = null;
+    setIsCreatingWorkspace(true);
+    setShowCreateWorkspaceProgress(false);
+    setCreateWorkspaceStatusLabel("Creating workspace...");
+    progressTimer = setTimeout(() => {
+      setShowCreateWorkspaceProgress(true);
+    }, 500);
+
+    try {
+      const syncTargets = selectedProject.syncTargets ?? [];
+      const result = await createWorktree(selectedProject.path, branch);
+
+      if (!result.success || !result.path) {
         toast({
-          title: "Config copy failed",
-          description: errorMessage,
+          title: "Failed to create workspace",
+          description: result.error ?? "Unknown error running git worktree.",
           variant: "destructive",
         });
+        return false;
       }
-    }
 
-    // Clear any existing environment binding and create .code-workspace without env vars.
-    // Fresh worktrees also start clean.
-    unassignTarget(result.path!);
-    await writeCodeWorkspace(result.path, null);
-    clearWorkspaceRelaunchFlag(result.path!);
+      if (syncTargets.length > 0 && result.path) {
+        setCreateWorkspaceStatusLabel("Copying selected files and folders...");
+        const copyResult = await copyProjectSyncTargetsToWorktree(selectedProject.path, result.path, syncTargets);
+        if (!copyResult.success) {
+          const errorMessage =
+            copyResult.errors?.map((entry) => `${entry.path}: ${entry.message}`).join("\n") ??
+            "Unable to copy selected sync files and folders.";
+          toast({
+            title: "Sync copy failed",
+            description: errorMessage,
+            variant: "destructive",
+          });
+        } else if (copyResult.skipped.length > 0) {
+          toast({
+            title: "Workspace created with skips",
+            description: `${copyResult.skipped.length} file(s) already existed and were skipped.`,
+          });
+        }
+      }
 
-    setProjectWorkspaces((prev) => {
-      const next = { ...prev };
-      const list = next[selectedProject.id] ? [...next[selectedProject.id]] : [];
-      const nextWorkspace: Workspace = {
-        name: branch,
-        workspace: result.path!,
-      };
-      list.push(nextWorkspace);
-      next[selectedProject.id] = list;
+      setCreateWorkspaceStatusLabel("Finalizing workspace...");
+      // Clear any existing environment binding and create .code-workspace without env vars.
+      // Fresh worktrees also start clean.
+      unassignTarget(result.path!);
+      await writeCodeWorkspace(result.path, null);
+      clearWorkspaceRelaunchFlag(result.path!);
 
-      const updatedProject: Project = {
-        ...selectedProject,
-        worktrees: (selectedProject.worktrees ?? 0) + 1,
-        workspaces: list,
-      };
+      setProjectWorkspaces((prev) => {
+        const next = { ...prev };
+        const list = next[selectedProject.id] ? [...next[selectedProject.id]] : [];
+        const nextWorkspace: Workspace = {
+          name: branch,
+          workspace: result.path!,
+        };
+        list.push(nextWorkspace);
+        next[selectedProject.id] = list;
 
-      setSelectedProject(updatedProject);
-      setProjects((prevProjects) => {
-        const updatedProjects = prevProjects.map((project) =>
-          project.id === updatedProject.id ? updatedProject : project,
-        );
-        projectStorage.save(updatedProjects);
-        return updatedProjects;
+        const updatedProject: Project = {
+          ...selectedProject,
+          worktrees: (selectedProject.worktrees ?? 0) + 1,
+          workspaces: list,
+        };
+
+        setSelectedProject(updatedProject);
+        setProjects((prevProjects) => {
+          const updatedProjects = prevProjects.map((project) =>
+            project.id === updatedProject.id ? updatedProject : project,
+          );
+          projectStorage.save(updatedProjects);
+          return updatedProjects;
+        });
+
+        return next;
       });
 
-      return next;
-    });
-
-    return true;
+      return true;
+    } finally {
+      if (progressTimer) {
+        clearTimeout(progressTimer);
+      }
+      setIsCreatingWorkspace(false);
+      setShowCreateWorkspaceProgress(false);
+      setCreateWorkspaceStatusLabel("");
+    }
   };
 
   const handleDeleteWorkspace = async (workspacePath: string, branchName: string) => {
@@ -324,34 +353,34 @@ const Index = () => {
     return environmentForTarget(targetPath)?.id ?? null;
   };
 
-  const handleSearchProjectFiles = useCallback(
+  const handleSearchProjectSyncTargets = useCallback(
     async (query: string) => {
       if (!selectedProject?.path) {
-        setFileSearchResults([]);
-        setIsSearchingFiles(false);
+        setSyncTargetSearchResults([]);
+        setIsSearchingSyncTargets(false);
         return;
       }
 
       const trimmed = query.trim();
       if (trimmed.length < 2) {
-        setFileSearchResults([]);
-        setIsSearchingFiles(false);
+        setSyncTargetSearchResults([]);
+        setIsSearchingSyncTargets(false);
         return;
       }
 
-      setIsSearchingFiles(true);
+      setIsSearchingSyncTargets(true);
       try {
-        const files = await searchProjectFiles(selectedProject.path, trimmed);
-        setFileSearchResults(files);
+        const targets = await searchProjectSyncTargets(selectedProject.path, trimmed);
+        setSyncTargetSearchResults(targets);
       } catch (error) {
-        console.error("File search failed:", error);
+        console.error("Sync target search failed:", error);
         toast({
-          title: "File search failed",
-          description: "Unable to list configuration files for this project.",
+          title: "Sync search failed",
+          description: "Unable to list files and folders for this project.",
           variant: "destructive",
         });
       } finally {
-        setIsSearchingFiles(false);
+        setIsSearchingSyncTargets(false);
       }
     },
     [selectedProject?.path, toast],
@@ -366,36 +395,44 @@ const Index = () => {
     });
   };
 
-  const handleAddConfigFile = (filePath: string) => {
+  const handleAddSyncTarget = (target: SyncTarget) => {
     if (!selectedProject) return;
-    const normalized = filePath.trim();
-    if (!normalized) return;
-    const existing = selectedProject.configFiles ?? [];
-    if (existing.includes(normalized)) {
+    const normalizedPath = normalizeSyncTargetPath(target.path);
+    if (!normalizedPath) return;
+
+    const normalizedTarget: SyncTarget = {
+      path: normalizedPath,
+      kind: target.kind,
+    };
+
+    const existing = selectedProject.syncTargets ?? [];
+    if (includesSyncTarget(existing, normalizedTarget)) {
       return;
     }
 
     const updatedProject: Project = {
       ...selectedProject,
-      configFiles: [...existing, normalized],
+      syncTargets: dedupeSyncTargets([...existing, normalizedTarget]),
     };
     updateSelectedProject(updatedProject);
-    trackConfigFileAdded(normalized);
+    trackConfigFileAdded(normalizedTarget.path, normalizedTarget.kind);
   };
 
-  const handleRemoveConfigFile = (filePath: string) => {
+  const handleRemoveSyncTarget = (target: SyncTarget) => {
     if (!selectedProject) return;
-    const existing = selectedProject.configFiles ?? [];
+    const existing = selectedProject.syncTargets ?? [];
     const updatedProject: Project = {
       ...selectedProject,
-      configFiles: existing.filter((file) => file !== filePath),
+      syncTargets: existing.filter((candidate) => {
+        return candidate.path !== target.path || candidate.kind !== target.kind;
+      }),
     };
     updateSelectedProject(updatedProject);
   };
 
   useEffect(() => {
-    setFileSearchResults([]);
-    setIsSearchingFiles(false);
+    setSyncTargetSearchResults([]);
+    setIsSearchingSyncTargets(false);
   }, [selectedProject?.id]);
 
   const handleOpenInEditor = async (targetPath: string) => {
@@ -455,17 +492,20 @@ const Index = () => {
           workspaces={projectWorkspaces[selectedProject.id] ?? []}
           gitBranches={projectBranches}
           isLoadingBranches={isLoadingBranches}
+          isCreatingWorkspace={isCreatingWorkspace}
+          showCreateWorkspaceProgress={showCreateWorkspaceProgress}
+          createWorkspaceStatusLabel={createWorkspaceStatusLabel}
           onLoadBranches={loadProjectBranches}
           onBack={() => setSelectedProject(null)}
           onCreateWorkspace={handleCreateWorkspace}
           onOpenInEditor={handleOpenInEditor}
           onDeleteWorkspace={handleDeleteWorkspace}
-          configFiles={selectedProject.configFiles ?? []}
-          fileSearchResults={fileSearchResults}
-          isSearchingFiles={isSearchingFiles}
-          onSearchFiles={handleSearchProjectFiles}
-          onAddConfigFile={handleAddConfigFile}
-          onRemoveConfigFile={handleRemoveConfigFile}
+          syncTargets={selectedProject.syncTargets ?? []}
+          syncTargetSearchResults={syncTargetSearchResults}
+          isSearchingSyncTargets={isSearchingSyncTargets}
+          onSearchSyncTargets={handleSearchProjectSyncTargets}
+          onAddSyncTarget={handleAddSyncTarget}
+          onRemoveSyncTarget={handleRemoveSyncTarget}
           environments={environments}
           getEnvironmentIdForTarget={getEnvironmentIdForTarget}
           onEnvironmentChange={handleEnvironmentChange}

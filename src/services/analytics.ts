@@ -27,9 +27,14 @@ export const trackProjectRemoved = (worktrees: number, configCount: number): voi
   trackAnalyticsEvent("Project.removed", { worktrees, configCount });
 };
 
-export const trackConfigFileAdded = (filePath: string): void => {
-  const extension = filePath.split(".").pop()?.toLowerCase() ?? "unknown";
-  trackAnalyticsEvent("Workspace.configFileAdded", { extension });
+export const trackConfigFileAdded = (
+  targetPath: string,
+  kind: "file" | "directory" = "file",
+): void => {
+  const extension = kind === "directory"
+    ? "directory"
+    : targetPath.split(".").pop()?.toLowerCase() ?? "unknown";
+  trackAnalyticsEvent("Workspace.configFileAdded", { extension, kind });
 };
 
 export const trackEnvironmentCreated = (address: string): void => {

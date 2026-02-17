@@ -1,4 +1,9 @@
-export const searchProjectFiles = async (projectPath: string, query: string): Promise<string[]> => {
+import type { CopySyncTargetsResult, SyncTarget } from "@/types/sync-target";
+
+export const searchProjectSyncTargets = async (
+  projectPath: string,
+  query: string,
+): Promise<SyncTarget[]> => {
   if (!projectPath || typeof window === "undefined") {
     return [];
   }
@@ -8,48 +13,48 @@ export const searchProjectFiles = async (projectPath: string, query: string): Pr
   }
 
   try {
-    const files = await window.electronAPI?.searchProjectFiles?.(projectPath, query);
-    if (!files || !Array.isArray(files)) {
+    const targets = await window.electronAPI?.searchProjectSyncTargets?.(projectPath, query);
+    if (!targets || !Array.isArray(targets)) {
       return [];
     }
-    return files;
+    return targets;
   } catch (error) {
-    console.error("Failed to search project files:", error);
+    console.error("Failed to search project sync targets:", error);
     return [];
   }
 };
 
-export interface CopyConfigFilesResult {
-  success: boolean;
-  copied: string[];
-  errors?: Array<{ file: string; message: string }>;
-}
-
-export const copyProjectFilesToWorktree = async (
+export const copyProjectSyncTargetsToWorktree = async (
   projectPath: string,
   worktreePath: string,
-  files: string[],
-): Promise<CopyConfigFilesResult> => {
-  if (!projectPath || !worktreePath || !Array.isArray(files) || files.length === 0 || typeof window === "undefined") {
-    return { success: false, copied: [], errors: [{ file: "*", message: "Invalid copy request." }] };
+  targets: SyncTarget[],
+): Promise<CopySyncTargetsResult> => {
+  if (!projectPath || !worktreePath || !Array.isArray(targets) || targets.length === 0 || typeof window === "undefined") {
+    return { success: false, copied: [], skipped: [], errors: [{ file: "*", message: "Invalid copy request." }] };
   }
 
   try {
-    const result = await window.electronAPI?.copyProjectFilesToWorktree?.(projectPath, worktreePath, files);
+    const result = await window.electronAPI?.copyProjectSyncTargetsToWorktree?.(
+      projectPath,
+      worktreePath,
+      targets,
+    );
     if (!result) {
-      return { success: false, copied: [], errors: [{ file: "*", message: "Copy operation failed." }] };
+      return { success: false, copied: [], skipped: [], errors: [{ file: "*", message: "Copy operation failed." }] };
     }
 
     return {
       success: Boolean(result.success),
       copied: Array.isArray(result.copied) ? result.copied : [],
+      skipped: Array.isArray(result.skipped) ? result.skipped : [],
       errors: result.errors,
     };
   } catch (error) {
-    console.error("Failed to copy config files:", error);
+    console.error("Failed to copy config sync targets:", error);
     return {
       success: false,
       copied: [],
+      skipped: [],
       errors: [{ file: "*", message: error instanceof Error ? error.message : "Unknown copy error." }],
     };
   }

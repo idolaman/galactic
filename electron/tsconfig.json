@@ -17,6 +17,9 @@
   },
   "include": [
     "main.ts",
-    "utils/**/*"
+    "utils/**/*",
+    "ipc/**/*",
+    "project-sync/**/*",
+    "tests/**/*"
   ]
 }
