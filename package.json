@@ -38,7 +38,7 @@
     "build:electron": "npm run build:ui && npm run build:main && npm run build:mcp-server && electron-builder --mac dmg zip",
     "build": "npm run build:electron",
     "build:dev": "vite build --mode development",
-    "test:electron": "npm run build:main && node --test \"dist-electron/tests/**/*.test.js\"",
+    "test:electron": "npm run build:main && node --test dist-electron/tests/*.test.js",
     "test": "npm run test:electron",
     "lint": "eslint .",
     "preview": "vite preview"
