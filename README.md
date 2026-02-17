@@ -24,6 +24,12 @@
   <img alt="TypeScript" src="https://img.shields.io/badge/typescript-5.8-3178C6.svg?logo=typescript&logoColor=white" />
 </p>
 
+<p align="center">
+  <video src="https://galactic-dev.com/demos/hero-demo.mp4" width="720" autoplay loop muted playsinline>
+    <img src="https://galactic-dev.com/demos/projects-dashboard.png" alt="Galactic Demo" />
+  </video>
+</p>
+
 ---
 
 ## Why Galactic?
@@ -42,25 +48,41 @@ Modern development means working across multiple repositories, branches, microse
 
 ## Features
 
-### Project Dashboard
-
-Add Git repos and folders, browse them visually, and open any project in your preferred editor. Galactic remembers your projects across sessions and keeps them organized.
-
-### Git Worktrees
+### Project Dashboard & Git Worktrees
 
 Create fully isolated worktrees for any branch with a single click. Each worktree gets its own `.code-workspace` file and can optionally inherit config files from the main repo. Work on a hotfix while your feature branch stays untouched.
 
+<p align="center">
+  <video src="https://galactic-dev.com/demos/clip-workspaces.mp4" width="720" autoplay loop muted playsinline></video>
+</p>
+
 ### Network Isolation Environments
 
-The standout feature. Galactic assigns unique loopback addresses (`127.0.0.2`, `127.0.0.3`, ...) to each environment, letting you run **multiple instances of the same stack on the same ports** without conflicts. Bind a project or worktree to an environment and its workspace file is automatically injected with the right environment variables. No containers, no port juggling.
+The standout feature. Galactic assigns unique loopback addresses (`127.0.0.2`, `127.0.0.3`, ...) to each environment, letting you run **multiple instances of the same stack on the same ports** without conflicts. No containers, no port juggling.
+
+<p align="center">
+  <img src="https://galactic-dev.com/ip-feature.png" alt="Network Isolation — unique local IP per workspace" width="600" />
+</p>
+
+<p align="center">
+  <video src="https://galactic-dev.com/demos/clip-environments.mp4" width="720" autoplay loop muted playsinline></video>
+</p>
 
 ### AI Agent Monitoring (MCP)
 
-Galactic runs an [MCP](https://modelcontextprotocol.io/) server that connects to your AI-powered editors. See active agent sessions from Cursor, VS Code, Claude, and Codex in one place. Get notified when a session finishes, takes too long, or needs your attention. Install the MCP bridge to each tool with one click from Settings.
+Galactic runs an [MCP](https://modelcontextprotocol.io/) server that connects to your AI-powered editors. See active agent sessions from Cursor, VS Code, Claude, and Codex in one place. Get notified when a session finishes, takes too long, or needs your attention.
+
+<p align="center">
+  <video src="https://galactic-dev.com/demos/clip-agent-monitoring.mp4" width="720" autoplay loop muted playsinline></video>
+</p>
 
 ### Quick Launcher
 
 Press **Cmd+Shift+G** anywhere on your Mac to summon a floating sidebar with all your projects, workspaces, and active agent sessions. Jump into any workspace instantly without switching to Galactic first.
+
+<p align="center">
+  <img src="https://galactic-dev.com/quick-launcher.png" alt="Quick Launcher" width="360" />
+</p>
 
 ### Dual Editor Support
 
