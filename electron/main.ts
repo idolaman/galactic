@@ -22,6 +22,7 @@ import { execFile, exec, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import type { ExecFileException } from "node:child_process";
 import { initAnalytics, analytics, isAnalyticsEvent, trackEvent } from "./analytics.js";
+import { registerProjectSyncIpc } from "./ipc/register-project-sync.js";
 import { getGalacticUpdateUrl } from "./release-config.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -885,109 +886,10 @@ ipcMain.handle("git/fetch-branches", async (_event, projectPath: string) => {
   }
 });
 
-const IGNORED_DIRECTORIES = new Set([".git", "node_modules", "worktrees"]);
-const MAX_FILE_RESULTS = 250;
-
-const normalizeRelativePath = (projectPath: string, entryPath: string) =>
-  path.relative(projectPath, entryPath).split(path.sep).join("/");
-
-const searchFilesInProject = async (projectPath: string, query: string): Promise<string[]> => {
-  const normalizedQuery = query.trim().toLowerCase();
-  const results: string[] = [];
-  const stack: string[] = [projectPath];
-
-  while (stack.length > 0 && results.length < MAX_FILE_RESULTS) {
-    const currentDir = stack.pop();
-    if (!currentDir) {
-      continue;
-    }
-
-    let entries: import("node:fs").Dirent[];
-    try {
-      entries = await fsPromises.readdir(currentDir, { withFileTypes: true });
-    } catch (error) {
-      console.warn(`Unable to read directory ${currentDir}:`, error);
-      continue;
-    }
-
-    for (const entry of entries) {
-      const entryPath = path.join(currentDir, entry.name);
-      const relativePath = normalizeRelativePath(projectPath, entryPath);
-      if (!relativePath || relativePath.startsWith("..")) {
-        continue;
-      }
-
-      if (entry.isDirectory()) {
-        if (!IGNORED_DIRECTORIES.has(entry.name)) {
-          stack.push(entryPath);
-        }
-        continue;
-      }
-
-      if (entry.isFile() || entry.isSymbolicLink()) {
-        if (!normalizedQuery || relativePath.toLowerCase().includes(normalizedQuery)) {
-          results.push(relativePath);
-          if (results.length >= MAX_FILE_RESULTS) {
-            break;
-          }
-        }
-      }
-    }
-  }
-
-  return results;
-};
-
-ipcMain.handle("project/search-files", async (_event, projectPath: string, query: string) => {
-  if (!projectPath) {
-    return [];
-  }
-
-  try {
-    return await searchFilesInProject(path.resolve(projectPath), query ?? "");
-  } catch (error) {
-    console.error(`Failed to search files for ${projectPath}:`, error);
-    return [];
-  }
+registerProjectSyncIpc({
+  ipcMain,
+  workspaceFilesCopied: (count, success) => analytics.workspaceFilesCopied(count, success),
 });
-
-const copyFilesToWorktree = async (projectPath: string, worktreePath: string, files: string[]) => {
-  const projectRoot = path.resolve(projectPath);
-  const worktreeRoot = path.resolve(worktreePath);
-  const copied: string[] = [];
-  const errors: Array<{ file: string; message: string }> = [];
-
-  for (const file of files) {
-    const normalized = file.replace(/^[/\\]+/, "");
-    const relativePath = normalized.split(path.sep).join("/");
-    const sourcePath = path.resolve(projectRoot, relativePath);
-    const targetPath = path.resolve(worktreeRoot, relativePath);
-
-    if (!sourcePath.startsWith(projectRoot) || !targetPath.startsWith(worktreeRoot)) {
-      errors.push({ file: relativePath, message: "Invalid file path." });
-      continue;
-    }
-
-    try {
-      const targetDir = path.dirname(targetPath);
-      await fsPromises.mkdir(targetDir, { recursive: true });
-      await fsPromises.copyFile(sourcePath, targetPath);
-      copied.push(relativePath);
-    } catch (error) {
-      console.error(`Failed to copy ${relativePath}:`, error);
-      errors.push({
-        file: relativePath,
-        message: error instanceof Error ? error.message : "Unknown copy error.",
-      });
-    }
-  }
-
-  return {
-    success: errors.length === 0,
-    copied,
-    errors: errors.length > 0 ? errors : undefined,
-  };
-};
 
 const resolveWorktreePath = (projectPath: string, worktreePath: string) => {
   const candidates: string[] = [];
@@ -1012,34 +914,6 @@ const resolveWorktreePath = (projectPath: string, worktreePath: string) => {
 
   return candidates[0];
 };
-
-ipcMain.handle(
-  "project/copy-files-to-worktree",
-  async (_event, projectPath: string, worktreePath: string, files: string[]) => {
-    if (!projectPath || !worktreePath || !Array.isArray(files) || files.length === 0) {
-      return { success: false, copied: [], errors: [{ file: "", message: "Invalid copy parameters." }] };
-    }
-
-    try {
-      const result = await copyFilesToWorktree(projectPath, worktreePath, files);
-      analytics.workspaceFilesCopied(result.copied.length, result.success);
-      return result;
-    } catch (error) {
-      console.error(`Failed to copy files into worktree ${worktreePath}:`, error);
-      analytics.workspaceFilesCopied(0, false);
-      return {
-        success: false,
-        copied: [],
-        errors: [
-          {
-            file: "*",
-            message: error instanceof Error ? error.message : "Unknown copy error.",
-          },
-        ],
-      };
-    }
-  },
-);
 
 import { createHash } from "node:crypto";
 

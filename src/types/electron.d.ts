@@ -1,3 +1,5 @@
+import type { CopySyncTargetsResult, SyncTarget } from "@/types/sync-target";
+
 export interface GitInfo {
   isGitRepo: boolean;
 }
@@ -31,12 +33,12 @@ export interface ElectronAPI {
   createGitWorktree: (projectPath: string, branch: string) => Promise<WorktreeResult>;
   removeGitWorktree: (projectPath: string, workspacePath: string) => Promise<WorktreeResult>;
   openProjectInEditor: (editorName: string, projectPath: string) => Promise<{ success: boolean; error?: string }>;
-  searchProjectFiles: (projectPath: string, query: string) => Promise<string[]>;
-  copyProjectFilesToWorktree: (
+  searchProjectSyncTargets: (projectPath: string, query: string) => Promise<SyncTarget[]>;
+  copyProjectSyncTargetsToWorktree: (
     projectPath: string,
     worktreePath: string,
-    files: string[]
-  ) => Promise<{ success: boolean; copied: string[]; errors?: Array<{ file: string; message: string }> }>;
+    targets: SyncTarget[]
+  ) => Promise<CopySyncTargetsResult>;
   configureEnvironmentInterface: (
     action: "add" | "remove",
     address: string

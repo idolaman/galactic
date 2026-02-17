@@ -31,3 +31,6 @@ jobs:
 
       - name: Build Electron main
         run: npm run build:main
+
+      - name: Test Electron
+        run: npm run test:electron

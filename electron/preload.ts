@@ -19,10 +19,13 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("git/remove-worktree", projectPath, workspacePath),
   openProjectInEditor: (editorName: string, projectPath: string) =>
     ipcRenderer.invoke("editor/open-project", editorName, projectPath),
-  searchProjectFiles: (projectPath: string, query: string) =>
-    ipcRenderer.invoke("project/search-files", projectPath, query),
-  copyProjectFilesToWorktree: (projectPath: string, worktreePath: string, files: string[]) =>
-    ipcRenderer.invoke("project/copy-files-to-worktree", projectPath, worktreePath, files),
+  searchProjectSyncTargets: (projectPath: string, query: string) =>
+    ipcRenderer.invoke("project/search-sync-targets", projectPath, query),
+  copyProjectSyncTargetsToWorktree: (
+    projectPath: string,
+    worktreePath: string,
+    targets: Array<{ path: string; kind: "file" | "directory" }>,
+  ) => ipcRenderer.invoke("project/copy-sync-targets-to-worktree", projectPath, worktreePath, targets),
   configureEnvironmentInterface: (action: "add" | "remove", address: string) =>
     ipcRenderer.invoke("network/configure-environment-interface", action, address),
   writeCodeWorkspace: (
