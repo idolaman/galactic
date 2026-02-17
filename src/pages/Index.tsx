@@ -211,7 +211,7 @@ const Index = () => {
         const copyResult = await copyProjectSyncTargetsToWorktree(selectedProject.path, result.path, syncTargets);
         if (!copyResult.success) {
           const errorMessage =
-            copyResult.errors?.map((entry) => `${entry.file}: ${entry.message}`).join("\n") ??
+            copyResult.errors?.map((entry) => `${entry.path}: ${entry.message}`).join("\n") ??
             "Unable to copy selected sync files and folders.";
           toast({
             title: "Sync copy failed",

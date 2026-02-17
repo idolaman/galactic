@@ -5,12 +5,12 @@ import {
   normalizeRelativePath,
   normalizeSyncTargetPath,
 } from "./path-utils.js";
-import type { CopySyncTargetsResult, SyncTarget } from "./types.js";
+import type { CopySyncTargetError, CopySyncTargetsResult, SyncTarget } from "./types.js";
 
 const collectDirectoryFiles = async (
   projectRoot: string,
   startPath: string,
-  errors: Array<{ file: string; message: string }>,
+  errors: CopySyncTargetError[],
 ): Promise<string[]> => {
   const collectedFiles: string[] = [];
   const stack: string[] = [startPath];
@@ -26,7 +26,7 @@ const collectDirectoryFiles = async (
       entries = await fsPromises.readdir(currentDir, { withFileTypes: true });
     } catch (error) {
       const relativeDir = normalizeRelativePath(projectRoot, currentDir);
-      errors.push({ file: relativeDir || ".", message: error instanceof Error ? error.message : "Unknown read error." });
+      errors.push({ path: relativeDir || ".", message: error instanceof Error ? error.message : "Unknown read error." });
       continue;
     }
 
@@ -56,7 +56,7 @@ const collectDirectoryFiles = async (
 const collectTargetFilePaths = async (
   projectRoot: string,
   targets: SyncTarget[],
-  errors: Array<{ file: string; message: string }>,
+  errors: CopySyncTargetError[],
 ): Promise<string[]> => {
   const filePaths = new Set<string>();
 
@@ -64,7 +64,7 @@ const collectTargetFilePaths = async (
     const relativePath = normalizeSyncTargetPath(target.path);
     const sourcePath = path.resolve(projectRoot, relativePath);
     if (!relativePath || !isWithinRoot(projectRoot, sourcePath)) {
-      errors.push({ file: target.path, message: "Invalid sync path." });
+      errors.push({ path: target.path, message: "Invalid sync path." });
       continue;
     }
 
@@ -72,13 +72,13 @@ const collectTargetFilePaths = async (
     try {
       stats = await fsPromises.stat(sourcePath);
     } catch (error) {
-      errors.push({ file: relativePath, message: error instanceof Error ? error.message : "Source path does not exist." });
+      errors.push({ path: relativePath, message: error instanceof Error ? error.message : "Source path does not exist." });
       continue;
     }
 
     if (target.kind === "directory") {
       if (!stats.isDirectory()) {
-        errors.push({ file: relativePath, message: "Expected a directory target." });
+        errors.push({ path: relativePath, message: "Expected a directory target." });
         continue;
       }
       const nestedFiles = await collectDirectoryFiles(projectRoot, sourcePath, errors);
@@ -87,7 +87,7 @@ const collectTargetFilePaths = async (
     }
 
     if (!stats.isFile() && !stats.isSymbolicLink()) {
-      errors.push({ file: relativePath, message: "Expected a file target." });
+      errors.push({ path: relativePath, message: "Expected a file target." });
       continue;
     }
     filePaths.add(relativePath);
@@ -105,14 +105,14 @@ export const copySyncTargetsToWorktree = async (
   const worktreeRoot = path.resolve(worktreePath);
   const copied: string[] = [];
   const skipped: string[] = [];
-  const errors: Array<{ file: string; message: string }> = [];
+  const errors: CopySyncTargetError[] = [];
   const filePaths = await collectTargetFilePaths(projectRoot, targets, errors);
 
   for (const relativePath of filePaths) {
     const sourcePath = path.resolve(projectRoot, relativePath);
     const targetPath = path.resolve(worktreeRoot, relativePath);
     if (!isWithinRoot(projectRoot, sourcePath) || !isWithinRoot(worktreeRoot, targetPath)) {
-      errors.push({ file: relativePath, message: "Invalid file path." });
+      errors.push({ path: relativePath, message: "Invalid file path." });
       continue;
     }
     if (existsSync(targetPath)) {
@@ -126,7 +126,7 @@ export const copySyncTargetsToWorktree = async (
       copied.push(relativePath);
     } catch (error) {
       console.error(`Failed to copy ${relativePath}:`, error);
-      errors.push({ file: relativePath, message: error instanceof Error ? error.message : "Unknown copy error." });
+      errors.push({ path: relativePath, message: error instanceof Error ? error.message : "Unknown copy error." });
     }
   }
 
