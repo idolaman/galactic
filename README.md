@@ -25,9 +25,7 @@
 </p>
 
 <p align="center">
-  <video src="https://galactic-dev.com/demos/hero-demo.mp4" width="720" autoplay loop muted playsinline>
-    <img src="https://galactic-dev.com/demos/projects-dashboard.png" alt="Galactic Demo" />
-  </video>
+  <img src="https://galactic-dev.com/demos/hero-demo.gif" alt="Galactic Demo" width="720" />
 </p>
 
 ---
@@ -53,7 +51,7 @@ Modern development means working across multiple repositories, branches, microse
 Create fully isolated worktrees for any branch with a single click. Each worktree gets its own `.code-workspace` file and can optionally inherit config files from the main repo. Work on a hotfix while your feature branch stays untouched.
 
 <p align="center">
-  <video src="https://galactic-dev.com/demos/clip-workspaces.mp4" width="720" autoplay loop muted playsinline></video>
+  <img src="https://galactic-dev.com/demos/clip-workspaces.gif" alt="Git Worktrees" width="720" />
 </p>
 
 ### Network Isolation Environments
@@ -65,7 +63,7 @@ The standout feature. Galactic assigns unique loopback addresses (`127.0.0.2`, `
 </p>
 
 <p align="center">
-  <video src="https://galactic-dev.com/demos/clip-environments.mp4" width="720" autoplay loop muted playsinline></video>
+  <img src="https://galactic-dev.com/demos/clip-environments.gif" alt="Network Isolation Environments" width="720" />
 </p>
 
 ### AI Agent Monitoring (MCP)
@@ -73,7 +71,7 @@ The standout feature. Galactic assigns unique loopback addresses (`127.0.0.2`, `
 Galactic runs an [MCP](https://modelcontextprotocol.io/) server that connects to your AI-powered editors. See active agent sessions from Cursor, VS Code, Claude, and Codex in one place. Get notified when a session finishes, takes too long, or needs your attention.
 
 <p align="center">
-  <video src="https://galactic-dev.com/demos/clip-agent-monitoring.mp4" width="720" autoplay loop muted playsinline></video>
+  <img src="https://galactic-dev.com/demos/clip-agent-monitoring.gif" alt="AI Agent Monitoring" width="720" />
 </p>
 
 ### Quick Launcher
