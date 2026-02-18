@@ -21,6 +21,13 @@ export interface WorkspaceEnvConfig {
   envVars?: Record<string, string>;
 }
 
+export interface OpenProjectInEditorResult {
+  success: boolean;
+  error?: string;
+  usedEditor?: "Cursor" | "VSCode";
+  fallbackApplied?: boolean;
+}
+
 export interface ElectronAPI {
   ping: () => Promise<string>;
   getAppVersion: () => Promise<string>;
@@ -32,7 +39,7 @@ export interface ElectronAPI {
   fetchGitBranches: (projectPath: string) => Promise<{ success: boolean; error?: string }>;
   createGitWorktree: (projectPath: string, branch: string) => Promise<WorktreeResult>;
   removeGitWorktree: (projectPath: string, workspacePath: string) => Promise<WorktreeResult>;
-  openProjectInEditor: (editorName: string, projectPath: string) => Promise<{ success: boolean; error?: string }>;
+  openProjectInEditor: (editorName: string, projectPath: string) => Promise<OpenProjectInEditorResult>;
   searchProjectSyncTargets: (projectPath: string, query: string) => Promise<SyncTarget[]>;
   copyProjectSyncTargetsToWorktree: (
     projectPath: string,

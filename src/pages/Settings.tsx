@@ -74,6 +74,17 @@ export default function Settings() {
       const vscodeCheck = await window.electronAPI.checkEditorInstalled("VSCode");
       setCursorInstalled(cursorCheck);
       setVscodeInstalled(vscodeCheck);
+      setPreferredEditor((current) => {
+        if (cursorCheck && !vscodeCheck) {
+          return "Cursor";
+        }
+
+        if (vscodeCheck && !cursorCheck) {
+          return "VSCode";
+        }
+
+        return current;
+      });
     }
   }, []);
 
@@ -284,13 +295,10 @@ export default function Settings() {
           <div className="flex items-start gap-3 rounded-lg border border-primary/10 bg-primary/5 p-3.5 text-sm text-muted-foreground">
             <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
             <div className="space-y-1.5">
-              <p className="font-medium text-foreground text-xs uppercase tracking-wider">MacOS Application Detection</p>
+              <p className="font-medium text-foreground text-xs uppercase tracking-wider">Editor Detection</p>
               <p className="text-xs leading-relaxed">
-                Galactic automatically detects and launches editors installed in your{" "}
-                <code className="font-mono text-[10px] bg-background/80 px-1 py-0.5 rounded border border-primary/10">
-                  /Applications
-                </code>{" "}
-                folder. If your editor is installed elsewhere (e.g. custom path), it may not be detected.
+                Galactic detects editors from standard install paths and available CLI launchers, then falls
+                back to the installed option if your preferred editor is unavailable.
               </p>
             </div>
           </div>

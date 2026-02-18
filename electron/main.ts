@@ -18,52 +18,16 @@ import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { existsSync, mkdirSync } from "node:fs";
 import { promises as fsPromises } from "node:fs";
-import { execFile, exec, spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import type { ExecFileException } from "node:child_process";
 import { initAnalytics, analytics, isAnalyticsEvent, trackEvent } from "./analytics.js";
+import { registerEditorLaunchIpc } from "./ipc/register-editor-launch.js";
 import { registerProjectSyncIpc } from "./ipc/register-project-sync.js";
 import { getGalacticUpdateUrl } from "./release-config.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const execFileAsync = promisify(execFile);
-const execAsync = promisify(exec);
-
-type EditorLaunchResolver = (projectPath: string) => string;
-
-const quotePath = (value: string) => JSON.stringify(value);
-
-const cursorCommand = (projectPath: string) =>
-  `open -a "Cursor" ${quotePath(projectPath)}`;
-const vscodeOpenCommand = (projectPath: string) =>
-  `open -a "Visual Studio Code" ${quotePath(projectPath)}`;
-const cursorCli = (projectPath: string) => `cursor ${quotePath(projectPath)}`;
-const vscodeCli = (projectPath: string) => `code ${quotePath(projectPath)}`;
-
-const editorLaunchCommands: Record<
-  string,
-  Partial<Record<NodeJS.Platform, EditorLaunchResolver>>
-> = {
-  Cursor: {
-    darwin: cursorCommand,
-    win32: cursorCli,
-    linux: cursorCli,
-  },
-  VSCode: {
-    darwin: vscodeOpenCommand,
-    win32: vscodeCli,
-    linux: vscodeCli,
-  },
-};
-
-const resolveEditorCommand = (editorName: string, projectPath: string) => {
-  const editorConfig = editorLaunchCommands[editorName];
-  if (!editorConfig) {
-    return null;
-  }
-
-  return editorConfig[process.platform]?.(projectPath) ?? null;
-};
 
 const VITE_DEV_SERVER_URL =
   process.env.ELECTRON_START_URL || process.env.VITE_DEV_SERVER_URL;
@@ -532,18 +496,6 @@ ipcMain.on("session/get-dismissed-sync", (event) => {
   event.returnValue = Array.from(dismissedSessions.entries());
 });
 
-ipcMain.handle("check-editor-installed", (_event, editorName: string) => {
-  const editorPaths: Record<string, string> = {
-    Cursor: "/Applications/Cursor.app",
-    VSCode: "/Applications/Visual Studio Code.app",
-  };
-
-  const editorPath = editorPaths[editorName];
-  if (!editorPath) return false;
-
-  return existsSync(editorPath);
-});
-
 app.whenReady().then(async () => {
   // Initialize analytics and track app launch
    initAnalytics();
@@ -637,36 +589,6 @@ ipcMain.handle("git/get-info", async (_event, projectPath: string) => {
     return { isGitRepo: true };
   }
 });
-
-ipcMain.handle(
-  "editor/open-project",
-  async (_event, editorName: string, projectPath: string) => {
-    if (!projectPath) {
-      return { success: false, error: "No project path provided." };
-    }
-
-    if (!existsSync(projectPath)) {
-      return { success: false, error: "Project path does not exist." };
-    }
-
-    const commandString = resolveEditorCommand(editorName, projectPath);
-    if (!commandString) {
-      return { success: false, error: `Editor ${editorName} is not supported on this platform.` };
-    }
-
-    try {
-      await execAsync(commandString);
-      analytics.editorLaunched(editorName);
-      return { success: true };
-    } catch (error) {
-      console.error(`Failed to open ${editorName} for ${projectPath}:`, error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
-    }
-  }
-);
 
 ipcMain.handle("git/create-worktree", async (_event, projectPath: string, branch: string) => {
   if (!projectPath || !branch) {
@@ -884,6 +806,11 @@ ipcMain.handle("git/fetch-branches", async (_event, projectPath: string) => {
       error: errorMessage,
     };
   }
+});
+
+registerEditorLaunchIpc({
+  ipcMain,
+  editorLaunched: (editor) => analytics.editorLaunched(editor),
 });
 
 registerProjectSyncIpc({
