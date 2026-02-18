@@ -19,6 +19,13 @@ Apply these conventions when working on code in the `client/` directory.
 
 ---
 
+## Repository-Wide Versioning Requirement (GLOBAL)
+
+- For a given feature branch, bump the app version only once for the same feature.
+- Do not repeatedly increment version for follow-up commits that are part of the same feature branch scope.
+
+---
+
 ## File Structure Rules
 
 NEVER:
