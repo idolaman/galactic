@@ -10,6 +10,22 @@ Apply these conventions when working on code in the `client/` directory.
 
 ---
 
+## Repository-Wide Testing Requirement (GLOBAL)
+
+- For every new feature or changed feature, add or update unit tests that verify expected behavior.
+- Include at least one edge case or failure-path test for changed behavior.
+- A feature is not complete until the relevant unit tests are passing locally.
+- Exception: pure documentation/content updates with no runtime behavior change do not require tests.
+
+---
+
+## Repository-Wide Versioning Requirement (GLOBAL)
+
+- For a given feature branch, bump the app version only once for the same feature.
+- Do not repeatedly increment version for follow-up commits that are part of the same feature branch scope.
+
+---
+
 ## File Structure Rules
 
 NEVER:

@@ -3,7 +3,13 @@ export type EditorName = "Cursor" | "VSCode";
 export interface OpenEditorResult {
   success: boolean;
   error?: string;
+  usedEditor?: EditorName;
+  fallbackApplied?: boolean;
 }
+
+const isEditorName = (value: string): value is EditorName => {
+  return value === "Cursor" || value === "VSCode";
+};
 
 export const getPreferredEditor = (): EditorName => {
   if (typeof window === "undefined") return "Cursor";
@@ -22,6 +28,13 @@ export const openProjectInEditor = async (
   try {
     const result =
       (await window.electronAPI?.openProjectInEditor?.(editor, projectPath)) ?? null;
+    if (result?.success && result.fallbackApplied && result.usedEditor && isEditorName(result.usedEditor)) {
+      try {
+        window.localStorage.setItem("preferredEditor", result.usedEditor);
+      } catch (error) {
+        console.warn("Failed to persist fallback editor preference:", error);
+      }
+    }
     return result ?? { success: false, error: "Open in editor is unavailable." };
   } catch (error) {
     console.error("Failed to open project in editor:", error);

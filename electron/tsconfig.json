@@ -18,6 +18,7 @@
   "include": [
     "main.ts",
     "utils/**/*",
+    "editor-launch/**/*",
     "ipc/**/*",
     "project-sync/**/*",
     "tests/**/*"
