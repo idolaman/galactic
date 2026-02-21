@@ -3,8 +3,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ProjectList } from "@/components/ProjectList";
 import { ProjectDetail } from "@/components/ProjectDetail";
 import { useToast } from "@/hooks/use-toast";
+import { useBranchLoader } from "@/hooks/use-branch-loader";
 import { chooseProjectDirectory } from "@/services/os";
-import { createWorktree, getGitInfo, listBranches as listGitBranches, removeWorktree, getWorktrees, fetchBranches } from "@/services/git";
+import { createWorktree, getGitInfo, removeWorktree, getWorktrees } from "@/services/git";
 import { projectStorage, type StoredProject } from "@/services/projects";
 import { getPreferredEditor, openProjectInEditor } from "@/services/editor";
 import type { Workspace } from "@/types/workspace";
@@ -41,6 +42,11 @@ const Index = () => {
   const [syncTargetSearchResults, setSyncTargetSearchResults] = useState<SyncTarget[]>([]);
   const [isSearchingSyncTargets, setIsSearchingSyncTargets] = useState(false);
   const { environments, assignTarget, unassignTarget, environmentForTarget } = useEnvironmentManager();
+  const { loadProjectBranches, clearProjectBranches } = useBranchLoader({
+    setIsLoadingBranches,
+    setProjectBranches,
+    toast,
+  });
 
   const handleAddProject = async () => {
     const projectPath = await chooseProjectDirectory();
@@ -458,31 +464,13 @@ const Index = () => {
     });
   };
 
-  const loadProjectBranches = useCallback(async () => {
-    if (!selectedProject?.path || !selectedProject.isGitRepo) {
-      setProjectBranches([]);
-      return;
-    }
+  const handleLoadProjectBranches = useCallback(() => {
+    void loadProjectBranches(selectedProject);
+  }, [loadProjectBranches, selectedProject]);
 
-    setIsLoadingBranches(true);
-    try {
-      // Fetch latest from origin first (runs every time dropdown opens)
-      const fetchResult = await fetchBranches(selectedProject.path);
-      if (!fetchResult.success) {
-        toast({
-          title: "Fetch failed",
-          description: fetchResult.error ?? "Unable to fetch remote branches.",
-          variant: "destructive",
-        });
-      }
-
-      // Load branches (includes local + remote after fetch)
-      const branches = await listGitBranches(selectedProject.path);
-      setProjectBranches(branches);
-    } finally {
-      setIsLoadingBranches(false);
-    }
-  }, [selectedProject?.path, selectedProject?.isGitRepo, toast]);
+  const handleClearProjectBranches = useCallback(() => {
+    clearProjectBranches();
+  }, [clearProjectBranches]);
 
   return (
     <div className="space-y-8 p-6">
@@ -495,7 +483,8 @@ const Index = () => {
           isCreatingWorkspace={isCreatingWorkspace}
           showCreateWorkspaceProgress={showCreateWorkspaceProgress}
           createWorkspaceStatusLabel={createWorkspaceStatusLabel}
-          onLoadBranches={loadProjectBranches}
+          onLoadBranches={handleLoadProjectBranches}
+          onClearBranches={handleClearProjectBranches}
           onBack={() => setSelectedProject(null)}
           onCreateWorkspace={handleCreateWorkspace}
           onOpenInEditor={handleOpenInEditor}

@@ -1,4 +1,5 @@
 import type { CopySyncTargetsResult, SyncTarget } from "@/types/sync-target";
+import type { GitFetchBranchesResult } from "@/types/git";
 
 export interface GitInfo {
   isGitRepo: boolean;
@@ -36,7 +37,7 @@ export interface ElectronAPI {
   getGitInfo: (projectPath: string) => Promise<GitInfo>;
   listGitBranches: (projectPath: string) => Promise<string[]>;
   getGitWorktrees: (projectPath: string) => Promise<GitWorktreeInfo[]>;
-  fetchGitBranches: (projectPath: string) => Promise<{ success: boolean; error?: string }>;
+  fetchGitBranches: (projectPath: string) => Promise<GitFetchBranchesResult>;
   createGitWorktree: (projectPath: string, branch: string) => Promise<WorktreeResult>;
   removeGitWorktree: (projectPath: string, workspacePath: string) => Promise<WorktreeResult>;
   openProjectInEditor: (editorName: string, projectPath: string) => Promise<OpenProjectInEditorResult>;

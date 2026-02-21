@@ -1,3 +1,5 @@
+import type { GitFetchBranchesResult } from "@/types/git";
+
 export interface GitInfo {
   isGitRepo: boolean;
 }
@@ -68,7 +70,7 @@ export const getWorktrees = async (projectPath: string): Promise<GitWorktreeInfo
   }
 };
 
-export const fetchBranches = async (projectPath: string): Promise<{ success: boolean; error?: string }> => {
+export const fetchBranches = async (projectPath: string): Promise<GitFetchBranchesResult> => {
   if (!projectPath || typeof window === "undefined") {
     return { success: false, error: "Invalid project path." };
   }
@@ -84,6 +86,7 @@ export const fetchBranches = async (projectPath: string): Promise<{ success: boo
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown fetch error.",
+      reason: "unknown",
     };
   }
 };

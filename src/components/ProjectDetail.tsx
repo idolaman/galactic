@@ -28,9 +28,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { BranchSearchHint } from "@/components/BranchSearchHint";
 import { EnvironmentSelector } from "@/components/EnvironmentSelector";
 import { LaunchButton } from "@/components/LaunchButton";
 import { ProjectSyncTargets } from "@/components/ProjectSyncTargets";
+import {
+  shouldHideBranchSearchOnBlur,
+  shouldLoadBranchesOnFocus,
+  shouldResetBranchSearchSession,
+  shouldShowBranchSearchResults,
+} from "@/lib/branch-search-focus";
 import type { Workspace } from "@/types/workspace";
 import type { Environment, EnvironmentBinding } from "@/types/environment";
 import type { SyncTarget } from "@/types/sync-target";
@@ -52,6 +59,7 @@ interface ProjectDetailProps {
   onCreateWorkspace: (branch: string) => Promise<boolean>;
   onOpenInEditor: (path: string) => void;
   onLoadBranches?: () => void | Promise<void>;
+  onClearBranches?: () => void;
   onDeleteWorkspace: (workspacePath: string, branch: string) => void;
   syncTargets: SyncTarget[];
   syncTargetSearchResults: SyncTarget[];
@@ -76,6 +84,7 @@ export const ProjectDetail = ({
   onCreateWorkspace,
   onOpenInEditor,
   onLoadBranches,
+  onClearBranches,
   onDeleteWorkspace,
   syncTargets,
   syncTargetSearchResults,
@@ -90,6 +99,8 @@ export const ProjectDetail = ({
   const [branchInput, setBranchInput] = useState("");
   const [branchSearchActive, setBranchSearchActive] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [hasFetchedBranchesThisOpen, setHasFetchedBranchesThisOpen] = useState(false);
+  const isCreateDialogOpenRef = useRef(false);
   const branchInputRef = useRef<HTMLInputElement | null>(null);
 
   const availableBranches = gitBranches;
@@ -103,6 +114,7 @@ export const ProjectDetail = ({
     setBranchSearchActive(false);
     branchInputRef.current?.blur();
     if (success) {
+      isCreateDialogOpenRef.current = false;
       setIsCreateDialogOpen(false);
     }
   };
@@ -142,7 +154,16 @@ export const ProjectDetail = ({
                 if (isCreatingWorkspace && !open) {
                   return;
                 }
+
+                isCreateDialogOpenRef.current = open;
                 setIsCreateDialogOpen(open);
+
+                if (shouldResetBranchSearchSession({ open })) {
+                  setBranchInput("");
+                  setBranchSearchActive(false);
+                  setHasFetchedBranchesThisOpen(false);
+                  onClearBranches?.();
+                }
               }}
             >
               <DialogTrigger asChild>
@@ -203,51 +224,75 @@ export const ProjectDetail = ({
                             return;
                           }
                           setBranchSearchActive(true);
-                          onLoadBranches?.();
+                          if (
+                            shouldLoadBranchesOnFocus({
+                              hasFetchedBranchesThisOpen,
+                              isCreatingWorkspace,
+                            })
+                          ) {
+                            setHasFetchedBranchesThisOpen(true);
+                            onLoadBranches?.();
+                          }
                         }}
-                        onBlur={() => setTimeout(() => setBranchSearchActive(false), 120)}
+                        onBlur={() => {
+                          setTimeout(() => {
+                            if (
+                              shouldHideBranchSearchOnBlur({
+                                isDialogOpen: isCreateDialogOpenRef.current,
+                              })
+                            ) {
+                              setBranchSearchActive(false);
+                            }
+                          }, 120);
+                        }}
                       />
-                      <CommandList className="max-h-60">
-                        {isLoadingBranches ? (
-                          <div className="flex items-center justify-center gap-2 py-6 text-muted-foreground text-sm">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Fetching branches...
-                          </div>
-                        ) : (
-                          <>
-                            <CommandEmpty>No matching branches.</CommandEmpty>
-                            <CommandGroup heading="Available branches">
-                              {availableBranches.map((branchName) => (
-                                <CommandItem
-                                  key={branchName}
-                                  value={branchName}
-                                  onSelect={() => {
-                                    if (!isCreatingWorkspace) {
-                                      void handleCreateWorkspace(branchName);
-                                    }
-                                  }}
-                                  className={`flex items-center gap-3 py-2.5 px-2 group ${isCreatingWorkspace ? "opacity-60 pointer-events-none" : "cursor-pointer"
-                                    }`}
-                                >
-                                  <div className="flex h-6 w-6 items-center justify-center rounded-md border border-muted bg-background group-data-[selected=true]:border-primary/30 group-data-[selected=true]:bg-primary/10 transition-colors shrink-0">
-                                    <GitBranch className="h-3.5 w-3.5 text-muted-foreground group-data-[selected=true]:text-primary transition-colors" />
-                                  </div>
-                                  <div className="flex-1 min-w-0 grid">
-                                    <p className="font-mono text-sm truncate group-data-[selected=true]:text-accent-foreground" title={branchName}>
-                                      {branchName}
-                                    </p>
-                                  </div>
-                                  <div className="flex items-center gap-1.5 pr-1 opacity-0 group-data-[selected=true]:opacity-100 transition-all duration-200">
-                                    <span className="text-[10px] font-medium text-primary uppercase tracking-wider">Create</span>
-                                    <Plus className="h-3.5 w-3.5 text-primary" />
-                                  </div>
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </>
-                        )}
-                      </CommandList>
+                      {shouldShowBranchSearchResults({
+                        branchSearchActive,
+                        isLoadingBranches: Boolean(isLoadingBranches),
+                      }) && (
+                        <CommandList className="max-h-60">
+                          {isLoadingBranches ? (
+                            <div className="flex items-center justify-center gap-2 py-6 text-muted-foreground text-sm">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Fetching branches...
+                            </div>
+                          ) : (
+                            <>
+                              <CommandEmpty>No matching branches.</CommandEmpty>
+                              <CommandGroup heading="Available branches">
+                                {availableBranches.map((branchName) => (
+                                  <CommandItem
+                                    key={branchName}
+                                    value={branchName}
+                                    onSelect={() => {
+                                      if (!isCreatingWorkspace) {
+                                        void handleCreateWorkspace(branchName);
+                                      }
+                                    }}
+                                    className={`flex items-center gap-3 py-2.5 px-2 group ${isCreatingWorkspace ? "opacity-60 pointer-events-none" : "cursor-pointer"
+                                      }`}
+                                  >
+                                    <div className="flex h-6 w-6 items-center justify-center rounded-md border border-muted bg-background group-data-[selected=true]:border-primary/30 group-data-[selected=true]:bg-primary/10 transition-colors shrink-0">
+                                      <GitBranch className="h-3.5 w-3.5 text-muted-foreground group-data-[selected=true]:text-primary transition-colors" />
+                                    </div>
+                                    <div className="flex-1 min-w-0 grid">
+                                      <p className="font-mono text-sm truncate group-data-[selected=true]:text-accent-foreground" title={branchName}>
+                                        {branchName}
+                                      </p>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 pr-1 opacity-0 group-data-[selected=true]:opacity-100 transition-all duration-200">
+                                      <span className="text-[10px] font-medium text-primary uppercase tracking-wider">Create</span>
+                                      <Plus className="h-3.5 w-3.5 text-primary" />
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </>
+                          )}
+                        </CommandList>
+                      )}
                     </Command>
+                    <BranchSearchHint />
                   </div>
                 </div>
               </DialogContent>

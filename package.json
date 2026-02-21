@@ -1,6 +1,6 @@
 {
   "name": "galactic-ide",
-  "version": "1.0.20",
+  "version": "1.0.21",
   "description": "The command center for developers who juggle multiple projects, branches, and environments.",
   "author": "Galactic Dev <hello@galactic-dev.com>",
   "license": "AGPL-3.0",
@@ -38,6 +38,7 @@
     "build:electron": "npm run build:ui && npm run build:main && npm run build:mcp-server && electron-builder --mac dmg zip",
     "build": "npm run build:electron",
     "build:dev": "vite build --mode development",
+    "test:unit": "tsc -p tsconfig.unit.json && node --test .mcp-build-cache/unit-tests/tests/unit/*.test.js",
     "test:electron": "npm run build:main && node --test dist-electron/tests/*.test.js",
     "test": "npm run test:electron",
     "lint": "eslint .",

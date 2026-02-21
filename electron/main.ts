@@ -25,6 +25,7 @@ import { initAnalytics, analytics, isAnalyticsEvent, trackEvent } from "./analyt
 import { registerEditorLaunchIpc } from "./ipc/register-editor-launch.js";
 import { registerProjectSyncIpc } from "./ipc/register-project-sync.js";
 import { getGalacticUpdateUrl } from "./release-config.js";
+import { fetchGitBranchesWithReason } from "./utils/git-fetch-branches.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const execFileAsync = promisify(execFile);
@@ -793,19 +794,12 @@ ipcMain.handle("git/fetch-branches", async (_event, projectPath: string) => {
     return { success: false, error: "Git repository not found." };
   }
 
-  try {
-    await execFileAsync("git", ["fetch", "--all", "--prune"], { cwd: projectPath });
-    return { success: true };
-  } catch (error) {
-    console.warn(`Failed to fetch branches for ${projectPath}:`, error);
-    const execError = error as ExecFileException & { stderr?: string };
-    const errorMessage = execError?.stderr || execError?.message || "Unknown error fetching branches.";
-    analytics.gitFailed("fetch", errorMessage);
-    return {
-      success: false,
-      error: errorMessage,
-    };
+  const result = await fetchGitBranchesWithReason(projectPath);
+  if (!result.success) {
+    console.warn(`Failed to fetch branches for ${projectPath}:`, result.error);
+    analytics.gitFailed("fetch", result.error ?? "Unknown error fetching branches.");
   }
+  return result;
 });
 
 registerEditorLaunchIpc({
