@@ -9,6 +9,7 @@ export interface WorktreeResult {
   success: boolean;
   path?: string;
   error?: string;
+  alreadyRemoved?: boolean;
 }
 
 export interface GitWorktreeInfo {

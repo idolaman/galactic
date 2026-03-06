@@ -26,6 +26,7 @@ import { registerEditorLaunchIpc } from "./ipc/register-editor-launch.js";
 import { registerProjectSyncIpc } from "./ipc/register-project-sync.js";
 import { getGalacticUpdateUrl } from "./release-config.js";
 import { fetchGitBranchesWithReason } from "./utils/git-fetch-branches.js";
+import { isWorktreeAlreadyRemovedError } from "./utils/git-worktree-remove.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const execFileAsync = promisify(execFile);
@@ -675,6 +676,10 @@ ipcMain.handle("git/remove-worktree", async (_event, projectPath: string, worktr
     console.error(`Failed to remove worktree ${worktreePath}:`, error);
     const execError = error as ExecFileException & { stderr?: string };
     const errorMessage = execError?.stderr || execError?.message || "Unknown error removing worktree.";
+    if (isWorktreeAlreadyRemovedError(errorMessage)) {
+      analytics.workspaceDeleted(path.basename(resolvedWorktreePath));
+      return { success: true, alreadyRemoved: true };
+    }
     analytics.gitFailed("worktree-remove", errorMessage);
     return {
       success: false,
