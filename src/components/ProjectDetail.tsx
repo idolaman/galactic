@@ -1,43 +1,21 @@
-import { useRef, useState } from "react";
-import { ArrowLeft, GitBranch, GitMerge, FolderOpen, AlertTriangle, Trash2, FileCode, RefreshCw, HardDrive, Info, Plus, Check, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  GitMerge,
+  FolderOpen,
+  AlertTriangle,
+  Trash2,
+  FileCode,
+  HardDrive,
+  Info,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { BranchSearchHint } from "@/components/BranchSearchHint";
+import { CreateWorkspaceDialog } from "@/components/CreateWorkspaceDialog";
 import { EnvironmentSelector } from "@/components/EnvironmentSelector";
 import { LaunchButton } from "@/components/LaunchButton";
 import { ProjectSyncTargets } from "@/components/ProjectSyncTargets";
-import {
-  shouldHideBranchSearchOnBlur,
-  shouldLoadBranchesOnFocus,
-  shouldResetBranchSearchSession,
-  shouldShowBranchSearchResults,
-} from "@/lib/branch-search-focus";
+import type { CreateWorkspaceRequest } from "@/lib/create-workspace-request";
 import type { Workspace } from "@/types/workspace";
 import type { Environment, EnvironmentBinding } from "@/types/environment";
 import type { SyncTarget } from "@/types/sync-target";
@@ -53,10 +31,8 @@ interface ProjectDetailProps {
   gitBranches: string[];
   isLoadingBranches?: boolean;
   isCreatingWorkspace?: boolean;
-  showCreateWorkspaceProgress?: boolean;
-  createWorkspaceStatusLabel?: string;
   onBack: () => void;
-  onCreateWorkspace: (branch: string) => Promise<boolean>;
+  onCreateWorkspace: (request: CreateWorkspaceRequest) => Promise<boolean>;
   onOpenInEditor: (path: string) => void;
   onLoadBranches?: () => void | Promise<void>;
   onClearBranches?: () => void;
@@ -69,7 +45,10 @@ interface ProjectDetailProps {
   onRemoveSyncTarget: (target: SyncTarget) => void;
   environments: Environment[];
   getEnvironmentIdForTarget: (targetPath: string) => string | null;
-  onEnvironmentChange: (environmentId: string | null, binding: EnvironmentBinding) => void;
+  onEnvironmentChange: (
+    environmentId: string | null,
+    binding: EnvironmentBinding,
+  ) => void;
 }
 
 export const ProjectDetail = ({
@@ -78,8 +57,6 @@ export const ProjectDetail = ({
   gitBranches,
   isLoadingBranches,
   isCreatingWorkspace = false,
-  showCreateWorkspaceProgress = false,
-  createWorkspaceStatusLabel = "Creating workspace...",
   onBack,
   onCreateWorkspace,
   onOpenInEditor,
@@ -96,37 +73,10 @@ export const ProjectDetail = ({
   getEnvironmentIdForTarget,
   onEnvironmentChange,
 }: ProjectDetailProps) => {
-  const [branchInput, setBranchInput] = useState("");
-  const [branchSearchActive, setBranchSearchActive] = useState(false);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [hasFetchedBranchesThisOpen, setHasFetchedBranchesThisOpen] = useState(false);
-  const isCreateDialogOpenRef = useRef(false);
-  const branchInputRef = useRef<HTMLInputElement | null>(null);
-
-  const availableBranches = gitBranches;
-
-  const handleCreateWorkspace = async (branchName: string) => {
-    if (isCreatingWorkspace) {
-      return;
-    }
-    const success = await onCreateWorkspace(branchName);
-    setBranchInput("");
-    setBranchSearchActive(false);
-    branchInputRef.current?.blur();
-    if (success) {
-      isCreateDialogOpenRef.current = false;
-      setIsCreateDialogOpen(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          onClick={onBack}
-          className="hover:bg-secondary"
-        >
+        <Button variant="ghost" onClick={onBack} className="hover:bg-secondary">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
@@ -137,8 +87,6 @@ export const ProjectDetail = ({
         </div>
       </div>
 
-
-
       {/* Workspaces Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -148,155 +96,15 @@ export const ProjectDetail = ({
           </h2>
 
           {project.isGitRepo && (
-            <Dialog
-              open={isCreateDialogOpen}
-              onOpenChange={(open) => {
-                if (isCreatingWorkspace && !open) {
-                  return;
-                }
-
-                isCreateDialogOpenRef.current = open;
-                setIsCreateDialogOpen(open);
-
-                if (shouldResetBranchSearchSession({ open })) {
-                  setBranchInput("");
-                  setBranchSearchActive(false);
-                  setHasFetchedBranchesThisOpen(false);
-                  onClearBranches?.();
-                }
-              }}
-            >
-              <DialogTrigger asChild>
-                <Button className="gap-2" disabled={isCreatingWorkspace}>
-                  <GitBranch className="h-4 w-4" />
-                  New Workspace
-                </Button>
-              </DialogTrigger>
-              <DialogContent
-                className="sm:max-w-2xl"
-                onEscapeKeyDown={(event) => {
-                  if (isCreatingWorkspace) {
-                    event.preventDefault();
-                  }
-                }}
-                onPointerDownOutside={(event) => {
-                  if (isCreatingWorkspace) {
-                    event.preventDefault();
-                  }
-                }}
-              >
-                <DialogHeader>
-                  <DialogTitle>Create New Workspace</DialogTitle>
-                </DialogHeader>
-
-                <div className="space-y-6 py-4">
-                  <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground flex items-start gap-3 shadow-sm">
-                    <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                    <div className="space-y-1">
-                      <p className="font-medium text-foreground">What is a Workspace?</p>
-                      <p>
-                        A Workspace is an isolated copy of your branch (powered by <strong className="font-semibold text-primary/80">Git Worktrees</strong>).
-                        It lets you verify, debug, and work on multiple branches simultaneously without switching context.
-                      </p>
-                    </div>
-                  </div>
-
-                  {showCreateWorkspaceProgress && (
-                    <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-                      <Loader2 className="mt-0.5 h-4 w-4 animate-spin" />
-                      <div className="space-y-1">
-                        <p className="font-medium text-foreground">{createWorkspaceStatusLabel}</p>
-                        <p className="text-xs">Large folders may take time to copy.</p>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <Command className="rounded-lg border border-border bg-background">
-                      <CommandInput
-                        ref={branchInputRef}
-                        placeholder="Search branches..."
-                        value={branchInput}
-                        disabled={isCreatingWorkspace}
-                        onValueChange={setBranchInput}
-                        onFocus={() => {
-                          if (isCreatingWorkspace) {
-                            return;
-                          }
-                          setBranchSearchActive(true);
-                          if (
-                            shouldLoadBranchesOnFocus({
-                              hasFetchedBranchesThisOpen,
-                              isCreatingWorkspace,
-                            })
-                          ) {
-                            setHasFetchedBranchesThisOpen(true);
-                            onLoadBranches?.();
-                          }
-                        }}
-                        onBlur={() => {
-                          setTimeout(() => {
-                            if (
-                              shouldHideBranchSearchOnBlur({
-                                isDialogOpen: isCreateDialogOpenRef.current,
-                              })
-                            ) {
-                              setBranchSearchActive(false);
-                            }
-                          }, 120);
-                        }}
-                      />
-                      {shouldShowBranchSearchResults({
-                        branchSearchActive,
-                        isLoadingBranches: Boolean(isLoadingBranches),
-                      }) && (
-                        <CommandList className="max-h-60">
-                          {isLoadingBranches ? (
-                            <div className="flex items-center justify-center gap-2 py-6 text-muted-foreground text-sm">
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              Fetching branches...
-                            </div>
-                          ) : (
-                            <>
-                              <CommandEmpty>No matching branches.</CommandEmpty>
-                              <CommandGroup heading="Available branches">
-                                {availableBranches.map((branchName) => (
-                                  <CommandItem
-                                    key={branchName}
-                                    value={branchName}
-                                    onSelect={() => {
-                                      if (!isCreatingWorkspace) {
-                                        void handleCreateWorkspace(branchName);
-                                      }
-                                    }}
-                                    className={`flex items-center gap-3 py-2.5 px-2 group ${isCreatingWorkspace ? "opacity-60 pointer-events-none" : "cursor-pointer"
-                                      }`}
-                                  >
-                                    <div className="flex h-6 w-6 items-center justify-center rounded-md border border-muted bg-background group-data-[selected=true]:border-primary/30 group-data-[selected=true]:bg-primary/10 transition-colors shrink-0">
-                                      <GitBranch className="h-3.5 w-3.5 text-muted-foreground group-data-[selected=true]:text-primary transition-colors" />
-                                    </div>
-                                    <div className="flex-1 min-w-0 grid">
-                                      <p className="font-mono text-sm truncate group-data-[selected=true]:text-accent-foreground" title={branchName}>
-                                        {branchName}
-                                      </p>
-                                    </div>
-                                    <div className="flex items-center gap-1.5 pr-1 opacity-0 group-data-[selected=true]:opacity-100 transition-all duration-200">
-                                      <span className="text-[10px] font-medium text-primary uppercase tracking-wider">Create</span>
-                                      <Plus className="h-3.5 w-3.5 text-primary" />
-                                    </div>
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </>
-                          )}
-                        </CommandList>
-                      )}
-                    </Command>
-                    <BranchSearchHint />
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <CreateWorkspaceDialog
+              projectPath={project.path}
+              gitBranches={gitBranches}
+              isLoadingBranches={isLoadingBranches}
+              isCreatingWorkspace={isCreatingWorkspace}
+              onCreateWorkspace={onCreateWorkspace}
+              onLoadBranches={onLoadBranches}
+              onClearBranches={onClearBranches}
+            />
           )}
         </div>
 
@@ -309,7 +117,9 @@ export const ProjectDetail = ({
                 <div className="space-y-1 min-w-0 max-w-[85%]">
                   <div className="flex items-center gap-2">
                     <HardDrive className="h-4 w-4 text-primary" />
-                    <h3 className="font-semibold text-lg text-primary">Repository Root</h3>
+                    <h3 className="font-semibold text-lg text-primary">
+                      Repository Root
+                    </h3>
                   </div>
                   <div
                     className="text-[10px] text-muted-foreground font-mono truncate select-all px-0.5"
@@ -391,7 +201,9 @@ export const ProjectDetail = ({
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 -mr-1 -mt-1 opacity-0 group-hover:opacity-100 transition-all duration-200"
-                    onClick={() => onDeleteWorkspace(branch.workspace, branch.name)}
+                    onClick={() =>
+                      onDeleteWorkspace(branch.workspace, branch.name)
+                    }
                     title="Delete Workspace"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -435,7 +247,6 @@ export const ProjectDetail = ({
             </Card>
           ))}
         </div>
-
       </div>
 
       {project.isGitRepo && (
@@ -451,9 +262,16 @@ export const ProjectDetail = ({
               <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground flex items-start gap-3">
                 <Info className="h-4 w-4 mt-0.5" />
                 <div className="space-y-1">
-                  <p className="font-medium text-foreground">Sync your .env files</p>
+                  <p className="font-medium text-foreground">
+                    Sync your .env files
+                  </p>
                   <p className="text-xs">
-                    Files and folders selected here will be automatically copied from <code className="font-mono bg-muted/50 px-1 rounded">{project.path}</code> into every new workspace.
+                    Files and folders selected here will be automatically copied
+                    from{" "}
+                    <code className="font-mono bg-muted/50 px-1 rounded">
+                      {project.path}
+                    </code>{" "}
+                    into every new workspace.
                   </p>
                 </div>
               </div>

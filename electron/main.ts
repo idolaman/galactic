@@ -23,8 +23,10 @@ import { promisify } from "node:util";
 import type { ExecFileException } from "node:child_process";
 import { initAnalytics, analytics, isAnalyticsEvent, trackEvent } from "./analytics.js";
 import { registerEditorLaunchIpc } from "./ipc/register-editor-launch.js";
+import { registerGitWorktreeIpc } from "./ipc/register-git-worktree.js";
 import { registerProjectSyncIpc } from "./ipc/register-project-sync.js";
 import { getGalacticUpdateUrl } from "./release-config.js";
+import { getGitCurrentBranch } from "./utils/git-current-branch.js";
 import { fetchGitBranchesWithReason } from "./utils/git-fetch-branches.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -591,9 +593,9 @@ ipcMain.handle("git/get-info", async (_event, projectPath: string) => {
   }
 });
 
-ipcMain.handle("git/create-worktree", async (_event, projectPath: string, branch: string) => {
-  if (!projectPath || !branch) {
-    return { success: false, error: "Project path and branch are required." };
+ipcMain.handle("git/get-current-branch", async (_event, projectPath: string) => {
+  if (!projectPath) {
+    return { success: false, error: "Project path is required." };
   }
 
   const gitDirExists = existsSync(path.join(projectPath, ".git"));
@@ -601,48 +603,11 @@ ipcMain.handle("git/create-worktree", async (_event, projectPath: string, branch
     return { success: false, error: "Git repository not found." };
   }
 
-  const sanitizedBranch = branch.replace(/[\\/]/g, "-");
-  const projectParent = path.resolve(projectPath, "..");
-  const projectName = path.basename(projectPath);
-  const globalWorktreeRoot = path.join(projectParent, ".worktrees");
-  const worktreeRoot = path.join(globalWorktreeRoot, projectName);
-  try {
-    if (!existsSync(globalWorktreeRoot)) {
-      mkdirSync(globalWorktreeRoot, { recursive: true });
-    }
-    if (!existsSync(worktreeRoot)) {
-      mkdirSync(worktreeRoot, { recursive: true });
-    }
-  } catch (error) {
-    console.error("Failed to ensure worktree directory:", error);
-    return { success: false, error: "Unable to prepare worktree directory." };
+  const result = await getGitCurrentBranch(projectPath);
+  if (!result.success) {
+    console.warn(`Failed to resolve current branch for ${projectPath}:`, result.error);
   }
-  const targetPath = path.join(worktreeRoot, sanitizedBranch);
-
-  try {
-    const env: NodeJS.ProcessEnv = {
-      ...process.env,
-      GIT_LFS_SKIP_SMUDGE: "1",
-      ...(process.platform === "darwin" && {
-        PATH: [process.env.PATH ?? "", "/opt/homebrew/bin", "/usr/local/bin"]
-          .filter(Boolean)
-          .join(path.delimiter),
-      }),
-    };
-
-    await execFileAsync("git", ["worktree", "add", targetPath, branch], { cwd: projectPath, env });
-    analytics.workspaceCreated(branch);
-    return { success: true, path: targetPath };
-  } catch (error) {
-    console.error(`Failed to create worktree for ${branch} at ${projectPath}:`, error);
-    const execError = error as ExecFileException & { stderr?: string };
-    const errorMessage = execError?.stderr || execError?.message || "Unknown error creating worktree.";
-    analytics.gitFailed("worktree-add", errorMessage);
-    return {
-      success: false,
-      error: errorMessage,
-    };
-  }
+  return result;
 });
 
 ipcMain.handle("git/remove-worktree", async (_event, projectPath: string, worktreePath: string) => {
@@ -805,6 +770,12 @@ ipcMain.handle("git/fetch-branches", async (_event, projectPath: string) => {
 registerEditorLaunchIpc({
   ipcMain,
   editorLaunched: (editor) => analytics.editorLaunched(editor),
+});
+
+registerGitWorktreeIpc({
+  ipcMain,
+  workspaceCreated: (branch) => analytics.workspaceCreated(branch),
+  gitFailed: (operation, error) => analytics.gitFailed(operation, error),
 });
 
 registerProjectSyncIpc({
