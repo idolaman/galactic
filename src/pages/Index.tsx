@@ -31,11 +31,9 @@ import {
   ensureLaunchedEnvironment,
 } from "@/services/workspace-state";
 import { trackConfigFileAdded } from "@/services/analytics";
-import {
-  dedupeSyncTargets,
-  includesSyncTarget,
-  normalizeSyncTargetPath,
-} from "@/services/sync-targets";
+import { dedupeSyncTargets, includesSyncTarget, normalizeSyncTargetPath } from "@/services/sync-targets";
+import { evaluateWorktreeRemovalResult, getWorktreeRemovalFailureToast } from "@/lib/worktree-removal";
+import { reconcileProjectWorkspaces, toAdditionalWorkspaces } from "@/lib/workspace-reconciliation";
 import type { CreateWorkspaceRequest } from "@/lib/create-workspace-request";
 import type { SyncTarget } from "@/types/sync-target";
 
@@ -94,20 +92,8 @@ const Index = () => {
 
     if (gitInfo.isGitRepo) {
       const worktrees = await getWorktrees(normalizedPath);
-      // Filter out the main worktree which typically matches the project path
-      // or is the root of the repo. We only want additional worktrees.
-      const additionalWorktrees = worktrees.filter((wt) => {
-        // Normalize paths for comparison (remove trailing slashes, etc)
-        const wtPath = wt.path.replace(/[\\/]+$/, "");
-        const projPath = normalizedPath.replace(/[\\/]+$/, "");
-        return wtPath !== projPath;
-      });
-
-      detectedWorktrees = additionalWorktrees.length;
-      detectedWorkspaces = additionalWorktrees.map((wt) => ({
-        name: wt.branch,
-        workspace: wt.path,
-      }));
+      detectedWorkspaces = toAdditionalWorkspaces(normalizedPath, worktrees);
+      detectedWorktrees = detectedWorkspaces.length;
 
       // Create .code-workspace files for detected worktrees
       for (const ws of detectedWorkspaces) {
@@ -185,6 +171,52 @@ const Index = () => {
       { replace: true },
     );
   }, [handleViewProject, location.search, navigate, projects]);
+
+  useEffect(() => {
+    if (!selectedProject?.isGitRepo) {
+      return;
+    }
+
+    let cancelled = false;
+    const projectSnapshot = selectedProject;
+
+    const reconcileWorkspaces = async () => {
+      const liveWorktrees = await getWorktrees(projectSnapshot.path);
+      const reconciledProject = reconcileProjectWorkspaces(projectSnapshot, liveWorktrees);
+
+      if (cancelled || reconciledProject === projectSnapshot) {
+        return;
+      }
+
+      const nextWorkspaces = reconciledProject.workspaces ?? [];
+      setProjectWorkspaces((prev) => ({ ...prev, [projectSnapshot.id]: nextWorkspaces }));
+      setSelectedProject((prev) => {
+        if (!prev || prev.id !== projectSnapshot.id) {
+          return prev;
+        }
+        return {
+          ...prev,
+          worktrees: reconciledProject.worktrees,
+          workspaces: nextWorkspaces,
+        };
+      });
+      setProjects((prevProjects) => {
+        const updatedProjects = prevProjects.map((project) =>
+          project.id === projectSnapshot.id
+            ? { ...project, worktrees: reconciledProject.worktrees, workspaces: nextWorkspaces }
+            : project,
+        );
+        projectStorage.save(updatedProjects);
+        return updatedProjects;
+      });
+    };
+
+    void reconcileWorkspaces();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedProject]);
 
   const handleDeleteProject = (projectId: string) => {
     const projectToDelete = projects.find(
@@ -328,19 +360,13 @@ const Index = () => {
     }
   };
 
-  const handleDeleteWorkspace = async (
-    workspacePath: string,
-    branchName: string,
-  ) => {
+  const handleDeleteWorkspace = async (workspacePath: string, branchName: string) => {
     if (!selectedProject) return;
 
     const result = await removeWorktree(selectedProject.path, workspacePath);
-    if (!result.success) {
-      toast({
-        title: "Failed to remove workspace",
-        description: result.error ?? "Unknown error removing git worktree.",
-        variant: "destructive",
-      });
+    const removalDecision = evaluateWorktreeRemovalResult(result);
+    if (!removalDecision.shouldCleanup) {
+      toast(getWorktreeRemovalFailureToast());
       return;
     }
 
