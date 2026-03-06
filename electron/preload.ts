@@ -10,11 +10,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("check-editor-installed", editorName),
   chooseProjectDirectory: () => ipcRenderer.invoke("os/choose-project-directory"),
   getGitInfo: (projectPath: string) => ipcRenderer.invoke("git/get-info", projectPath),
+  getGitCurrentBranch: (projectPath: string) => ipcRenderer.invoke("git/get-current-branch", projectPath),
   listGitBranches: (projectPath: string) => ipcRenderer.invoke("git/list-branches", projectPath),
   getGitWorktrees: (projectPath: string) => ipcRenderer.invoke("git/get-worktrees", projectPath),
   fetchGitBranches: (projectPath: string) => ipcRenderer.invoke("git/fetch-branches", projectPath),
-  createGitWorktree: (projectPath: string, branch: string) =>
-    ipcRenderer.invoke("git/create-worktree", projectPath, branch),
+  createGitWorktree: (
+    projectPath: string,
+    branch: string,
+    options?: { createBranch?: boolean; startPoint?: string },
+  ) => ipcRenderer.invoke("git/create-worktree", projectPath, branch, options),
   removeGitWorktree: (projectPath: string, workspacePath: string) =>
     ipcRenderer.invoke("git/remove-worktree", projectPath, workspacePath),
   openProjectInEditor: (editorName: string, projectPath: string) =>
