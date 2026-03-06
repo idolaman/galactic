@@ -10,8 +10,18 @@ export interface NewBranchValidationResult {
   error?: string;
 }
 
-const INVALID_BRANCH_CHARACTERS = /[\u0000-\u001f\u007f ~^:?*[\]\\]/;
+const INVALID_BRANCH_CHARACTERS = /[\x7f ~^:?*[\]\\]/;
 const INVALID_BRANCH_SUBSTRINGS = ["..", "@{", "//"] as const;
+
+const hasAsciiControlCharacter = (value: string): boolean => {
+  for (let i = 0; i < value.length; i += 1) {
+    const code = value.charCodeAt(i);
+    if ((code >= 0 && code <= 31) || code === 127) {
+      return true;
+    }
+  }
+  return false;
+};
 
 export const normalizeBranchName = (value: string): string => value.trim();
 
@@ -30,6 +40,7 @@ export const validateNewBranchName = (
     normalizedBranch.endsWith("/") ||
     normalizedBranch.endsWith(".") ||
     normalizedBranch.endsWith(".lock") ||
+    hasAsciiControlCharacter(normalizedBranch) ||
     INVALID_BRANCH_CHARACTERS.test(normalizedBranch) ||
     INVALID_BRANCH_SUBSTRINGS.some((entry) => normalizedBranch.includes(entry))
   ) {
