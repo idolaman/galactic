@@ -1,26 +1,40 @@
 import { useCallback, useEffect, useState } from "react";
+import { toast as sonnerToast } from "sonner";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ProjectList } from "@/components/ProjectList";
 import { ProjectDetail } from "@/components/ProjectDetail";
 import { useToast } from "@/hooks/use-toast";
 import { useBranchLoader } from "@/hooks/use-branch-loader";
 import { chooseProjectDirectory } from "@/services/os";
-import { createWorktree, getGitInfo, removeWorktree, getWorktrees } from "@/services/git";
+import {
+  createWorktree,
+  getGitInfo,
+  removeWorktree,
+  getWorktrees,
+} from "@/services/git";
 import { projectStorage, type StoredProject } from "@/services/projects";
 import { getPreferredEditor, openProjectInEditor } from "@/services/editor";
 import type { Workspace } from "@/types/workspace";
-import { copyProjectSyncTargetsToWorktree, searchProjectSyncTargets } from "@/services/files";
+import {
+  copyProjectSyncTargetsToWorktree,
+  searchProjectSyncTargets,
+} from "@/services/files";
 import { useEnvironmentManager } from "@/hooks/use-environment-manager";
 import type { EnvironmentBinding } from "@/types/environment";
-import { writeCodeWorkspace, getCodeWorkspacePath, deleteCodeWorkspace } from "@/services/workspace";
-import { clearWorkspaceRelaunchFlag, ensureLaunchedEnvironment } from "@/services/workspace-state";
+import {
+  writeCodeWorkspace,
+  getCodeWorkspacePath,
+  deleteCodeWorkspace,
+} from "@/services/workspace";
+import {
+  clearWorkspaceRelaunchFlag,
+  ensureLaunchedEnvironment,
+} from "@/services/workspace-state";
 import { trackConfigFileAdded } from "@/services/analytics";
 import { dedupeSyncTargets, includesSyncTarget, normalizeSyncTargetPath } from "@/services/sync-targets";
-import {
-  evaluateWorktreeRemovalResult,
-  getWorktreeRemovalFailureToast,
-} from "@/lib/worktree-removal";
+import { evaluateWorktreeRemovalResult, getWorktreeRemovalFailureToast } from "@/lib/worktree-removal";
 import { reconcileProjectWorkspaces, toAdditionalWorkspaces } from "@/lib/workspace-reconciliation";
+import type { CreateWorkspaceRequest } from "@/lib/create-workspace-request";
 import type { SyncTarget } from "@/types/sync-target";
 
 type Project = StoredProject;
@@ -31,22 +45,30 @@ const Index = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [projects, setProjects] = useState<Project[]>(() => projectStorage.load());
+  const [projects, setProjects] = useState<Project[]>(() =>
+    projectStorage.load(),
+  );
   const [projectBranches, setProjectBranches] = useState<string[]>([]);
   const [isLoadingBranches, setIsLoadingBranches] = useState(false);
   const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
-  const [showCreateWorkspaceProgress, setShowCreateWorkspaceProgress] = useState(false);
-  const [createWorkspaceStatusLabel, setCreateWorkspaceStatusLabel] = useState("");
-  const [projectWorkspaces, setProjectWorkspaces] = useState<Record<string, Workspace[]>>(() => {
+  const [projectWorkspaces, setProjectWorkspaces] = useState<
+    Record<string, Workspace[]>
+  >(() => {
     const loaded = projectStorage.load();
-    return loaded.reduce((acc, project) => {
-      acc[project.id] = project.workspaces ?? [];
-      return acc;
-    }, {} as Record<string, Workspace[]>);
+    return loaded.reduce(
+      (acc, project) => {
+        acc[project.id] = project.workspaces ?? [];
+        return acc;
+      },
+      {} as Record<string, Workspace[]>,
+    );
   });
-  const [syncTargetSearchResults, setSyncTargetSearchResults] = useState<SyncTarget[]>([]);
+  const [syncTargetSearchResults, setSyncTargetSearchResults] = useState<
+    SyncTarget[]
+  >([]);
   const [isSearchingSyncTargets, setIsSearchingSyncTargets] = useState(false);
-  const { environments, assignTarget, unassignTarget, environmentForTarget } = useEnvironmentManager();
+  const { environments, assignTarget, unassignTarget, environmentForTarget } =
+    useEnvironmentManager();
   const { loadProjectBranches, clearProjectBranches } = useBranchLoader({
     setIsLoadingBranches,
     setProjectBranches,
@@ -92,7 +114,10 @@ const Index = () => {
     };
 
     setProjects(projectStorage.upsert(newProject));
-    setProjectWorkspaces((prev) => ({ ...prev, [newProject.id]: newProject.workspaces ?? [] }));
+    setProjectWorkspaces((prev) => ({
+      ...prev,
+      [newProject.id]: newProject.workspaces ?? [],
+    }));
 
     // Clear any existing environment binding and create .code-workspace without env vars.
     // New projects start "clean", so no relaunch is required yet.
@@ -103,22 +128,26 @@ const Index = () => {
     setSelectedProject(newProject);
   };
 
-  const handleViewProject = useCallback((project: Project) => {
-    const workspaces = projectWorkspaces[project.id] ?? project.workspaces ?? [];
-    setProjectWorkspaces((prev) => {
-      if (prev[project.id]) {
-        return prev;
-      }
+  const handleViewProject = useCallback(
+    (project: Project) => {
+      const workspaces =
+        projectWorkspaces[project.id] ?? project.workspaces ?? [];
+      setProjectWorkspaces((prev) => {
+        if (prev[project.id]) {
+          return prev;
+        }
 
-      return {
-        ...prev,
-        [project.id]: workspaces,
-      };
-    });
+        return {
+          ...prev,
+          [project.id]: workspaces,
+        };
+      });
 
-    setSelectedProject({ ...project, workspaces });
-    setProjectBranches([]);
-  }, [projectWorkspaces]);
+      setSelectedProject({ ...project, workspaces });
+      setProjectBranches([]);
+    },
+    [projectWorkspaces],
+  );
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -190,7 +219,9 @@ const Index = () => {
   }, [selectedProject]);
 
   const handleDeleteProject = (projectId: string) => {
-    const projectToDelete = projects.find((project) => project.id === projectId);
+    const projectToDelete = projects.find(
+      (project) => project.id === projectId,
+    );
     if (!projectToDelete) {
       return;
     }
@@ -214,7 +245,8 @@ const Index = () => {
     clearWorkspaceRelaunchFlag(projectToDelete.path);
 
     // Clean up any associated worktree workspaces
-    const workspacesToDelete = projectWorkspaces[projectId] ?? projectToDelete.workspaces ?? [];
+    const workspacesToDelete =
+      projectWorkspaces[projectId] ?? projectToDelete.workspaces ?? [];
     workspacesToDelete.forEach((ws) => {
       unassignTarget(ws.workspace);
       deleteCodeWorkspace(ws.workspace).catch((err) =>
@@ -222,56 +254,55 @@ const Index = () => {
       );
       clearWorkspaceRelaunchFlag(ws.workspace);
     });
-
   };
 
-  const handleCreateWorkspace = async (branch: string) => {
+  const handleCreateWorkspace = async (request: CreateWorkspaceRequest) => {
     if (!selectedProject) {
       return false;
     }
 
-    let progressTimer: ReturnType<typeof setTimeout> | null = null;
+    const branch = request.branch.trim();
+    if (!branch) {
+      return false;
+    }
+
     setIsCreatingWorkspace(true);
-    setShowCreateWorkspaceProgress(false);
-    setCreateWorkspaceStatusLabel("Creating workspace...");
-    progressTimer = setTimeout(() => {
-      setShowCreateWorkspaceProgress(true);
-    }, 500);
+    const toastId = sonnerToast.loading("Creating workspace...");
 
     try {
       const syncTargets = selectedProject.syncTargets ?? [];
-      const result = await createWorktree(selectedProject.path, branch);
+      const result = await createWorktree(selectedProject.path, branch, {
+        createBranch: request.createBranch,
+        startPoint: request.startPoint,
+      });
 
       if (!result.success || !result.path) {
-        toast({
-          title: "Failed to create workspace",
+        sonnerToast.error("Failed to create workspace", {
+          id: toastId,
           description: result.error ?? "Unknown error running git worktree.",
-          variant: "destructive",
+          duration: Number.POSITIVE_INFINITY,
         });
         return false;
       }
 
       if (syncTargets.length > 0 && result.path) {
-        setCreateWorkspaceStatusLabel("Copying selected files and folders...");
-        const copyResult = await copyProjectSyncTargetsToWorktree(selectedProject.path, result.path, syncTargets);
+        sonnerToast.loading("Copying selected files and folders...", {
+          id: toastId,
+        });
+        const copyResult = await copyProjectSyncTargetsToWorktree(
+          selectedProject.path,
+          result.path,
+          syncTargets,
+        );
         if (!copyResult.success) {
-          const errorMessage =
+          const copyFailureDescription =
             copyResult.errors?.map((entry) => `${entry.path}: ${entry.message}`).join("\n") ??
             "Unable to copy selected sync files and folders.";
-          toast({
-            title: "Sync copy failed",
-            description: errorMessage,
-            variant: "destructive",
-          });
-        } else if (copyResult.skipped.length > 0) {
-          toast({
-            title: "Workspace created with skips",
-            description: `${copyResult.skipped.length} file(s) already existed and were skipped.`,
-          });
+          console.warn("Workspace sync copy had issues:", copyFailureDescription);
         }
       }
 
-      setCreateWorkspaceStatusLabel("Finalizing workspace...");
+      sonnerToast.loading("Finalizing workspace...", { id: toastId });
       // Clear any existing environment binding and create .code-workspace without env vars.
       // Fresh worktrees also start clean.
       unassignTarget(result.path!);
@@ -280,7 +311,9 @@ const Index = () => {
 
       setProjectWorkspaces((prev) => {
         const next = { ...prev };
-        const list = next[selectedProject.id] ? [...next[selectedProject.id]] : [];
+        const list = next[selectedProject.id]
+          ? [...next[selectedProject.id]]
+          : [];
         const nextWorkspace: Workspace = {
           name: branch,
           workspace: result.path!,
@@ -306,18 +339,28 @@ const Index = () => {
         return next;
       });
 
+      sonnerToast.success("Workspace created!", {
+        id: toastId,
+        duration: 2000,
+      });
+
       return true;
+    } catch (error) {
+      sonnerToast.error("Failed to create workspace", {
+        id: toastId,
+        description:
+          error instanceof Error
+            ? error.message
+            : "Unknown workspace creation error.",
+        duration: Number.POSITIVE_INFINITY,
+      });
+      return false;
     } finally {
-      if (progressTimer) {
-        clearTimeout(progressTimer);
-      }
       setIsCreatingWorkspace(false);
-      setShowCreateWorkspaceProgress(false);
-      setCreateWorkspaceStatusLabel("");
     }
   };
 
-  const handleDeleteWorkspace = async (workspacePath: string) => {
+  const handleDeleteWorkspace = async (workspacePath: string, branchName: string) => {
     if (!selectedProject) return;
 
     const result = await removeWorktree(selectedProject.path, workspacePath);
@@ -334,7 +377,9 @@ const Index = () => {
 
     setProjectWorkspaces((prev) => {
       const next = { ...prev };
-      const list = (next[selectedProject.id] ?? []).filter((ws) => ws.workspace !== workspacePath);
+      const list = (next[selectedProject.id] ?? []).filter(
+        (ws) => ws.workspace !== workspacePath,
+      );
       next[selectedProject.id] = list;
 
       const updatedProject: Project = {
@@ -356,8 +401,12 @@ const Index = () => {
     });
   };
 
-  const handleEnvironmentChange = async (environmentId: string | null, binding: EnvironmentBinding) => {
-    const currentEnvironmentId = environmentForTarget(binding.targetPath)?.id ?? null;
+  const handleEnvironmentChange = async (
+    environmentId: string | null,
+    binding: EnvironmentBinding,
+  ) => {
+    const currentEnvironmentId =
+      environmentForTarget(binding.targetPath)?.id ?? null;
     if (currentEnvironmentId === environmentId) {
       return;
     }
@@ -387,7 +436,10 @@ const Index = () => {
     });
 
     if (!workspaceResult.success) {
-      console.warn("Failed to update .code-workspace file:", workspaceResult.error);
+      console.warn(
+        "Failed to update .code-workspace file:",
+        workspaceResult.error,
+      );
     }
   };
 
@@ -412,7 +464,10 @@ const Index = () => {
 
       setIsSearchingSyncTargets(true);
       try {
-        const targets = await searchProjectSyncTargets(selectedProject.path, trimmed);
+        const targets = await searchProjectSyncTargets(
+          selectedProject.path,
+          trimmed,
+        );
         setSyncTargetSearchResults(targets);
       } catch (error) {
         console.error("Sync target search failed:", error);
@@ -431,7 +486,9 @@ const Index = () => {
   const updateSelectedProject = (next: Project) => {
     setSelectedProject(next);
     setProjects((prev) => {
-      const updatedProjects = prev.map((project) => (project.id === next.id ? next : project));
+      const updatedProjects = prev.map((project) =>
+        project.id === next.id ? next : project,
+      );
       projectStorage.save(updatedProjects);
       return updatedProjects;
     });
@@ -517,8 +574,6 @@ const Index = () => {
           gitBranches={projectBranches}
           isLoadingBranches={isLoadingBranches}
           isCreatingWorkspace={isCreatingWorkspace}
-          showCreateWorkspaceProgress={showCreateWorkspaceProgress}
-          createWorkspaceStatusLabel={createWorkspaceStatusLabel}
           onLoadBranches={handleLoadProjectBranches}
           onClearBranches={handleClearProjectBranches}
           onBack={() => setSelectedProject(null)}

@@ -4,6 +4,12 @@ export interface GitInfo {
   isGitRepo: boolean;
 }
 
+export interface GitCurrentBranchResult {
+  success: boolean;
+  branch?: string;
+  error?: string;
+}
+
 const defaultGitInfo: GitInfo = { isGitRepo: false };
 const defaultBranches: string[] = [];
 
@@ -12,6 +18,11 @@ export interface WorktreeResult {
   path?: string;
   error?: string;
   alreadyRemoved?: boolean;
+}
+
+export interface CreateWorktreeOptions {
+  createBranch?: boolean;
+  startPoint?: string;
 }
 
 export const getGitInfo = async (projectPath: string): Promise<GitInfo> => {
@@ -48,6 +59,26 @@ export const listBranches = async (projectPath: string): Promise<string[]> => {
   } catch (error) {
     console.error("Failed to list git branches:", error);
     return defaultBranches;
+  }
+};
+
+export const getCurrentBranch = async (projectPath: string): Promise<GitCurrentBranchResult> => {
+  if (!projectPath || typeof window === "undefined") {
+    return { success: false, error: "Invalid project path." };
+  }
+
+  try {
+    const result = await window.electronAPI?.getGitCurrentBranch?.(projectPath);
+    if (!result) {
+      return { success: false, error: "Unable to resolve current branch." };
+    }
+    return result;
+  } catch (error) {
+    console.error("Failed to resolve current branch:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown branch resolution error.",
+    };
   }
 };
 
@@ -92,13 +123,17 @@ export const fetchBranches = async (projectPath: string): Promise<GitFetchBranch
   }
 };
 
-export const createWorktree = async (projectPath: string, branch: string): Promise<WorktreeResult> => {
+export const createWorktree = async (
+  projectPath: string,
+  branch: string,
+  options: CreateWorktreeOptions = {},
+): Promise<WorktreeResult> => {
   if (!projectPath || !branch || typeof window === "undefined") {
     return { success: false, error: "Invalid project or branch." };
   }
 
   try {
-    const result = await window.electronAPI?.createGitWorktree?.(projectPath, branch);
+    const result = await window.electronAPI?.createGitWorktree?.(projectPath, branch, options);
     if (!result) {
       return { success: false, error: "Worktree creation failed." };
     }
