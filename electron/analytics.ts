@@ -21,9 +21,9 @@ export const ANALYTICS_EVENTS = [
   "Workspace.filesCopied",
   "Project.added",
   "Project.removed",
-  "MCP.connected",
-  "MCP.sessionFocused",
-  "MCP.sessionStatusChanged",
+  "Hooks.installed",
+  "AgentSessions.focused",
+  "AgentSessions.statusChanged",
   "Environment.created",
   "Environment.deleted",
   "Environment.attached",
@@ -112,14 +112,14 @@ export const analytics = {
   projectRemoved: (worktrees: number, configCount: number) =>
     trackEvent("Project.removed", { worktrees, configCount }),
 
-  mcpConnected: (tool: string) =>
-    trackEvent("MCP.connected", { tool }),
+  hookInstalled: (platform: string, mode: string) =>
+    trackEvent("Hooks.installed", { platform, mode }),
 
-  mcpSessionFocused: (status: string, hasWorkspace: boolean) =>
-    trackEvent("MCP.sessionFocused", { status, hasWorkspace }),
+  agentSessionFocused: (status: string, hasWorkspace: boolean) =>
+    trackEvent("AgentSessions.focused", { status, hasWorkspace }),
 
-  mcpSessionStatusChanged: (from: string, to: string) =>
-    trackEvent("MCP.sessionStatusChanged", { from, to }),
+  agentSessionStatusChanged: (from: string, to: string) =>
+    trackEvent("AgentSessions.statusChanged", { from, to }),
 
   environmentCreated: (address: string) =>
     trackEvent("Environment.created", { address }),

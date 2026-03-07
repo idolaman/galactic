@@ -1,5 +1,7 @@
 import type { CopySyncTargetsResult, SyncTarget } from "@/types/sync-target";
 import type { GitFetchBranchesResult } from "@/types/git";
+import type { HookInstallResult, HookPlatform, HookPlatformStatus } from "@/types/hooks";
+import type { SessionSummary } from "@/types/session";
 
 export interface GitInfo {
   isGitRepo: boolean;
@@ -74,10 +76,10 @@ export interface ElectronAPI {
   ) => Promise<{ success: boolean; workspacePath?: string; error?: string }>;
   getCodeWorkspacePath: (targetPath: string) => Promise<{ exists: boolean; workspacePath: string }>;
   deleteCodeWorkspace: (targetPath: string) => Promise<{ success: boolean; error?: string }>;
-  checkMcpInstalled: (tool: string) => Promise<boolean>;
-  installMcp: (tool: string) => Promise<{ success: boolean; error?: string }>;
-  getMcpServerStatus: () => Promise<{ running: boolean; url: string; port: number }>;
-  restartMcpServer: () => Promise<{ success: boolean }>;
+  getHookStatus: (platform: HookPlatform) => Promise<HookPlatformStatus>;
+  installHooks: (platform: HookPlatform) => Promise<HookInstallResult>;
+  uninstallHooks: (platform: HookPlatform) => Promise<HookInstallResult>;
+  getHookSessions: () => Promise<SessionSummary[]>;
   toggleQuickSidebar: () => Promise<{ visible: boolean }>;
   hideQuickSidebar: () => Promise<{ hidden: boolean }>;
   getQuickSidebarHotkeyEnabled: () => Promise<boolean>;

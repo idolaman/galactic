@@ -3,7 +3,7 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "outDir": ".mcp-build-cache/unit-tests",
+    "outDir": ".build-cache/unit-tests",
     "rootDir": ".",
     "resolveJsonModule": true,
     "esModuleInterop": true,

@@ -39,7 +39,7 @@ Modern development means working across multiple repositories, branches, microse
 - **Launch any project** in Cursor or VS Code with one click
 - **Create isolated Git worktrees** so you can work on multiple branches simultaneously without stashing
 - **Run parallel environments** on the same ports using network isolation, no Docker or VMs needed
-- **Monitor your AI agents** (Cursor, Claude, Codex) in real time through MCP integration
+- **Monitor your AI agents** (Cursor, Claude, VS Code) in real time through local lifecycle hooks
 - **Jump to anything instantly** with a global hotkey launcher
 
 ---
@@ -66,9 +66,9 @@ The standout feature. Galactic assigns unique loopback addresses (`127.0.0.2`, `
   <img src="https://galactic-dev.com/demos/clip-environments.gif" alt="Network Isolation Environments" width="720" />
 </p>
 
-### AI Agent Monitoring (MCP)
+### AI Agent Monitoring (Hooks)
 
-Galactic runs an [MCP](https://modelcontextprotocol.io/) server that connects to your AI-powered editors. See active agent sessions from Cursor, VS Code, Claude, and Codex in one place. Get notified when a session finishes, takes too long, or needs your attention.
+Galactic installs local lifecycle hooks for Cursor, VS Code, and Claude Code. See active agent sessions in one place without cloning or running a bundled MCP server.
 
 <p align="center">
   <img src="https://galactic-dev.com/demos/clip-agent-monitoring.gif" alt="AI Agent Monitoring" width="720" />
@@ -130,10 +130,10 @@ Outputs a signed `.dmg` and `.zip` to the `release/` directory (arm64 + x64).
 
 ```
 galactic-ide/
-├── electron/            # Main process, preload, MCP server
+├── electron/            # Main process, preload, hook installers
 │   ├── main.ts          # Electron entry point & IPC handlers
 │   ├── preload.ts       # Secure bridge to renderer
-│   └── mcp-server.ts    # Model Context Protocol server
+│   └── hooks/           # Hook installers and local session ingestion
 ├── src/                 # React renderer (Vite)
 │   ├── pages/           # Top-level routes
 │   ├── components/      # React components + shadcn/ui

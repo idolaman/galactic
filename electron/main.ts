@@ -14,7 +14,6 @@ import type { UpdateInfo, UpdateCheckResult } from "electron-updater";
 const { autoUpdater } = updaterPackage;
 import path from "node:path";
 import process from "node:process";
-import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { existsSync, mkdirSync } from "node:fs";
 import { promises as fsPromises } from "node:fs";
@@ -23,6 +22,7 @@ import { promisify } from "node:util";
 import type { ExecFileException } from "node:child_process";
 import { initAnalytics, analytics, isAnalyticsEvent, trackEvent } from "./analytics.js";
 import { registerEditorLaunchIpc } from "./ipc/register-editor-launch.js";
+import { registerHookIpc } from "./ipc/register-hooks.js";
 import { registerGitWorktreeIpc } from "./ipc/register-git-worktree.js";
 import { registerProjectSyncIpc } from "./ipc/register-project-sync.js";
 import { getGalacticUpdateUrl } from "./release-config.js";
@@ -512,9 +512,6 @@ app.whenReady().then(async () => {
     scheduleUpdateChecks();
   }
 
-  // Start the MCP server
-  startMcpServer({ port: MCP_SERVER_PORT, tokenless: true });
-
   appSettings = await loadAppSettings();
   const hotkeyApplied = applyQuickSidebarHotkeySetting(appSettings.quickSidebarHotkeyEnabled);
   if (!hotkeyApplied && appSettings.quickSidebarHotkeyEnabled) {
@@ -542,7 +539,6 @@ app.on("before-quit", () => {
     clearInterval(updateCheckTimer);
     updateCheckTimer = null;
   }
-  stopMcpServer();
 });
 
 app.on("will-quit", () => {
@@ -552,7 +548,6 @@ app.on("will-quit", () => {
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
-    stopMcpServer();
     app.quit();
   }
 });
@@ -786,6 +781,11 @@ registerGitWorktreeIpc({
 registerProjectSyncIpc({
   ipcMain,
   workspaceFilesCopied: (count, success) => analytics.workspaceFilesCopied(count, success),
+});
+
+registerHookIpc({
+  ipcMain,
+  hookInstalled: (platform, mode) => analytics.hookInstalled(platform, mode),
 });
 
 const resolveWorktreePath = (projectPath: string, worktreePath: string) => {
@@ -1037,95 +1037,6 @@ ipcMain.handle("update/apply", async () => {
     console.error("Failed to apply update:", error);
     return { success: false, error: error instanceof Error ? error.message : "Failed to install update." };
   }
-});
-
-import { updateMcpConfig, checkMcpConfig } from "./utils/config.js";
-import {
-  startMcpServer,
-  stopMcpServer,
-  isMcpServerRunning,
-  restartMcpServer,
-  getMcpServerUrl,
-} from "./mcp-server.js";
-
-const MCP_SERVER_PORT = 17890;
-
-const THINKING_LOGGER_CONFIG = {
-  type: "http",
-  url: `http://localhost:${MCP_SERVER_PORT}`
-} as const;
-
-const MCP_SERVER_NAME = "galactic";
-
-ipcMain.handle("mcp/check-installed", async (_event, tool: string) => {
-  if (tool === "Cursor") {
-    return await checkMcpConfig(path.join(os.homedir(), ".cursor", "mcp.json"), MCP_SERVER_NAME);
-  }
-
-  if (tool === "VSCode") {
-    return await checkMcpConfig(path.join(os.homedir(), "Library", "Application Support", "Code", "User", "mcp.json"), MCP_SERVER_NAME);
-  }
-
-  if (tool === "Claude") {
-    return await checkMcpConfig(path.join(os.homedir(), ".claude.json"), MCP_SERVER_NAME);
-  }
-
-  if (tool === "Codex") {
-    return await checkMcpConfig(path.join(os.homedir(), ".codex", "config.toml"), MCP_SERVER_NAME);
-  }
-
-  return false;
-});
-
-ipcMain.handle("mcp/install", async (_event, tool: string) => {
-  let result: { success: boolean; error?: string };
-
-  if (tool === "Cursor") {
-    result = await updateMcpConfig(
-      path.join(os.homedir(), ".cursor", "mcp.json"),
-      MCP_SERVER_NAME,
-      THINKING_LOGGER_CONFIG
-    );
-  } else if (tool === "VSCode") {
-    result = await updateMcpConfig(
-      path.join(os.homedir(), "Library", "Application Support", "Code", "User", "mcp.json"),
-      MCP_SERVER_NAME,
-      THINKING_LOGGER_CONFIG
-    );
-  } else if (tool === "Claude") {
-    result = await updateMcpConfig(
-      path.join(os.homedir(), ".claude.json"),
-      MCP_SERVER_NAME,
-      THINKING_LOGGER_CONFIG
-    );
-  } else if (tool === "Codex") {
-    result = await updateMcpConfig(
-      path.join(os.homedir(), ".codex", "config.toml"),
-      MCP_SERVER_NAME,
-      THINKING_LOGGER_CONFIG
-    );
-  } else {
-    return { success: false, error: "Tool not supported yet." };
-  }
-
-  if (result.success) {
-    analytics.mcpConnected(tool);
-  }
-
-  return result;
-});
-
-ipcMain.handle("mcp/server-status", () => {
-  return {
-    running: isMcpServerRunning(),
-    url: getMcpServerUrl(MCP_SERVER_PORT),
-    port: MCP_SERVER_PORT,
-  };
-});
-
-ipcMain.handle("mcp/restart-server", () => {
-  restartMcpServer({ port: MCP_SERVER_PORT, tokenless: true });
-  return { success: true };
 });
 
 ipcMain.handle(
