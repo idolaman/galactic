@@ -10,11 +10,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("check-editor-installed", editorName),
   chooseProjectDirectory: () => ipcRenderer.invoke("os/choose-project-directory"),
   getGitInfo: (projectPath: string) => ipcRenderer.invoke("git/get-info", projectPath),
+  getGitCurrentBranch: (projectPath: string) => ipcRenderer.invoke("git/get-current-branch", projectPath),
   listGitBranches: (projectPath: string) => ipcRenderer.invoke("git/list-branches", projectPath),
   getGitWorktrees: (projectPath: string) => ipcRenderer.invoke("git/get-worktrees", projectPath),
   fetchGitBranches: (projectPath: string) => ipcRenderer.invoke("git/fetch-branches", projectPath),
-  createGitWorktree: (projectPath: string, branch: string) =>
-    ipcRenderer.invoke("git/create-worktree", projectPath, branch),
+  createGitWorktree: (
+    projectPath: string,
+    branch: string,
+    options?: { createBranch?: boolean; startPoint?: string },
+  ) => ipcRenderer.invoke("git/create-worktree", projectPath, branch, options),
   removeGitWorktree: (projectPath: string, workspacePath: string) =>
     ipcRenderer.invoke("git/remove-worktree", projectPath, workspacePath),
   openProjectInEditor: (editorName: string, projectPath: string) =>
@@ -36,10 +40,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("workspace/get-code-workspace-path", targetPath),
   deleteCodeWorkspace: (targetPath: string) =>
     ipcRenderer.invoke("workspace/delete-code-workspace", targetPath),
-  checkMcpInstalled: (tool: string) => ipcRenderer.invoke("mcp/check-installed", tool),
-  installMcp: (tool: string) => ipcRenderer.invoke("mcp/install", tool),
-  getMcpServerStatus: () => ipcRenderer.invoke("mcp/server-status"),
-  restartMcpServer: () => ipcRenderer.invoke("mcp/restart-server"),
+  getHookStatus: (platform: string) => ipcRenderer.invoke("hooks/get-status", platform),
+  installHooks: (platform: string) => ipcRenderer.invoke("hooks/install", platform),
+  uninstallHooks: (platform: string) => ipcRenderer.invoke("hooks/uninstall", platform),
+  getHookSessions: () => ipcRenderer.invoke("hooks/get-sessions"),
   toggleQuickSidebar: () => ipcRenderer.invoke("quick-sidebar/toggle"),
   hideQuickSidebar: () => ipcRenderer.invoke("quick-sidebar/hide"),
   getQuickSidebarHotkeyEnabled: () => ipcRenderer.invoke("settings/get-quick-sidebar-hotkey"),

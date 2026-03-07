@@ -14,7 +14,6 @@ import type { UpdateInfo, UpdateCheckResult } from "electron-updater";
 const { autoUpdater } = updaterPackage;
 import path from "node:path";
 import process from "node:process";
-import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { existsSync, mkdirSync } from "node:fs";
 import { promises as fsPromises } from "node:fs";
@@ -23,9 +22,13 @@ import { promisify } from "node:util";
 import type { ExecFileException } from "node:child_process";
 import { initAnalytics, analytics, isAnalyticsEvent, trackEvent } from "./analytics.js";
 import { registerEditorLaunchIpc } from "./ipc/register-editor-launch.js";
+import { registerHookIpc } from "./ipc/register-hooks.js";
+import { registerGitWorktreeIpc } from "./ipc/register-git-worktree.js";
 import { registerProjectSyncIpc } from "./ipc/register-project-sync.js";
 import { getGalacticUpdateUrl } from "./release-config.js";
+import { getGitCurrentBranch } from "./utils/git-current-branch.js";
 import { fetchGitBranchesWithReason } from "./utils/git-fetch-branches.js";
+import { isWorktreeAlreadyRemovedError } from "./utils/git-worktree-remove.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const execFileAsync = promisify(execFile);
@@ -509,9 +512,6 @@ app.whenReady().then(async () => {
     scheduleUpdateChecks();
   }
 
-  // Start the MCP server
-  startMcpServer({ port: MCP_SERVER_PORT, tokenless: true });
-
   appSettings = await loadAppSettings();
   const hotkeyApplied = applyQuickSidebarHotkeySetting(appSettings.quickSidebarHotkeyEnabled);
   if (!hotkeyApplied && appSettings.quickSidebarHotkeyEnabled) {
@@ -539,7 +539,6 @@ app.on("before-quit", () => {
     clearInterval(updateCheckTimer);
     updateCheckTimer = null;
   }
-  stopMcpServer();
 });
 
 app.on("will-quit", () => {
@@ -549,7 +548,6 @@ app.on("will-quit", () => {
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
-    stopMcpServer();
     app.quit();
   }
 });
@@ -591,9 +589,9 @@ ipcMain.handle("git/get-info", async (_event, projectPath: string) => {
   }
 });
 
-ipcMain.handle("git/create-worktree", async (_event, projectPath: string, branch: string) => {
-  if (!projectPath || !branch) {
-    return { success: false, error: "Project path and branch are required." };
+ipcMain.handle("git/get-current-branch", async (_event, projectPath: string) => {
+  if (!projectPath) {
+    return { success: false, error: "Project path is required." };
   }
 
   const gitDirExists = existsSync(path.join(projectPath, ".git"));
@@ -601,48 +599,11 @@ ipcMain.handle("git/create-worktree", async (_event, projectPath: string, branch
     return { success: false, error: "Git repository not found." };
   }
 
-  const sanitizedBranch = branch.replace(/[\\/]/g, "-");
-  const projectParent = path.resolve(projectPath, "..");
-  const projectName = path.basename(projectPath);
-  const globalWorktreeRoot = path.join(projectParent, ".worktrees");
-  const worktreeRoot = path.join(globalWorktreeRoot, projectName);
-  try {
-    if (!existsSync(globalWorktreeRoot)) {
-      mkdirSync(globalWorktreeRoot, { recursive: true });
-    }
-    if (!existsSync(worktreeRoot)) {
-      mkdirSync(worktreeRoot, { recursive: true });
-    }
-  } catch (error) {
-    console.error("Failed to ensure worktree directory:", error);
-    return { success: false, error: "Unable to prepare worktree directory." };
+  const result = await getGitCurrentBranch(projectPath);
+  if (!result.success) {
+    console.warn(`Failed to resolve current branch for ${projectPath}:`, result.error);
   }
-  const targetPath = path.join(worktreeRoot, sanitizedBranch);
-
-  try {
-    const env: NodeJS.ProcessEnv = {
-      ...process.env,
-      GIT_LFS_SKIP_SMUDGE: "1",
-      ...(process.platform === "darwin" && {
-        PATH: [process.env.PATH ?? "", "/opt/homebrew/bin", "/usr/local/bin"]
-          .filter(Boolean)
-          .join(path.delimiter),
-      }),
-    };
-
-    await execFileAsync("git", ["worktree", "add", targetPath, branch], { cwd: projectPath, env });
-    analytics.workspaceCreated(branch);
-    return { success: true, path: targetPath };
-  } catch (error) {
-    console.error(`Failed to create worktree for ${branch} at ${projectPath}:`, error);
-    const execError = error as ExecFileException & { stderr?: string };
-    const errorMessage = execError?.stderr || execError?.message || "Unknown error creating worktree.";
-    analytics.gitFailed("worktree-add", errorMessage);
-    return {
-      success: false,
-      error: errorMessage,
-    };
-  }
+  return result;
 });
 
 ipcMain.handle("git/remove-worktree", async (_event, projectPath: string, worktreePath: string) => {
@@ -675,6 +636,10 @@ ipcMain.handle("git/remove-worktree", async (_event, projectPath: string, worktr
     console.error(`Failed to remove worktree ${worktreePath}:`, error);
     const execError = error as ExecFileException & { stderr?: string };
     const errorMessage = execError?.stderr || execError?.message || "Unknown error removing worktree.";
+    if (isWorktreeAlreadyRemovedError(errorMessage)) {
+      analytics.workspaceDeleted(path.basename(resolvedWorktreePath));
+      return { success: true, alreadyRemoved: true };
+    }
     analytics.gitFailed("worktree-remove", errorMessage);
     return {
       success: false,
@@ -807,9 +772,20 @@ registerEditorLaunchIpc({
   editorLaunched: (editor) => analytics.editorLaunched(editor),
 });
 
+registerGitWorktreeIpc({
+  ipcMain,
+  workspaceCreated: (branch) => analytics.workspaceCreated(branch),
+  gitFailed: (operation, error) => analytics.gitFailed(operation, error),
+});
+
 registerProjectSyncIpc({
   ipcMain,
   workspaceFilesCopied: (count, success) => analytics.workspaceFilesCopied(count, success),
+});
+
+registerHookIpc({
+  ipcMain,
+  hookInstalled: (platform, mode) => analytics.hookInstalled(platform, mode),
 });
 
 const resolveWorktreePath = (projectPath: string, worktreePath: string) => {
@@ -1061,95 +1037,6 @@ ipcMain.handle("update/apply", async () => {
     console.error("Failed to apply update:", error);
     return { success: false, error: error instanceof Error ? error.message : "Failed to install update." };
   }
-});
-
-import { updateMcpConfig, checkMcpConfig } from "./utils/config.js";
-import {
-  startMcpServer,
-  stopMcpServer,
-  isMcpServerRunning,
-  restartMcpServer,
-  getMcpServerUrl,
-} from "./mcp-server.js";
-
-const MCP_SERVER_PORT = 17890;
-
-const THINKING_LOGGER_CONFIG = {
-  type: "http",
-  url: `http://localhost:${MCP_SERVER_PORT}`
-} as const;
-
-const MCP_SERVER_NAME = "galactic";
-
-ipcMain.handle("mcp/check-installed", async (_event, tool: string) => {
-  if (tool === "Cursor") {
-    return await checkMcpConfig(path.join(os.homedir(), ".cursor", "mcp.json"), MCP_SERVER_NAME);
-  }
-
-  if (tool === "VSCode") {
-    return await checkMcpConfig(path.join(os.homedir(), "Library", "Application Support", "Code", "User", "mcp.json"), MCP_SERVER_NAME);
-  }
-
-  if (tool === "Claude") {
-    return await checkMcpConfig(path.join(os.homedir(), ".claude.json"), MCP_SERVER_NAME);
-  }
-
-  if (tool === "Codex") {
-    return await checkMcpConfig(path.join(os.homedir(), ".codex", "config.toml"), MCP_SERVER_NAME);
-  }
-
-  return false;
-});
-
-ipcMain.handle("mcp/install", async (_event, tool: string) => {
-  let result: { success: boolean; error?: string };
-
-  if (tool === "Cursor") {
-    result = await updateMcpConfig(
-      path.join(os.homedir(), ".cursor", "mcp.json"),
-      MCP_SERVER_NAME,
-      THINKING_LOGGER_CONFIG
-    );
-  } else if (tool === "VSCode") {
-    result = await updateMcpConfig(
-      path.join(os.homedir(), "Library", "Application Support", "Code", "User", "mcp.json"),
-      MCP_SERVER_NAME,
-      THINKING_LOGGER_CONFIG
-    );
-  } else if (tool === "Claude") {
-    result = await updateMcpConfig(
-      path.join(os.homedir(), ".claude.json"),
-      MCP_SERVER_NAME,
-      THINKING_LOGGER_CONFIG
-    );
-  } else if (tool === "Codex") {
-    result = await updateMcpConfig(
-      path.join(os.homedir(), ".codex", "config.toml"),
-      MCP_SERVER_NAME,
-      THINKING_LOGGER_CONFIG
-    );
-  } else {
-    return { success: false, error: "Tool not supported yet." };
-  }
-
-  if (result.success) {
-    analytics.mcpConnected(tool);
-  }
-
-  return result;
-});
-
-ipcMain.handle("mcp/server-status", () => {
-  return {
-    running: isMcpServerRunning(),
-    url: getMcpServerUrl(MCP_SERVER_PORT),
-    port: MCP_SERVER_PORT,
-  };
-});
-
-ipcMain.handle("mcp/restart-server", () => {
-  restartMcpServer({ port: MCP_SERVER_PORT, tokenless: true });
-  return { success: true };
 });
 
 ipcMain.handle(

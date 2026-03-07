@@ -1,14 +1,28 @@
 import type { CopySyncTargetsResult, SyncTarget } from "@/types/sync-target";
 import type { GitFetchBranchesResult } from "@/types/git";
+import type { HookInstallResult, HookPlatform, HookPlatformStatus } from "@/types/hooks";
+import type { SessionSummary } from "@/types/session";
 
 export interface GitInfo {
   isGitRepo: boolean;
+}
+
+export interface GitCurrentBranchResult {
+  success: boolean;
+  branch?: string;
+  error?: string;
 }
 
 export interface WorktreeResult {
   success: boolean;
   path?: string;
   error?: string;
+  alreadyRemoved?: boolean;
+}
+
+export interface CreateWorktreeOptions {
+  createBranch?: boolean;
+  startPoint?: string;
 }
 
 export interface GitWorktreeInfo {
@@ -35,10 +49,15 @@ export interface ElectronAPI {
   checkEditorInstalled: (editorName: string) => Promise<boolean>;
   chooseProjectDirectory: () => Promise<string | null>;
   getGitInfo: (projectPath: string) => Promise<GitInfo>;
+  getGitCurrentBranch: (projectPath: string) => Promise<GitCurrentBranchResult>;
   listGitBranches: (projectPath: string) => Promise<string[]>;
   getGitWorktrees: (projectPath: string) => Promise<GitWorktreeInfo[]>;
   fetchGitBranches: (projectPath: string) => Promise<GitFetchBranchesResult>;
-  createGitWorktree: (projectPath: string, branch: string) => Promise<WorktreeResult>;
+  createGitWorktree: (
+    projectPath: string,
+    branch: string,
+    options?: CreateWorktreeOptions
+  ) => Promise<WorktreeResult>;
   removeGitWorktree: (projectPath: string, workspacePath: string) => Promise<WorktreeResult>;
   openProjectInEditor: (editorName: string, projectPath: string) => Promise<OpenProjectInEditorResult>;
   searchProjectSyncTargets: (projectPath: string, query: string) => Promise<SyncTarget[]>;
@@ -57,10 +76,10 @@ export interface ElectronAPI {
   ) => Promise<{ success: boolean; workspacePath?: string; error?: string }>;
   getCodeWorkspacePath: (targetPath: string) => Promise<{ exists: boolean; workspacePath: string }>;
   deleteCodeWorkspace: (targetPath: string) => Promise<{ success: boolean; error?: string }>;
-  checkMcpInstalled: (tool: string) => Promise<boolean>;
-  installMcp: (tool: string) => Promise<{ success: boolean; error?: string }>;
-  getMcpServerStatus: () => Promise<{ running: boolean; url: string; port: number }>;
-  restartMcpServer: () => Promise<{ success: boolean }>;
+  getHookStatus: (platform: HookPlatform) => Promise<HookPlatformStatus>;
+  installHooks: (platform: HookPlatform) => Promise<HookInstallResult>;
+  uninstallHooks: (platform: HookPlatform) => Promise<HookInstallResult>;
+  getHookSessions: () => Promise<SessionSummary[]>;
   toggleQuickSidebar: () => Promise<{ visible: boolean }>;
   hideQuickSidebar: () => Promise<{ hidden: boolean }>;
   getQuickSidebarHotkeyEnabled: () => Promise<boolean>;

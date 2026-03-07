@@ -69,10 +69,10 @@ export const trackQuickLauncherWorkspaceOpened = (targetType: string, source: st
   trackAnalyticsEvent("QuickLauncher.workspaceOpened", { targetType, source });
 };
 
-export const trackMcpSessionFocus = (status: string, hasWorkspace: boolean): void => {
-  trackAnalyticsEvent("MCP.sessionFocused", { status, hasWorkspace });
+export const trackAgentSessionFocus = (status: string, hasWorkspace: boolean): void => {
+  trackAnalyticsEvent("AgentSessions.focused", { status, hasWorkspace });
 };
 
-export const trackMcpSessionStatusChange = (fromStatus: string, toStatus: string): void => {
-  trackAnalyticsEvent("MCP.sessionStatusChanged", { from: fromStatus, to: toStatus });
+export const trackAgentSessionStatusChange = (fromStatus: string, toStatus: string): void => {
+  trackAnalyticsEvent("AgentSessions.statusChanged", { from: fromStatus, to: toStatus });
 };

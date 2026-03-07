@@ -13,7 +13,7 @@ import { useSessionStore } from "@/stores/session-store";
 import { useEditorLauncher } from "@/hooks/use-editor-launcher";
 import { useQuickLauncherAnalytics } from "@/hooks/use-quick-launcher-analytics";
 import { cn } from "@/lib/utils";
-import type { SessionSummary } from "@/services/session-rpc";
+import type { SessionSummary } from "@/types/session";
 
 const normalizePath = (value: string) => value.replace(/\/+$/, "").toLowerCase();
 

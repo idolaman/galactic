@@ -37,7 +37,7 @@ const navItems = [
 ];
 
 // Compact session item for the tree
-function SidebarSessionItem({ session }: { session: import("@/services/session-rpc").SessionSummary }) {
+function SidebarSessionItem({ session }: { session: import("@/types/session").SessionSummary }) {
   const ackSession = useSessionStore(s => s.ackSession);
   const [isOverdue, setIsOverdue] = useState(false);
 
@@ -125,7 +125,7 @@ interface SidebarWorkspaceItemProps {
   name: string;
   icon: React.ElementType;
   variant?: "default" | "root";
-  sessions?: import("@/services/session-rpc").SessionSummary[];
+  sessions?: import("@/types/session").SessionSummary[];
 }
 
 function SidebarWorkspaceItem({ path, name, icon: Icon, variant = "default", sessions = [] }: SidebarWorkspaceItemProps) {
@@ -183,8 +183,8 @@ export function AppSidebar() {
     const pathSessions = sessions.filter(s => s.workspace_path && normalize(s.workspace_path) === normPath);
 
     // Deduplicate by chat_id, keeping the latest one
-    const latestSessionsMap = new Map<string, import("@/services/session-rpc").SessionSummary>();
-    const sessionsWithoutChatId: import("@/services/session-rpc").SessionSummary[] = [];
+    const latestSessionsMap = new Map<string, import("@/types/session").SessionSummary>();
+    const sessionsWithoutChatId: import("@/types/session").SessionSummary[] = [];
 
     for (const s of pathSessions) {
       if (!s.chat_id) {
@@ -319,13 +319,13 @@ export function AppSidebar() {
                   <div className="relative flex flex-col gap-3 p-3">
                     <div className="flex items-start gap-3">
                       <div className="space-y-1 pr-6">
-                        <p className="text-sm font-semibold leading-tight">Install Galactic MCP</p>
+                        <p className="text-sm font-semibold leading-tight">Install Galactic Hooks</p>
                         <p className="text-xs text-white/80">
-                          Monitor AI agent statuses automatically with the Galactic MCP running beside your workspace.
+                          Monitor AI agent sessions from local lifecycle hooks without rewriting your existing editor setup.
                         </p>
                       </div>
                     </div>
-                    <NavLink to="/settings#mcp-installation" className="w-full">
+                    <NavLink to="/settings#hooks-installation" className="w-full">
                       <Button
                         type="button"
                         variant="secondary"
@@ -342,7 +342,7 @@ export function AppSidebar() {
                   variant="ghost"
                   size="icon"
                   className="h-10 w-full justify-center border border-dashed border-border text-muted-foreground"
-                  aria-label="Install Galactic MCP"
+                  aria-label="Install Galactic Hooks"
                 >
                   <Rocket className="h-4 w-4" />
                 </Button>

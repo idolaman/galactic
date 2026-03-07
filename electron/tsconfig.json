@@ -17,6 +17,7 @@
   },
   "include": [
     "main.ts",
+    "hooks/**/*",
     "utils/**/*",
     "editor-launch/**/*",
     "ipc/**/*",

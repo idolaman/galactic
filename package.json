@@ -1,6 +1,6 @@
 {
   "name": "galactic-ide",
-  "version": "1.0.21",
+  "version": "1.0.22",
   "description": "The command center for developers who juggle multiple projects, branches, and environments.",
   "author": "Galactic Dev <hello@galactic-dev.com>",
   "license": "AGPL-3.0",
@@ -20,7 +20,6 @@
     "workspace",
     "macos",
     "ide",
-    "mcp",
     "cursor",
     "vscode"
   ],
@@ -28,17 +27,16 @@
   "main": "dist-electron/main.js",
   "scripts": {
     "dev:vite": "vite",
-    "dev:electron": "npm run build:main && npm run build:mcp-server && concurrently -k \"npm:dev:vite\" \"npm:watch:electron\" \"npm:start:electron\"",
+    "dev:electron": "npm run build:main && concurrently -k \"npm:dev:vite\" \"npm:watch:electron\" \"npm:start:electron\"",
     "dev": "npm run dev:electron",
     "watch:electron": "concurrently -k \"tsc -p electron/tsconfig.json --watch\" \"tsc -p electron/tsconfig.preload.json --watch\"",
     "start:electron": "wait-on http://${VITE_HOST:-127.0.0.1}:${VITE_PORT:-8080} && ELECTRON_START_URL=http://${VITE_HOST:-127.0.0.1}:${VITE_PORT:-8080} electron .",
     "build:ui": "vite build",
-    "build:main": "tsc -p electron/tsconfig.json && tsc -p electron/tsconfig.preload.json",
-    "build:mcp-server": "bash scripts/build-mcp-server.sh",
-    "build:electron": "npm run build:ui && npm run build:main && npm run build:mcp-server && electron-builder --mac dmg zip",
+    "build:main": "node -e \"require('fs').rmSync('dist-electron', { recursive: true, force: true })\" && tsc -p electron/tsconfig.json && tsc -p electron/tsconfig.preload.json",
+    "build:electron": "npm run build:ui && npm run build:main && electron-builder --mac dmg zip",
     "build": "npm run build:electron",
     "build:dev": "vite build --mode development",
-    "test:unit": "tsc -p tsconfig.unit.json && node --test .mcp-build-cache/unit-tests/tests/unit/*.test.js",
+    "test:unit": "tsc -p tsconfig.unit.json && node --test .build-cache/unit-tests/tests/unit/*.test.js",
     "test:electron": "npm run build:main && node --test dist-electron/tests/*.test.js",
     "test": "npm run test:electron",
     "lint": "eslint .",
@@ -82,6 +80,7 @@
     "electron-updater": "^6.6.2",
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
+    "json5": "^2.2.3",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
     "react": "^18.3.1",
@@ -127,3 +126,4 @@
     "wait-on": "^7.2.0"
   }
 }
+

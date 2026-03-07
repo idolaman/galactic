@@ -7,11 +7,6 @@ files:
   - dist/**
   - dist-electron/**
 asar: true
-extraResources:
-  - from: resources/mcp-server
-    to: mcp-server
-    filter:
-      - "**/*.cjs"
 mac:
   category: public.app-category.developer-tools
   target:

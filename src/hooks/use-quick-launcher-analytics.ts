@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
-import type { SessionSummary } from "@/services/session-rpc";
+import type { SessionSummary } from "@/types/session";
 import {
-  trackMcpSessionFocus,
-  trackMcpSessionStatusChange,
+  trackAgentSessionFocus,
+  trackAgentSessionStatusChange,
   trackQuickLauncherNavigation,
 } from "@/services/analytics";
 
@@ -48,7 +48,7 @@ export const useQuickLauncherAnalytics = ({
       return;
     }
 
-    trackMcpSessionFocus(session.status, !!session.workspace_path);
+    trackAgentSessionFocus(session.status, !!session.workspace_path);
     lastFocusedSessionId.current = selectedId;
   }, [selectedId, sessions]);
 
@@ -59,7 +59,7 @@ export const useQuickLauncherAnalytics = ({
     sessions.forEach((session) => {
       const previousStatus = nextStatusBySession.get(session.id);
       if (previousStatus && previousStatus !== session.status) {
-        trackMcpSessionStatusChange(previousStatus, session.status);
+        trackAgentSessionStatusChange(previousStatus, session.status);
       }
       nextStatusBySession.set(session.id, session.status);
     });

@@ -27,9 +27,8 @@ release
 
 bun.lockb
 
-# MCP Server build artifacts
-.mcp-build-cache/
-resources/mcp-server/*.cjs
+# Build artifacts
+.build-cache/
 
 .env
 .claude/settings.local.json
