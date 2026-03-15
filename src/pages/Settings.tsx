@@ -206,7 +206,7 @@ export default function Settings() {
       } else {
         toast({
           title: "Installation Failed",
-          description: result.error || `Failed to install MCP for ${tool}.`,
+          description: result.error || (tool === "Claude" ? "Failed to install Claude hooks." : `Failed to install MCP for ${tool}.`),
           variant: "destructive"
         });
       }
@@ -334,7 +334,7 @@ export default function Settings() {
       <Card className="border-border bg-card" id="mcp-installation">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-3">
-            Install Galactic MCP
+            Install Galactic Integrations
             <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-normal bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border-amber-500/20">
               Experimental
             </Badge>
@@ -431,7 +431,7 @@ export default function Settings() {
             </div>
             <div className="space-y-1">
               <p className="font-semibold">Claude Code</p>
-              <p className="text-xs text-muted-foreground">Anthropic's coding assistant</p>
+              <p className="text-xs text-muted-foreground">Anthropic's coding assistant via hooks</p>
             </div>
             <Button
               variant={mcpInstalled["Claude"] ? "outline" : "secondary"}
@@ -541,25 +541,34 @@ export default function Settings() {
           <DialogHeader>
             <DialogTitle>Configuration Details</DialogTitle>
             <DialogDescription>
-              Galactic injects the following configuration into your agent's settings file.
+              {selectedConfig === "Claude"
+                ? "Galactic installs a Claude plugin marketplace inside your home directory."
+                : "Galactic injects the following configuration into your agent's settings file."}
             </DialogDescription>
           </DialogHeader>
           {selectedConfig && (
             <div className="space-y-4 pt-2">
               <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Target File</Label>
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {selectedConfig === "Claude" ? "Install Path" : "Target File"}
+                </Label>
                 <div className="rounded-md bg-muted px-3 py-2 text-sm font-mono text-foreground border border-border">
                   {selectedConfig === "VSCode" && "~/Library/Application Support/Code/User/mcp.json"}
                   {selectedConfig === "Cursor" && "~/.cursor/mcp.json"}
-                  {selectedConfig === "Claude" && "~/.claude.json"}
+                  {selectedConfig === "Claude" && "~/.galactic/platforms/claude/marketplace"}
                   {selectedConfig === "Codex" && "~/.codex/config.toml"}
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Injected Config</Label>
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {selectedConfig === "Claude" ? "Install Commands" : "Injected Config"}
+                </Label>
                 <div className="rounded-md border bg-muted/30 p-4">
                   <pre className="text-xs font-mono leading-relaxed overflow-x-auto whitespace-pre-wrap">
-                    {selectedConfig === "Codex" ?
+                    {selectedConfig === "Claude" ?
+                      `claude plugin marketplace add ~/.galactic/platforms/claude/marketplace
+claude plugin install --scope user galactic-ide-hooks@galactic-ide` :
+                      selectedConfig === "Codex" ?
                       `[mcp_servers.galactic]
 type = "http"
 url = "http://localhost:17890"` :
