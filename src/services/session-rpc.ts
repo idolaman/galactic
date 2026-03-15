@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { readClaudeHookSessions } from './claude-hook-sessions';
 
 // ------------------------------------------------------------------
 // Types (Ported from thinking-logger-ui)
@@ -181,7 +182,17 @@ export async function readClientSessions(params: {
             });
             if (s.success) sessions.push(s.data);
         }
-        return sessions;
+        const claudeHooks = await readClaudeHookSessions();
+        if (!claudeHooks.installed) {
+            return sessions;
+        }
+
+        const claudeSessions = claudeHooks.sessions.flatMap((session) => {
+            const parsed = SessionSummarySchema.safeParse(session);
+            return parsed.success ? [parsed.data] : [];
+        });
+        const nonClaudeSessions = sessions.filter((session) => session.platform !== 'claude');
+        return [...nonClaudeSessions, ...claudeSessions];
     };
 
     // Basic retry for transient errors

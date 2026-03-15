@@ -22,6 +22,7 @@ import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import type { ExecFileException } from "node:child_process";
 import { initAnalytics, analytics, isAnalyticsEvent, trackEvent } from "./analytics.js";
+import { createClaudeHooksService } from "./claude-hooks/service.js";
 import { registerEditorLaunchIpc } from "./ipc/register-editor-launch.js";
 import { registerGitWorktreeIpc } from "./ipc/register-git-worktree.js";
 import { registerProjectSyncIpc } from "./ipc/register-project-sync.js";
@@ -43,6 +44,7 @@ let cachedSessions: unknown[] = [];
 const QUICK_SIDEBAR_HOTKEY = "Command+Shift+G";
 const QUICK_SIDEBAR_WIDTH = 420;
 const QUICK_SIDEBAR_MARGIN = 16;
+const claudeHooksService = createClaudeHooksService();
 let lastDownloadedVersion: string | null = null;
 const UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 let updateCheckTimer: NodeJS.Timeout | null = null;
@@ -1067,7 +1069,7 @@ ipcMain.handle("mcp/check-installed", async (_event, tool: string) => {
   }
 
   if (tool === "Claude") {
-    return await checkMcpConfig(path.join(os.homedir(), ".claude.json"), MCP_SERVER_NAME);
+    return await claudeHooksService.isInstalled();
   }
 
   if (tool === "Codex") {
@@ -1093,11 +1095,7 @@ ipcMain.handle("mcp/install", async (_event, tool: string) => {
       THINKING_LOGGER_CONFIG
     );
   } else if (tool === "Claude") {
-    result = await updateMcpConfig(
-      path.join(os.homedir(), ".claude.json"),
-      MCP_SERVER_NAME,
-      THINKING_LOGGER_CONFIG
-    );
+    result = await claudeHooksService.install();
   } else if (tool === "Codex") {
     result = await updateMcpConfig(
       path.join(os.homedir(), ".codex", "config.toml"),
@@ -1113,6 +1111,10 @@ ipcMain.handle("mcp/install", async (_event, tool: string) => {
   }
 
   return result;
+});
+
+ipcMain.handle("claude-hooks/read-sessions", async () => {
+  return await claudeHooksService.readSessionSnapshot();
 });
 
 ipcMain.handle("mcp/server-status", () => {

@@ -18,6 +18,7 @@
   "include": [
     "main.ts",
     "utils/**/*",
+    "claude-hooks/**/*",
     "editor-launch/**/*",
     "ipc/**/*",
     "project-sync/**/*",
