@@ -42,6 +42,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("workspace/delete-code-workspace", targetPath),
   checkMcpInstalled: (tool: string) => ipcRenderer.invoke("mcp/check-installed", tool),
   installMcp: (tool: string) => ipcRenderer.invoke("mcp/install", tool),
+  getClaudeHookSessions: () => ipcRenderer.invoke("claude-hooks/read-sessions"),
   getMcpServerStatus: () => ipcRenderer.invoke("mcp/server-status"),
   restartMcpServer: () => ipcRenderer.invoke("mcp/restart-server"),
   toggleQuickSidebar: () => ipcRenderer.invoke("quick-sidebar/toggle"),
