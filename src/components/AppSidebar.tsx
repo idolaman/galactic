@@ -4,7 +4,7 @@ import { SidebarNavigation } from "@/components/AppSidebar/SidebarNavigation";
 import { WorkspaceSidebarGroup } from "@/components/AppSidebar/WorkspaceSidebarGroup";
 import { Sidebar, SidebarContent, useSidebar } from "@/components/ui/sidebar";
 import { useProjects } from "@/hooks/use-projects";
-import { buildVisibleWorkspaceSessionMap } from "@/lib/workspace-session-display"; 
+import { buildVisibleWorkspaceSessionMap } from "@/lib/workspace-session-display";
 import { useSessionStore } from "@/stores/session-store";
 
 export function AppSidebar() {
