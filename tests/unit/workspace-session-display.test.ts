@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   MAX_VISIBLE_WORKSPACE_SESSIONS,
   buildVisibleWorkspaceSessionMap,
+  normalizeWorkspacePath,
   type WorkspaceSession,
 } from "../../src/lib/workspace-session-display.js";
 
@@ -63,7 +64,7 @@ test("deduplicates duplicate chat ids before applying the cap", () => {
   );
 });
 
-test("normalizes workspace paths with case and trailing separators", () => {
+test("normalizes windows workspace paths with case folding and trailing separators", () => {
   const sessions = [
     createSession("session-1", "2026-03-01T10:00:00.000Z", {
       workspace_path: "C:\\Repo\\Feature\\",
@@ -73,6 +74,27 @@ test("normalizes workspace paths with case and trailing separators", () => {
   const visibleSessions = buildVisibleWorkspaceSessionMap(sessions).get("c:\\repo\\feature") ?? [];
 
   assert.equal(visibleSessions[0]?.id, "session-1");
+});
+
+test("preserves case for posix workspace paths", () => {
+  assert.equal(normalizeWorkspacePath("/Repo/Feature/"), "/Repo/Feature");
+  assert.equal(normalizeWorkspacePath("/repo/feature/"), "/repo/feature");
+});
+
+test("keeps posix workspaces with different case separate", () => {
+  const sessions = [
+    createSession("session-1", "2026-03-01T10:00:00.000Z", {
+      workspace_path: "/Repo/Feature",
+    }),
+    createSession("session-2", "2026-03-01T10:01:00.000Z", {
+      workspace_path: "/repo/feature",
+    }),
+  ];
+
+  const visibleSessionsByPath = buildVisibleWorkspaceSessionMap(sessions);
+
+  assert.equal(visibleSessionsByPath.get("/Repo/Feature")?.[0]?.id, "session-1");
+  assert.equal(visibleSessionsByPath.get("/repo/feature")?.[0]?.id, "session-2");
 });
 
 test("ignores sessions without a workspace path", () => {

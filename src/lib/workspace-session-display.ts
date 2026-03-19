@@ -1,4 +1,6 @@
 export const MAX_VISIBLE_WORKSPACE_SESSIONS = 3;
+const WINDOWS_DRIVE_PATH_PATTERN = /^[A-Za-z]:[\\/]/;
+const WINDOWS_UNC_PATH_PATTERN = /^\\\\/;
 
 export interface WorkspaceSession {
   id: string;
@@ -70,8 +72,15 @@ const toVisibleEntries = <T extends WorkspaceSession>(
     .sort((left, right) => left.index - right.index);
 };
 
-export const normalizeWorkspacePath = (path: string): string =>
-  path.replace(/[\\/]+$/, "").toLowerCase();
+export const normalizeWorkspacePath = (path: string): string => {
+  const normalized = path.replace(/[\\/]+$/, "");
+  const isWindowsPath =
+    normalized.includes("\\") ||
+    WINDOWS_DRIVE_PATH_PATTERN.test(normalized) ||
+    WINDOWS_UNC_PATH_PATTERN.test(normalized);
+
+  return isWindowsPath ? normalized.toLowerCase() : normalized;
+};
 
 export const buildVisibleWorkspaceSessionMap = <T extends WorkspaceSession>(
   sessions: T[],
