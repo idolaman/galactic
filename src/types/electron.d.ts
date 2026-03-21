@@ -1,5 +1,6 @@
 import type { CopySyncTargetsResult, SyncTarget } from "@/types/sync-target";
 import type { GitFetchBranchesResult } from "@/types/git";
+import type { HookId, HookStatusMap } from "@/types/hook-status";
 
 export interface GitInfo {
   isGitRepo: boolean;
@@ -75,7 +76,11 @@ export interface ElectronAPI {
   getCodeWorkspacePath: (targetPath: string) => Promise<{ exists: boolean; workspacePath: string }>;
   deleteCodeWorkspace: (targetPath: string) => Promise<{ success: boolean; error?: string }>;
   checkMcpInstalled: (tool: string) => Promise<boolean>;
+  getHookStatuses: () => Promise<HookStatusMap>;
+  installHook: (hookId: HookId) => Promise<{ success: boolean; error?: string }>;
   installMcp: (tool: string) => Promise<{ success: boolean; error?: string }>;
+  checkClaudeHooksInstalled: () => Promise<boolean>;
+  installClaudeHooks: () => Promise<{ success: boolean; error?: string }>;
   getClaudeHookSessions: () => Promise<{ installed: boolean; sessions: unknown[] }>;
   getMcpServerStatus: () => Promise<{ running: boolean; url: string; port: number }>;
   restartMcpServer: () => Promise<{ success: boolean }>;

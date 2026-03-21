@@ -23,8 +23,10 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
+import { useHookStatuses } from "@/hooks/use-hook-statuses";
 import { useProjects } from "@/hooks/use-projects";
 import { useEditorLauncher } from "@/hooks/use-editor-launcher";
+import { hasHookUpdates } from "@/lib/hook-status";
 import { cn } from "@/lib/utils";
 import { useSessionStore } from "@/stores/session-store";
 import { QuickLauncherHint } from "@/components/QuickLauncherHint";
@@ -162,8 +164,10 @@ export function AppSidebar() {
   const { open } = useSidebar();
   const navigate = useNavigate();
   const projects = useProjects();
+  const hookStatuses = useHookStatuses();
   const { sessions, startPolling, stopPolling } = useSessionStore();
   const [showMcpBanner, setShowMcpBanner] = useState(true);
+  const showSettingsUpdateIndicator = hasHookUpdates(hookStatuses);
 
   const dismissMcpBanner = () => {
     setShowMcpBanner(false);
@@ -223,8 +227,16 @@ export function AppSidebar() {
                       className="flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                       activeClassName="bg-muted text-foreground font-medium"
                     >
-                      <item.icon className="h-4 w-4" />
+                      <div className="relative">
+                        <item.icon className="h-4 w-4" />
+                        {item.url === "/settings" && showSettingsUpdateIndicator && (
+                          <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-amber-500" />
+                        )}
+                      </div>
                       {open && <span>{item.title}</span>}
+                      {open && item.url === "/settings" && showSettingsUpdateIndicator && (
+                        <span className="ml-auto h-2 w-2 rounded-full bg-amber-500" />
+                      )}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

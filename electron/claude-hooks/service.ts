@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import { promises as fs } from "node:fs";
@@ -9,9 +10,14 @@ import { readClaudeHookSessions } from "./sessions.js";
 import type { ClaudeHookSnapshot } from "./types.js";
 
 const execFileAsync = promisify(execFile);
+export type HookInstallStatus = "installed" | "not-installed" | "update-available";
 
 interface InstalledPluginState {
   plugins?: Record<string, unknown[]>;
+}
+
+interface HookInstallState {
+  fingerprint?: string;
 }
 
 interface MarketplaceState {
@@ -41,6 +47,14 @@ const defaultRunClaudeCommand = async (args: string[]): Promise<void> => {
   await execFileAsync("claude", args, { maxBuffer: 1024 * 1024 });
 };
 
+const buildFingerprint = (parts: string[]): string => {
+  const hash = createHash("sha256");
+  for (const part of parts) {
+    hash.update(part);
+  }
+  return hash.digest("hex");
+};
+
 export const createClaudeHooksService = ({
   homeDir,
   readRunnerSource = defaultReadRunnerSource,
@@ -53,9 +67,38 @@ export const createClaudeHooksService = ({
     return Array.isArray(installedPlugins.plugins?.[CLAUDE_PLUGIN_ID]);
   };
 
+  const getFingerprint = async (): Promise<string> => {
+    const runnerSource = await readRunnerSource();
+    return buildFingerprint([
+      CLAUDE_MARKETPLACE_NAME,
+      CLAUDE_PLUGIN_ID,
+      buildClaudeMarketplaceManifest(paths.runnerPath),
+      buildClaudePluginReadme(),
+      runnerSource,
+    ]);
+  };
+
+  const getStatus = async (): Promise<HookInstallStatus> => {
+    const pluginInstalled = await isInstalled();
+    const assetsPresent =
+      existsSync(paths.marketplaceManifestPath) &&
+      existsSync(paths.pluginReadmePath) &&
+      existsSync(paths.runnerPath);
+
+    if (!pluginInstalled || !assetsPresent) {
+      return "not-installed";
+    }
+
+    const installState = await readJsonFile<HookInstallState>(paths.installStatePath, {});
+    const fingerprint = await getFingerprint();
+    return installState.fingerprint === fingerprint ? "installed" : "update-available";
+  };
+
   const install = async (): Promise<{ success: boolean; error?: string }> => {
     try {
       const runnerSource = await readRunnerSource();
+      const fingerprint = await getFingerprint();
+      await fs.mkdir(path.dirname(paths.installStatePath), { recursive: true });
       await fs.mkdir(path.dirname(paths.marketplaceManifestPath), { recursive: true });
       await fs.mkdir(path.dirname(paths.pluginReadmePath), { recursive: true });
       await fs.mkdir(path.dirname(paths.runnerPath), { recursive: true });
@@ -71,6 +114,11 @@ export const createClaudeHooksService = ({
       if (!(await isInstalled())) {
         await runClaudeCommand(["plugin", "install", "--scope", "user", CLAUDE_PLUGIN_ID]);
       }
+      await fs.writeFile(
+        paths.installStatePath,
+        JSON.stringify({ fingerprint }, null, 2),
+        "utf8",
+      );
       return { success: true };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to install Claude hooks.";
@@ -79,9 +127,9 @@ export const createClaudeHooksService = ({
   };
 
   const readSessionSnapshot = async (): Promise<ClaudeHookSnapshot> => {
-    const installed = existsSync(paths.marketplaceManifestPath) && await isInstalled();
+    const installed = (await getStatus()) !== "not-installed";
     return { installed, sessions: await readClaudeHookSessions(paths.eventLogPath) };
   };
 
-  return { isInstalled, install, readSessionSnapshot };
+  return { getStatus, isInstalled, install, readSessionSnapshot };
 };

@@ -16,6 +16,7 @@
     "tests/unit/**/*.ts",
     "src/lib/branch-search-focus.ts",
     "src/lib/load-project-branches.ts",
-    "src/lib/create-workspace-request.ts"
+    "src/lib/create-workspace-request.ts",
+    "src/lib/hook-status.ts"
   ]
 }

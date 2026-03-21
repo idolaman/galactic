@@ -17,6 +17,7 @@
   },
   "include": [
     "main.ts",
+    "agent-integrations.ts",
     "utils/**/*",
     "claude-hooks/**/*",
     "editor-launch/**/*",

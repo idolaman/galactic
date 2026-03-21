@@ -10,47 +10,37 @@ import { useToast } from "@/hooks/use-toast";
 import vscodeIcon from "@/assets/vscode-icon.png";
 import cursorIcon from "@/assets/cursor.jpeg";
 import { Button } from "@/components/ui/button";
+import { useHookStatuses } from "@/hooks/use-hook-statuses";
 import { type EditorName } from "@/services/editor";
+import { installHook } from "@/services/hook-status";
+import { preferredEditorStorage } from "@/services/preferred-editor";
+import { getHookActionLabel, isHookActionDisabled } from "@/lib/hook-status";
 import { cn } from "@/lib/utils";
 import { projectStorage } from "@/services/projects";
 import { markAllWorkspacesRequireRelaunch } from "@/services/workspace-state";
 import { useUpdate } from "@/hooks/use-update";
-
 import { useLocation } from "react-router-dom";
+
+type SettingsConfig = "VSCode" | "Cursor" | "Claude" | "Codex" | "ClaudeHooks" | null;
+
+const markWorkspacesForRelaunch = () => {
+  const allPaths = projectStorage.load().flatMap((project) => [
+    project.path,
+    ...(project.workspaces?.map((workspace) => workspace.workspace) ?? []),
+  ]);
+  markAllWorkspacesRequireRelaunch(allPaths);
+};
 
 export default function Settings() {
   const { toast } = useToast();
   const { state: updateState, checkForUpdates, installUpdate } = useUpdate();
   const location = useLocation();
+  const hookStatuses = useHookStatuses();
 
   const [highlightHotkey, setHighlightHotkey] = useState(false);
-
-  // Scroll to hash on mount or hash change
-  useEffect(() => {
-    if (location.hash) {
-      const id = location.hash.replace("#", "");
-      const element = document.getElementById(id);
-      if (element) {
-        // slight delay to ensure content is rendered
-        setTimeout(() => {
-          element.scrollIntoView({ behavior: "smooth" });
-
-          if (id === "global-hotkey") {
-            setTimeout(() => setHighlightHotkey(true), 500);
-            setTimeout(() => setHighlightHotkey(false), 2500);
-          }
-        }, 100);
-      }
-    }
-  }, [location.hash]);
-
-  const [preferredEditor, setPreferredEditor] = useState<EditorName>(() => {
-    const saved = typeof window !== "undefined" ? window.localStorage.getItem("preferredEditor") : null;
-    return (saved === "Cursor" || saved === "VSCode") ? saved : "Cursor";
-  });
+  const [preferredEditor, setPreferredEditor] = useState<EditorName>(() => preferredEditorStorage.load());
   const [cursorInstalled, setCursorInstalled] = useState<boolean>(false);
   const [vscodeInstalled, setVscodeInstalled] = useState<boolean>(false);
-
   const [mcpInstalled, setMcpInstalled] = useState<Record<string, boolean>>({
     Cursor: false,
     VSCode: false,
@@ -58,52 +48,70 @@ export default function Settings() {
     Codex: false,
   });
   const [installing, setInstalling] = useState<Record<string, boolean>>({});
-  const [selectedConfig, setSelectedConfig] = useState<string | null>(null);
+  const [selectedConfig, setSelectedConfig] = useState<SettingsConfig>(null);
   const [appVersion, setAppVersion] = useState<string | null>(null);
   const [quickSidebarHotkeyEnabled, setQuickSidebarHotkeyEnabled] = useState(false);
   const [quickSidebarHotkeyLoading, setQuickSidebarHotkeyLoading] = useState(true);
   const [quickSidebarHotkeySaving, setQuickSidebarHotkeySaving] = useState(false);
 
   useEffect(() => {
-    window.localStorage.setItem("preferredEditor", preferredEditor);
+    if (!location.hash) {
+      return;
+    }
+
+    const id = location.hash.replace("#", "");
+    const element = document.getElementById(id);
+    if (!element) {
+      return;
+    }
+
+    setTimeout(() => {
+      element.scrollIntoView({ behavior: "smooth" });
+      if (id !== "global-hotkey") {
+        return;
+      }
+      setTimeout(() => setHighlightHotkey(true), 500);
+      setTimeout(() => setHighlightHotkey(false), 2500);
+    }, 100);
+  }, [location.hash]);
+
+  useEffect(() => {
+    preferredEditorStorage.save(preferredEditor);
   }, [preferredEditor]);
 
   const checkEditors = useCallback(async () => {
-    if (window.electronAPI?.checkEditorInstalled) {
-      const cursorCheck = await window.electronAPI.checkEditorInstalled("Cursor");
-      const vscodeCheck = await window.electronAPI.checkEditorInstalled("VSCode");
-      setCursorInstalled(cursorCheck);
-      setVscodeInstalled(vscodeCheck);
-      setPreferredEditor((current) => {
-        if (cursorCheck && !vscodeCheck) {
-          return "Cursor";
-        }
-
-        if (vscodeCheck && !cursorCheck) {
-          return "VSCode";
-        }
-
-        return current;
-      });
+    if (!window.electronAPI?.checkEditorInstalled) {
+      return;
     }
+
+    const cursorCheck = await window.electronAPI.checkEditorInstalled("Cursor");
+    const vscodeCheck = await window.electronAPI.checkEditorInstalled("VSCode");
+    setCursorInstalled(cursorCheck);
+    setVscodeInstalled(vscodeCheck);
+    setPreferredEditor((current) => {
+      if (cursorCheck && !vscodeCheck) return "Cursor";
+      if (vscodeCheck && !cursorCheck) return "VSCode";
+      return current;
+    });
   }, []);
 
   const checkMcpStatus = useCallback(async () => {
-    if (window.electronAPI?.checkMcpInstalled) {
-      const tools = ["Cursor", "VSCode", "Claude", "Codex"];
-      const status: Record<string, boolean> = {};
-
-      for (const tool of tools) {
-        status[tool] = await window.electronAPI.checkMcpInstalled(tool);
-      }
-      setMcpInstalled(status);
+    if (!window.electronAPI?.checkMcpInstalled) {
+      return;
     }
+
+    const tools = ["Cursor", "VSCode", "Claude", "Codex"];
+    const status: Record<string, boolean> = {};
+    for (const tool of tools) {
+      status[tool] = await window.electronAPI.checkMcpInstalled(tool);
+    }
+    setMcpInstalled(status);
   }, []);
 
   useEffect(() => {
-    checkEditors();
-    checkMcpStatus();
-    window.electronAPI?.getAppVersion?.().then(setAppVersion);
+    void checkEditors();
+    void checkMcpStatus();
+    void window.electronAPI?.getAppVersion?.().then(setAppVersion);
   }, [checkEditors, checkMcpStatus]);
 
   useEffect(() => {
@@ -111,18 +119,14 @@ export default function Settings() {
 
     const loadHotkeySetting = async () => {
       if (!window.electronAPI?.getQuickSidebarHotkeyEnabled) {
-        if (isMounted) {
-          setQuickSidebarHotkeyLoading(false);
-        }
+        if (isMounted) setQuickSidebarHotkeyLoading(false);
         return;
       }
 
       try {
         const enabled = await window.electronAPI.getQuickSidebarHotkeyEnabled();
-        if (isMounted) {
-          setQuickSidebarHotkeyEnabled(enabled);
-        }
-      } catch (error) {
+        if (isMounted) setQuickSidebarHotkeyEnabled(enabled);
+      } catch {
         if (isMounted) {
           toast({
             title: "Hotkey setting unavailable",
@@ -131,21 +135,18 @@ export default function Settings() {
           });
         }
       } finally {
-        if (isMounted) {
-          setQuickSidebarHotkeyLoading(false);
-        }
+        if (isMounted) setQuickSidebarHotkeyLoading(false);
       }
     };
 
-    loadHotkeySetting();
+    void loadHotkeySetting();
     return () => {
       isMounted = false;
     };
   }, [toast]);
 
   const handleEditorChange = (value: string) => {
-    const nextValue: EditorName = value === "VSCode" ? "VSCode" : "Cursor";
-    setPreferredEditor(nextValue);
+    setPreferredEditor(value === "VSCode" ? "VSCode" : "Cursor");
   };
 
   const handleQuickSidebarHotkeyChange = async (enabled: boolean) => {
@@ -157,7 +158,6 @@ export default function Settings() {
     const previous = quickSidebarHotkeyEnabled;
     setQuickSidebarHotkeyEnabled(enabled);
     setQuickSidebarHotkeySaving(true);
-
     try {
       const result = await window.electronAPI.setQuickSidebarHotkeyEnabled(enabled);
       if (!result?.success) {
@@ -170,7 +170,7 @@ export default function Settings() {
         return;
       }
       setQuickSidebarHotkeyEnabled(result.enabled);
-    } catch (error) {
+    } catch {
       setQuickSidebarHotkeyEnabled(previous);
       toast({
         title: "Hotkey update failed",
@@ -183,37 +183,47 @@ export default function Settings() {
   };
 
   const handleInstallMcp = async (tool: string) => {
-    if (!window.electronAPI?.installMcp) return;
+    if (!window.electronAPI?.installMcp) {
+      return;
+    }
 
-    setInstalling(prev => ({ ...prev, [tool]: true }));
+    setInstalling((prev) => ({ ...prev, [tool]: true }));
     try {
       const result = await window.electronAPI.installMcp(tool);
-      if (result.success) {
-        // Mark all workspaces for relaunch
-        const projects = projectStorage.load();
-        const allPaths: string[] = [];
-        for (const p of projects) {
-          allPaths.push(p.path);
-          if (p.workspaces) {
-            for (const ws of p.workspaces) {
-              allPaths.push(ws.workspace);
-            }
-          }
-        }
-        markAllWorkspacesRequireRelaunch(allPaths);
-
-        await checkMcpStatus();
-      } else {
+      if (!result.success) {
         toast({
           title: "Installation Failed",
-          description: result.error || (tool === "Claude" ? "Failed to install Claude hooks." : `Failed to install MCP for ${tool}.`),
-          variant: "destructive"
+          description: result.error || `Failed to install MCP for ${tool}.`,
+          variant: "destructive",
         });
+        return;
       }
-    } catch (error) {
+      markWorkspacesForRelaunch();
+      await checkMcpStatus();
+    } catch {
       toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
     } finally {
-      setInstalling(prev => ({ ...prev, [tool]: false }));
+      setInstalling((prev) => ({ ...prev, [tool]: false }));
+    }
+  };
+
+  const handleInstallClaudeHooks = async () => {
+    setInstalling((prev) => ({ ...prev, ClaudeHooks: true }));
+    try {
+      const result = await installHook("claude");
+      if (!result.success) {
+        toast({
+          title: "Installation Failed",
+          description: result.error || "Failed to install Claude hooks.",
+          variant: "destructive",
+        });
+        return;
+      }
+      markWorkspacesForRelaunch();
+    } catch {
+      toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
+    } finally {
+      setInstalling((prev) => ({ ...prev, ClaudeHooks: false }));
     }
   };
 
@@ -247,11 +257,7 @@ export default function Settings() {
           <CardDescription>Pick the editor to open projects from the sidebar.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <RadioGroup
-            value={preferredEditor}
-            onValueChange={handleEditorChange}
-            className="grid gap-4 md:grid-cols-2"
-          >
+          <RadioGroup value={preferredEditor} onValueChange={handleEditorChange} className="grid gap-4 md:grid-cols-2">
             {editorOptions.map((option) => {
               const isActive = preferredEditor === option.value;
               const isDisabled = !option.installed;
@@ -266,12 +272,7 @@ export default function Settings() {
                     isDisabled && "cursor-not-allowed opacity-60",
                   )}
                 >
-                  <RadioGroupItem
-                    value={option.value}
-                    id={`editor-${option.value}`}
-                    disabled={isDisabled}
-                    className="sr-only"
-                  />
+                  <RadioGroupItem value={option.value} id={`editor-${option.value}`} disabled={isDisabled} className="sr-only" />
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3">
                       <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-border bg-card shadow-sm">
@@ -293,9 +294,9 @@ export default function Settings() {
           </RadioGroup>
 
           <div className="flex items-start gap-3 rounded-lg border border-primary/10 bg-primary/5 p-3.5 text-sm text-muted-foreground">
-            <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+            <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
             <div className="space-y-1.5">
-              <p className="font-medium text-foreground text-xs uppercase tracking-wider">Editor Detection</p>
+              <p className="text-xs font-medium uppercase tracking-wider text-foreground">Editor Detection</p>
               <p className="text-xs leading-relaxed">
                 Galactic detects editors from standard install paths and available CLI launchers, then falls
                 back to the installed option if your preferred editor is unavailable.
@@ -331,10 +332,46 @@ export default function Settings() {
         </CardContent>
       </Card>
 
+      <Card className="border-border bg-card" id="hooks-installation">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-3">
+            Install Galactic Hooks
+            <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-normal bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border-amber-500/20">
+              Experimental
+            </Badge>
+          </CardTitle>
+          <CardDescription>Use Claude Code hooks to send Galactic session activity without relying on MCP.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card className="group relative flex flex-col items-center justify-between gap-4 border bg-background/70 p-6 text-center shadow-sm transition-all hover:border-primary/50 hover:shadow-md">
+            <Button variant="ghost" size="icon" className="absolute right-2 top-2 h-6 w-6 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" onClick={() => setSelectedConfig("ClaudeHooks")}>
+              <Info className="h-4 w-4" />
+            </Button>
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#d97757]/10 text-[#d97757] shadow-sm ring-1 ring-[#d97757]/20">
+              <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 fill-current">
+                <path d="M17.3041 3.541h-3.6718l6.696 16.918H24Zm-10.6082 0L0 20.459h3.7442l1.3693-3.5527h7.0052l1.3693 3.5528h3.7442L10.5363 3.5409Zm-.3712 10.2232 2.2914-5.9456 2.2914 5.9456Z" />
+              </svg>
+            </div>
+            <div className="space-y-1">
+              <p className="font-semibold">Claude Code</p>
+              <p className="text-xs text-muted-foreground">Recommended Claude integration via hooks</p>
+            </div>
+            <Button
+              variant={hookStatuses.claude === "installed" ? "outline" : "secondary"}
+              className="w-full"
+              disabled={isHookActionDisabled(hookStatuses.claude, Boolean(installing["ClaudeHooks"]))}
+              onClick={() => void handleInstallClaudeHooks()}
+            >
+              {getHookActionLabel(hookStatuses.claude, Boolean(installing["ClaudeHooks"]))}
+            </Button>
+          </Card>
+        </CardContent>
+      </Card>
+
       <Card className="border-border bg-card" id="mcp-installation">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-3">
-            Install Galactic Integrations
+            Install Galactic MCP
             <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-normal bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border-amber-500/20">
               Experimental
             </Badge>
@@ -357,7 +394,7 @@ export default function Settings() {
               variant={mcpInstalled["VSCode"] ? "outline" : "secondary"}
               className="w-full"
               disabled={mcpInstalled["VSCode"] || installing["VSCode"]}
-              onClick={() => handleInstallMcp("VSCode")}
+              onClick={() => void handleInstallMcp("VSCode")}
             >
               {mcpInstalled["VSCode"] ? "Installed" : installing["VSCode"] ? "Installing..." : "Install"}
             </Button>
@@ -414,7 +451,7 @@ export default function Settings() {
               variant={mcpInstalled["Cursor"] ? "outline" : "secondary"}
               className="w-full"
               disabled={mcpInstalled["Cursor"] || installing["Cursor"]}
-              onClick={() => handleInstallMcp("Cursor")}
+              onClick={() => void handleInstallMcp("Cursor")}
             >
               {mcpInstalled["Cursor"] ? "Installed" : installing["Cursor"] ? "Installing..." : "Install"}
             </Button>
@@ -431,13 +468,13 @@ export default function Settings() {
             </div>
             <div className="space-y-1">
               <p className="font-semibold">Claude Code</p>
-              <p className="text-xs text-muted-foreground">Anthropic's coding assistant via hooks</p>
+              <p className="text-xs text-muted-foreground">Anthropic's coding assistant</p>
             </div>
             <Button
               variant={mcpInstalled["Claude"] ? "outline" : "secondary"}
               className="w-full"
               disabled={mcpInstalled["Claude"] || installing["Claude"]}
-              onClick={() => handleInstallMcp("Claude")}
+              onClick={() => void handleInstallMcp("Claude")}
             >
               {mcpInstalled["Claude"] ? "Installed" : installing["Claude"] ? "Installing..." : "Install"}
             </Button>
@@ -460,7 +497,7 @@ export default function Settings() {
               variant={mcpInstalled["Codex"] ? "outline" : "secondary"}
               className="w-full"
               disabled={mcpInstalled["Codex"] || installing["Codex"]}
-              onClick={() => handleInstallMcp("Codex")}
+              onClick={() => void handleInstallMcp("Codex")}
             >
               {mcpInstalled["Codex"] ? "Installed" : installing["Codex"] ? "Installing..." : "Install"}
             </Button>
@@ -507,12 +544,12 @@ export default function Settings() {
             <div className="flex gap-2">
               {updateState.status === "checking" ? (
                 <Button variant="outline" disabled>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Checking...
                 </Button>
               ) : updateState.status === "available" ? (
                 <Button variant="outline" disabled>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Downloading...
                 </Button>
               ) : updateState.status === "downloaded" ? (
@@ -541,7 +578,7 @@ export default function Settings() {
           <DialogHeader>
             <DialogTitle>Configuration Details</DialogTitle>
             <DialogDescription>
-              {selectedConfig === "Claude"
+              {selectedConfig === "ClaudeHooks"
                 ? "Galactic installs a Claude plugin marketplace inside your home directory."
                 : "Galactic injects the following configuration into your agent's settings file."}
             </DialogDescription>
@@ -550,29 +587,30 @@ export default function Settings() {
             <div className="space-y-4 pt-2">
               <div className="space-y-2">
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {selectedConfig === "Claude" ? "Install Path" : "Target File"}
+                  {selectedConfig === "ClaudeHooks" ? "Install Path" : "Target File"}
                 </Label>
                 <div className="rounded-md bg-muted px-3 py-2 text-sm font-mono text-foreground border border-border">
                   {selectedConfig === "VSCode" && "~/Library/Application Support/Code/User/mcp.json"}
                   {selectedConfig === "Cursor" && "~/.cursor/mcp.json"}
-                  {selectedConfig === "Claude" && "~/.galactic/platforms/claude/marketplace"}
+                  {selectedConfig === "Claude" && "~/.claude.json"}
                   {selectedConfig === "Codex" && "~/.codex/config.toml"}
+                  {selectedConfig === "ClaudeHooks" && "~/.galactic/platforms/claude/marketplace"}
                 </div>
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {selectedConfig === "Claude" ? "Install Commands" : "Injected Config"}
+                  {selectedConfig === "ClaudeHooks" ? "Install Commands" : "Injected Config"}
                 </Label>
                 <div className="rounded-md border bg-muted/30 p-4">
                   <pre className="text-xs font-mono leading-relaxed overflow-x-auto whitespace-pre-wrap">
-                    {selectedConfig === "Claude" ?
-                      `claude plugin marketplace add ~/.galactic/platforms/claude/marketplace
-claude plugin install --scope user galactic-ide-hooks@galactic-ide` :
-                      selectedConfig === "Codex" ?
-                      `[mcp_servers.galactic]
+                    {selectedConfig === "ClaudeHooks"
+                      ? `claude plugin marketplace add ~/.galactic/platforms/claude/marketplace
+claude plugin install --scope user galactic-ide-hooks@galactic-ide`
+                      : selectedConfig === "Codex"
+                        ? `[mcp_servers.galactic]
 type = "http"
-url = "http://localhost:17890"` :
-                      `"galactic": {
+url = "http://localhost:17890"`
+                        : `"galactic": {
   "type": "http",
   "url": "http://localhost:17890"
 }`}

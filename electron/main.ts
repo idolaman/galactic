@@ -23,6 +23,7 @@ import { promisify } from "node:util";
 import type { ExecFileException } from "node:child_process";
 import { initAnalytics, analytics, isAnalyticsEvent, trackEvent } from "./analytics.js";
 import { createClaudeHooksService } from "./claude-hooks/service.js";
+import { createAgentIntegrationsService } from "./agent-integrations.js";
 import { registerEditorLaunchIpc } from "./ipc/register-editor-launch.js";
 import { registerGitWorktreeIpc } from "./ipc/register-git-worktree.js";
 import { registerProjectSyncIpc } from "./ipc/register-project-sync.js";
@@ -45,6 +46,10 @@ const QUICK_SIDEBAR_HOTKEY = "Command+Shift+G";
 const QUICK_SIDEBAR_WIDTH = 420;
 const QUICK_SIDEBAR_MARGIN = 16;
 const claudeHooksService = createClaudeHooksService();
+const agentIntegrationsService = createAgentIntegrationsService({
+  claudeHooksService,
+  onConnected: analytics.mcpConnected,
+});
 let lastDownloadedVersion: string | null = null;
 const UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 let updateCheckTimer: NodeJS.Timeout | null = null;
@@ -1041,7 +1046,6 @@ ipcMain.handle("update/apply", async () => {
   }
 });
 
-import { updateMcpConfig, checkMcpConfig } from "./utils/config.js";
 import {
   startMcpServer,
   stopMcpServer,
@@ -1052,65 +1056,40 @@ import {
 
 const MCP_SERVER_PORT = 17890;
 
-const THINKING_LOGGER_CONFIG = {
-  type: "http",
-  url: `http://localhost:${MCP_SERVER_PORT}`
-} as const;
-
-const MCP_SERVER_NAME = "galactic";
-
 ipcMain.handle("mcp/check-installed", async (_event, tool: string) => {
-  if (tool === "Cursor") {
-    return await checkMcpConfig(path.join(os.homedir(), ".cursor", "mcp.json"), MCP_SERVER_NAME);
-  }
-
-  if (tool === "VSCode") {
-    return await checkMcpConfig(path.join(os.homedir(), "Library", "Application Support", "Code", "User", "mcp.json"), MCP_SERVER_NAME);
-  }
-
-  if (tool === "Claude") {
-    return await claudeHooksService.isInstalled();
-  }
-
-  if (tool === "Codex") {
-    return await checkMcpConfig(path.join(os.homedir(), ".codex", "config.toml"), MCP_SERVER_NAME);
+  if (tool === "Cursor" || tool === "VSCode" || tool === "Claude" || tool === "Codex") {
+    return agentIntegrationsService.checkMcpInstalled(tool);
   }
 
   return false;
 });
 
 ipcMain.handle("mcp/install", async (_event, tool: string) => {
-  let result: { success: boolean; error?: string };
-
-  if (tool === "Cursor") {
-    result = await updateMcpConfig(
-      path.join(os.homedir(), ".cursor", "mcp.json"),
-      MCP_SERVER_NAME,
-      THINKING_LOGGER_CONFIG
-    );
-  } else if (tool === "VSCode") {
-    result = await updateMcpConfig(
-      path.join(os.homedir(), "Library", "Application Support", "Code", "User", "mcp.json"),
-      MCP_SERVER_NAME,
-      THINKING_LOGGER_CONFIG
-    );
-  } else if (tool === "Claude") {
-    result = await claudeHooksService.install();
-  } else if (tool === "Codex") {
-    result = await updateMcpConfig(
-      path.join(os.homedir(), ".codex", "config.toml"),
-      MCP_SERVER_NAME,
-      THINKING_LOGGER_CONFIG
-    );
-  } else {
+  if (tool !== "Cursor" && tool !== "VSCode" && tool !== "Claude" && tool !== "Codex") {
     return { success: false, error: "Tool not supported yet." };
   }
 
-  if (result.success) {
-    analytics.mcpConnected(tool);
+  return agentIntegrationsService.installMcp(tool);
+});
+
+ipcMain.handle("hooks/statuses", async () => {
+  return agentIntegrationsService.getHookStatuses();
+});
+
+ipcMain.handle("hooks/install", async (_event, hookId: string) => {
+  if (hookId !== "claude") {
+    return { success: false, error: "Hook not supported yet." };
   }
 
-  return result;
+  return agentIntegrationsService.installHook(hookId);
+});
+
+ipcMain.handle("claude-hooks/check-installed", async () => {
+  return agentIntegrationsService.checkClaudeHooksInstalled();
+});
+
+ipcMain.handle("claude-hooks/install", async () => {
+  return agentIntegrationsService.installClaudeHooks();
 });
 
 ipcMain.handle("claude-hooks/read-sessions", async () => {

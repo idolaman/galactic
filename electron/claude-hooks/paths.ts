@@ -6,6 +6,7 @@ export const CLAUDE_PLUGIN_NAME = "galactic-ide-hooks";
 export const CLAUDE_PLUGIN_ID = `${CLAUDE_PLUGIN_NAME}@${CLAUDE_MARKETPLACE_NAME}`;
 
 export interface ClaudeHookPaths {
+  installStatePath: string;
   claudePluginStatePath: string;
   claudeMarketplaceStatePath: string;
   marketplaceRoot: string;
@@ -22,6 +23,7 @@ export const getClaudeHookPaths = (homeDir: string = os.homedir()): ClaudeHookPa
   const marketplaceRoot = path.join(galacticRoot, "marketplace");
 
   return {
+    installStatePath: path.join(galacticRoot, "state", "install-state.json"),
     claudePluginStatePath: path.join(homeDir, ".claude", "plugins", "installed_plugins.json"),
     claudeMarketplaceStatePath: path.join(homeDir, ".claude", "plugins", "known_marketplaces.json"),
     marketplaceRoot,

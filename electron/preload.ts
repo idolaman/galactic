@@ -41,7 +41,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
   deleteCodeWorkspace: (targetPath: string) =>
     ipcRenderer.invoke("workspace/delete-code-workspace", targetPath),
   checkMcpInstalled: (tool: string) => ipcRenderer.invoke("mcp/check-installed", tool),
+  getHookStatuses: () => ipcRenderer.invoke("hooks/statuses"),
+  installHook: (hookId: string) => ipcRenderer.invoke("hooks/install", hookId),
   installMcp: (tool: string) => ipcRenderer.invoke("mcp/install", tool),
+  checkClaudeHooksInstalled: () => ipcRenderer.invoke("claude-hooks/check-installed"),
+  installClaudeHooks: () => ipcRenderer.invoke("claude-hooks/install"),
   getClaudeHookSessions: () => ipcRenderer.invoke("claude-hooks/read-sessions"),
   getMcpServerStatus: () => ipcRenderer.invoke("mcp/server-status"),
   restartMcpServer: () => ipcRenderer.invoke("mcp/restart-server"),
