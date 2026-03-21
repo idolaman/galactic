@@ -69,7 +69,7 @@ const Index = () => {
   const [isSearchingSyncTargets, setIsSearchingSyncTargets] = useState(false);
   const { environments, assignTarget, unassignTarget, environmentForTarget } =
     useEnvironmentManager();
-  const { loadProjectBranches, clearProjectBranches } = useBranchLoader({
+  const { loadProjectBranches } = useBranchLoader({
     setIsLoadingBranches,
     setProjectBranches,
     toast,
@@ -561,10 +561,6 @@ const Index = () => {
     void loadProjectBranches(selectedProject);
   }, [loadProjectBranches, selectedProject]);
 
-  const handleClearProjectBranches = useCallback(() => {
-    clearProjectBranches();
-  }, [clearProjectBranches]);
-
   return (
     <div className="space-y-8 p-6">
       {selectedProject ? (
@@ -575,7 +571,6 @@ const Index = () => {
           isLoadingBranches={isLoadingBranches}
           isCreatingWorkspace={isCreatingWorkspace}
           onLoadBranches={handleLoadProjectBranches}
-          onClearBranches={handleClearProjectBranches}
           onBack={() => setSelectedProject(null)}
           onCreateWorkspace={handleCreateWorkspace}
           onOpenInEditor={handleOpenInEditor}
