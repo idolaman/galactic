@@ -34,11 +34,18 @@ export interface WorkspaceEnvConfig {
   envVars?: Record<string, string>;
 }
 
+export type PreferredEditorName = "Cursor" | "VSCode";
+
 export interface OpenProjectInEditorResult {
   success: boolean;
   error?: string;
-  usedEditor?: "Cursor" | "VSCode";
+  usedEditor?: PreferredEditorName;
   fallbackApplied?: boolean;
+}
+
+export interface SessionCacheSnapshot {
+  sessions: unknown[];
+  preferredEditor: PreferredEditorName;
 }
 
 export interface ElectronAPI {
@@ -92,7 +99,7 @@ export interface ElectronAPI {
   initialDismissedSessions?: Array<[string, string]>;
   getCachedSessions: () => Promise<unknown[]>;
   getDismissedSessions: () => Promise<Array<[string, string]>>;
-  setCachedSessions: (sessions: unknown[]) => Promise<{ success: boolean }>;
+  setCachedSessions: (snapshot: SessionCacheSnapshot) => Promise<{ success: boolean }>;
   broadcastSessionDismiss: (sessionId: string, signature: string) => Promise<{ success: boolean }>;
   onSessionDismissed: (callback: (sessionId: string, signature: string) => void) => () => void;
   // Analytics

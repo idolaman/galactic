@@ -1,12 +1,13 @@
 import {
   app,
   BrowserWindow,
-  shell,
-  ipcMain,
   dialog,
-  type OpenDialogOptions,
   globalShortcut,
+  ipcMain,
+  Notification,
+  type OpenDialogOptions,
   screen,
+  shell,
 } from "electron";
 import updaterPackage from "electron-updater";
 import type { UpdateInfo, UpdateCheckResult } from "electron-updater";
@@ -22,10 +23,13 @@ import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import type { ExecFileException } from "node:child_process";
 import { initAnalytics, analytics, isAnalyticsEvent, trackEvent } from "./analytics.js";
+import { createEditorLaunchService, parseEditorName } from "./editor-launch/service.js";
+import type { SupportedEditorName } from "./editor-launch/types.js";
 import { registerEditorLaunchIpc } from "./ipc/register-editor-launch.js";
 import { registerGitWorktreeIpc } from "./ipc/register-git-worktree.js";
 import { registerProjectSyncIpc } from "./ipc/register-project-sync.js";
 import { getGalacticUpdateUrl } from "./release-config.js";
+import { getFinishedSessionNotifications } from "./utils/session-notifications.js";
 import { getGitCurrentBranch } from "./utils/git-current-branch.js";
 import { fetchGitBranchesWithReason } from "./utils/git-fetch-branches.js";
 import { isWorktreeAlreadyRemovedError } from "./utils/git-worktree-remove.js";
@@ -40,6 +44,10 @@ let mainWindow: BrowserWindow | null = null;
 let quickSidebarWindow: BrowserWindow | null = null;
 const dismissedSessions = new Map<string, string>();
 let cachedSessions: unknown[] = [];
+let sessionCachePrimed = false;
+let lastPreferredEditor: SupportedEditorName = "Cursor";
+const notifiedFinishedSessionSignatures = new Set<string>();
+const activeSessionNotifications = new Set<Notification>();
 const QUICK_SIDEBAR_HOTKEY = "Command+Shift+G";
 const QUICK_SIDEBAR_WIDTH = 420;
 const QUICK_SIDEBAR_MARGIN = 16;
@@ -48,9 +56,15 @@ const UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 let updateCheckTimer: NodeJS.Timeout | null = null;
 let updateCheckInFlight: Promise<UpdateCheckResult | null> | null = null;
 const isUpdateEnabled = () => getGalacticUpdateUrl().length > 0;
+const editorLaunchService = createEditorLaunchService();
 
 interface AppSettings {
   quickSidebarHotkeyEnabled: boolean;
+}
+
+interface SessionCacheSnapshot {
+  sessions: unknown[];
+  preferredEditor?: string;
 }
 
 const APP_SETTINGS_FILE = "settings.json";
@@ -419,6 +433,135 @@ const createWindow = async () => {
   }
 };
 
+const normalizeSessionCacheSnapshot = (payload: unknown): SessionCacheSnapshot => {
+  if (Array.isArray(payload)) {
+    return { sessions: payload };
+  }
+
+  if (payload && typeof payload === "object") {
+    const value = payload as Record<string, unknown>;
+    return {
+      sessions: Array.isArray(value.sessions) ? value.sessions : [],
+      preferredEditor: typeof value.preferredEditor === "string" ? value.preferredEditor : undefined,
+    };
+  }
+
+  return { sessions: [] };
+};
+
+const getPreferredEditorFromSnapshot = (snapshot: SessionCacheSnapshot): SupportedEditorName => {
+  const parsedEditor = snapshot.preferredEditor ? parseEditorName(snapshot.preferredEditor) : null;
+  if (parsedEditor) {
+    lastPreferredEditor = parsedEditor;
+  }
+
+  return lastPreferredEditor;
+};
+
+const getWorkspaceOpenPath = (targetPath: string): string => {
+  const workspacePath = getWorkspaceFilePath(targetPath);
+  return existsSync(workspacePath) ? workspacePath : targetPath;
+};
+
+const openNotificationWorkspace = async (
+  workspacePath: string,
+  preferredEditor: SupportedEditorName,
+) => {
+  const targetPath = getWorkspaceOpenPath(workspacePath);
+  if (!existsSync(targetPath)) {
+    console.warn(`Notification workspace path does not exist: ${targetPath}`);
+    return;
+  }
+
+  const result = await editorLaunchService.openProject(preferredEditor, targetPath);
+  if (result.success && result.usedEditor) {
+    lastPreferredEditor = result.usedEditor;
+    analytics.editorLaunched(result.usedEditor);
+    return;
+  }
+
+  console.warn(`Failed to open workspace from notification: ${result.error ?? "Unknown error"}`);
+};
+
+const showFinishedSessionNotification = (
+  notificationPayload: ReturnType<typeof getFinishedSessionNotifications>[number],
+  preferredEditor: SupportedEditorName,
+) => {
+  if (process.platform !== "darwin" || !Notification.isSupported()) {
+    return;
+  }
+
+  const notification = new Notification({
+    title: notificationPayload.title,
+    subtitle: notificationPayload.subtitle,
+    body: notificationPayload.body,
+    actions: notificationPayload.actionText
+      ? [{ type: "button", text: notificationPayload.actionText }]
+      : [],
+  });
+  activeSessionNotifications.add(notification);
+  let didHandleNavigation = false;
+
+  const handleOpenWorkspace = () => {
+    if (didHandleNavigation || !notificationPayload.workspacePath) {
+      return;
+    }
+
+    didHandleNavigation = true;
+    void openNotificationWorkspace(notificationPayload.workspacePath, preferredEditor);
+  };
+
+  const cleanupNotification = () => {
+    activeSessionNotifications.delete(notification);
+  };
+
+  notification.on("close", cleanupNotification);
+  notification.on("click", () => {
+    handleOpenWorkspace();
+    cleanupNotification();
+  });
+  notification.on("action", (_event, index) => {
+    if (index === 0) {
+      handleOpenWorkspace();
+      cleanupNotification();
+    }
+  });
+  notification.show();
+};
+
+const syncFinishedSessionNotifications = (payload: unknown) => {
+  const snapshot = normalizeSessionCacheSnapshot(payload);
+  const preferredEditor = getPreferredEditorFromSnapshot(snapshot);
+  const allowNewDoneSessions = sessionCachePrimed;
+  const notifications = getFinishedSessionNotifications({
+    allowNewDoneSessions,
+    hotkeyEnabled: appSettings.quickSidebarHotkeyEnabled,
+    nextSessions: snapshot.sessions,
+    notifiedSignatures: notifiedFinishedSessionSignatures,
+    previousSessions: cachedSessions,
+  });
+
+  if (!allowNewDoneSessions) {
+    getFinishedSessionNotifications({
+      allowNewDoneSessions: true,
+      hotkeyEnabled: appSettings.quickSidebarHotkeyEnabled,
+      nextSessions: snapshot.sessions,
+      notifiedSignatures: notifiedFinishedSessionSignatures,
+      previousSessions: cachedSessions,
+    }).forEach((notificationPayload) => {
+      notifiedFinishedSessionSignatures.add(notificationPayload.signature);
+    });
+  }
+
+  cachedSessions = snapshot.sessions;
+  sessionCachePrimed = true;
+
+  notifications.forEach((notificationPayload) => {
+    notifiedFinishedSessionSignatures.add(notificationPayload.signature);
+    showFinishedSessionNotification(notificationPayload, preferredEditor);
+  });
+};
+
 ipcMain.handle("ping", () => {
   return "pong";
 });
@@ -480,7 +623,7 @@ ipcMain.handle("session/broadcast-dismiss", (event, sessionId: string, signature
 });
 
 ipcMain.handle("session/set-cache", (_event, sessions: unknown) => {
-  cachedSessions = Array.isArray(sessions) ? sessions : [];
+  syncFinishedSessionNotifications(sessions);
   return { success: true };
 });
 
@@ -775,6 +918,7 @@ ipcMain.handle("git/fetch-branches", async (_event, projectPath: string) => {
 registerEditorLaunchIpc({
   ipcMain,
   editorLaunched: (editor) => analytics.editorLaunched(editor),
+  editorLaunchService,
 });
 
 registerGitWorktreeIpc({

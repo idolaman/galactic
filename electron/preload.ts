@@ -3,6 +3,11 @@ import { contextBridge, ipcRenderer } from "electron";
 const initialSessionCache = ipcRenderer.sendSync("session/get-cache-sync");
 const initialDismissedSessions = ipcRenderer.sendSync("session/get-dismissed-sync");
 
+interface SessionCacheSnapshot {
+  sessions: unknown[];
+  preferredEditor: "Cursor" | "VSCode";
+}
+
 contextBridge.exposeInMainWorld("electronAPI", {
   ping: () => ipcRenderer.invoke("ping"),
   getAppVersion: () => ipcRenderer.invoke("app/get-version"),
@@ -65,7 +70,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   initialDismissedSessions: Array.isArray(initialDismissedSessions) ? initialDismissedSessions : [],
   getCachedSessions: () => ipcRenderer.invoke("session/get-cache"),
   getDismissedSessions: () => ipcRenderer.invoke("session/get-dismissed"),
-  setCachedSessions: (sessions: unknown[]) => ipcRenderer.invoke("session/set-cache", sessions),
+  setCachedSessions: (snapshot: SessionCacheSnapshot) => ipcRenderer.invoke("session/set-cache", snapshot),
   broadcastSessionDismiss: (sessionId: string, signature: string) =>
     ipcRenderer.invoke("session/broadcast-dismiss", sessionId, signature),
   onSessionDismissed: (callback: (sessionId: string, signature: string) => void) => {
