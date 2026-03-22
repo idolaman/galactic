@@ -48,11 +48,5 @@ export const useBranchLoader = ({
     );
   }, [setIsLoadingBranches, setProjectBranches, toast]);
 
-  const clearProjectBranches = useCallback(() => {
-    requestIdRef.current += 1;
-    setProjectBranches([]);
-    setIsLoadingBranches(false);
-  }, [setIsLoadingBranches, setProjectBranches]);
-
-  return { loadProjectBranches, clearProjectBranches };
+  return { loadProjectBranches };
 };

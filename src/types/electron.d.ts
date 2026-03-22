@@ -5,12 +5,6 @@ export interface GitInfo {
   isGitRepo: boolean;
 }
 
-export interface GitCurrentBranchResult {
-  success: boolean;
-  branch?: string;
-  error?: string;
-}
-
 export interface WorktreeResult {
   success: boolean;
   path?: string;
@@ -21,6 +15,10 @@ export interface WorktreeResult {
 export interface CreateWorktreeOptions {
   createBranch?: boolean;
   startPoint?: string;
+}
+
+export interface GitBranchListOptions {
+  scope?: "all" | "local";
 }
 
 export interface GitWorktreeInfo {
@@ -47,8 +45,7 @@ export interface ElectronAPI {
   checkEditorInstalled: (editorName: string) => Promise<boolean>;
   chooseProjectDirectory: () => Promise<string | null>;
   getGitInfo: (projectPath: string) => Promise<GitInfo>;
-  getGitCurrentBranch: (projectPath: string) => Promise<GitCurrentBranchResult>;
-  listGitBranches: (projectPath: string) => Promise<string[]>;
+  listGitBranches: (projectPath: string, options?: GitBranchListOptions) => Promise<string[]>;
   getGitWorktrees: (projectPath: string) => Promise<GitWorktreeInfo[]>;
   fetchGitBranches: (projectPath: string) => Promise<GitFetchBranchesResult>;
   createGitWorktree: (

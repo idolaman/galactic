@@ -35,7 +35,6 @@ interface ProjectDetailProps {
   onCreateWorkspace: (request: CreateWorkspaceRequest) => Promise<boolean>;
   onOpenInEditor: (path: string) => void;
   onLoadBranches?: () => void | Promise<void>;
-  onClearBranches?: () => void;
   onDeleteWorkspace: (workspacePath: string, branch: string) => void;
   syncTargets: SyncTarget[];
   syncTargetSearchResults: SyncTarget[];
@@ -61,7 +60,6 @@ export const ProjectDetail = ({
   onCreateWorkspace,
   onOpenInEditor,
   onLoadBranches,
-  onClearBranches,
   onDeleteWorkspace,
   syncTargets,
   syncTargetSearchResults,
@@ -103,7 +101,6 @@ export const ProjectDetail = ({
               isCreatingWorkspace={isCreatingWorkspace}
               onCreateWorkspace={onCreateWorkspace}
               onLoadBranches={onLoadBranches}
-              onClearBranches={onClearBranches}
             />
           )}
         </div>
