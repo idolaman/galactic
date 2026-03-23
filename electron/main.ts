@@ -29,7 +29,14 @@ import { registerEditorLaunchIpc } from "./ipc/register-editor-launch.js";
 import { registerGitWorktreeIpc } from "./ipc/register-git-worktree.js";
 import { registerProjectSyncIpc } from "./ipc/register-project-sync.js";
 import { getGalacticUpdateUrl } from "./release-config.js";
+import {
+  DEFAULT_APP_SETTINGS,
+  loadAppSettings,
+  saveAppSettings,
+  type AppSettings,
+} from "./utils/app-settings.js";
 import { getFinishedSessionNotifications } from "./utils/session-notifications.js";
+import { syncFinishedSessionNotificationState } from "./utils/session-notification-sync.js";
 import { fetchGitBranchesWithReason } from "./utils/git-fetch-branches.js";
 import { listGitBranches } from "./utils/git-list-branches.js";
 import { isWorktreeAlreadyRemovedError } from "./utils/git-worktree-remove.js";
@@ -58,51 +65,16 @@ let updateCheckInFlight: Promise<UpdateCheckResult | null> | null = null;
 const isUpdateEnabled = () => getGalacticUpdateUrl().length > 0;
 const editorLaunchService = createEditorLaunchService();
 
-interface AppSettings {
-  quickSidebarHotkeyEnabled: boolean;
-}
-
 interface SessionCacheSnapshot {
   sessions: unknown[];
   preferredEditor?: string;
 }
 
 const APP_SETTINGS_FILE = "settings.json";
-const DEFAULT_APP_SETTINGS: AppSettings = {
-  quickSidebarHotkeyEnabled: false,
-};
 let appSettings: AppSettings = { ...DEFAULT_APP_SETTINGS };
 
 const getAppSettingsPath = () => path.join(app.getPath("userData"), APP_SETTINGS_FILE);
-
-const loadAppSettings = async (): Promise<AppSettings> => {
-  const settingsPath = getAppSettingsPath();
-  if (!existsSync(settingsPath)) {
-    return { ...DEFAULT_APP_SETTINGS };
-  }
-
-  try {
-    const raw = await fsPromises.readFile(settingsPath, "utf-8");
-    const parsed = JSON.parse(raw) as Partial<AppSettings>;
-    return {
-      ...DEFAULT_APP_SETTINGS,
-      quickSidebarHotkeyEnabled: Boolean(parsed.quickSidebarHotkeyEnabled),
-    };
-  } catch (error) {
-    console.warn("Failed to read app settings:", error);
-    return { ...DEFAULT_APP_SETTINGS };
-  }
-};
-
-const saveAppSettings = async (settings: AppSettings) => {
-  try {
-    const settingsPath = getAppSettingsPath();
-    await fsPromises.mkdir(path.dirname(settingsPath), { recursive: true });
-    await fsPromises.writeFile(settingsPath, JSON.stringify(settings, null, 2), "utf-8");
-  } catch (error) {
-    console.warn("Failed to save app settings:", error);
-  }
-};
+const persistAppSettings = async () => saveAppSettings(getAppSettingsPath(), appSettings);
 
 type UpdateEvent =
   | "available"
@@ -532,34 +504,22 @@ const showFinishedSessionNotification = (
 const syncFinishedSessionNotifications = (payload: unknown) => {
   const snapshot = normalizeSessionCacheSnapshot(payload);
   const preferredEditor = getPreferredEditorFromSnapshot(snapshot);
-  const allowNewDoneSessions = sessionCachePrimed;
-  const notifications = getFinishedSessionNotifications({
-    allowNewDoneSessions,
+  const result = syncFinishedSessionNotificationState({
     hotkeyEnabled: appSettings.quickSidebarHotkeyEnabled,
     nextSessions: snapshot.sessions,
-    preferredEditor,
+    notificationsEnabled: appSettings.eventNotificationsEnabled,
     notifiedSignatures: notifiedFinishedSessionSignatures,
+    preferredEditor,
     previousSessions: cachedSessions,
+    sessionCachePrimed,
   });
 
-  if (!allowNewDoneSessions) {
-    getFinishedSessionNotifications({
-      allowNewDoneSessions: true,
-      hotkeyEnabled: appSettings.quickSidebarHotkeyEnabled,
-      nextSessions: snapshot.sessions,
-      preferredEditor,
-      notifiedSignatures: notifiedFinishedSessionSignatures,
-      previousSessions: cachedSessions,
-    }).forEach((notificationPayload) => {
-      notifiedFinishedSessionSignatures.add(notificationPayload.signature);
-    });
-  }
-
-  cachedSessions = snapshot.sessions;
-  sessionCachePrimed = true;
-
-  notifications.forEach((notificationPayload) => {
-    notifiedFinishedSessionSignatures.add(notificationPayload.signature);
+  cachedSessions = result.nextCachedSessions;
+  sessionCachePrimed = result.nextSessionCachePrimed;
+  result.signaturesToRecord.forEach((signature) => {
+    notifiedFinishedSessionSignatures.add(signature);
+  });
+  result.notificationsToShow.forEach((notificationPayload) => {
     showFinishedSessionNotification(notificationPayload, preferredEditor);
   });
 };
@@ -591,18 +551,29 @@ ipcMain.handle("settings/get-quick-sidebar-hotkey", () => {
   return appSettings.quickSidebarHotkeyEnabled;
 });
 
+ipcMain.handle("settings/get-event-notifications", () => {
+  return appSettings.eventNotificationsEnabled;
+});
+
 ipcMain.handle("settings/set-quick-sidebar-hotkey", async (_event, enabled: boolean) => {
   const nextValue = Boolean(enabled);
   const applied = applyQuickSidebarHotkeySetting(nextValue);
   const resolvedValue = nextValue && applied;
 
   appSettings = { ...appSettings, quickSidebarHotkeyEnabled: resolvedValue };
-  await saveAppSettings(appSettings);
+  await persistAppSettings();
 
   if (!applied && nextValue) {
     return { success: false, enabled: false, error: `Failed to register hotkey ${QUICK_SIDEBAR_HOTKEY}` };
   }
 
+  return { success: true, enabled: resolvedValue };
+});
+
+ipcMain.handle("settings/set-event-notifications", async (_event, enabled: boolean) => {
+  const resolvedValue = Boolean(enabled);
+  appSettings = { ...appSettings, eventNotificationsEnabled: resolvedValue };
+  await persistAppSettings();
   return { success: true, enabled: resolvedValue };
 });
 
@@ -660,11 +631,11 @@ app.whenReady().then(async () => {
   // Start the MCP server
   startMcpServer({ port: MCP_SERVER_PORT, tokenless: true });
 
-  appSettings = await loadAppSettings();
+  appSettings = await loadAppSettings(getAppSettingsPath());
   const hotkeyApplied = applyQuickSidebarHotkeySetting(appSettings.quickSidebarHotkeyEnabled);
   if (!hotkeyApplied && appSettings.quickSidebarHotkeyEnabled) {
     appSettings = { ...appSettings, quickSidebarHotkeyEnabled: false };
-    await saveAppSettings(appSettings);
+    await persistAppSettings();
   }
 
   createWindow().catch((error) => {

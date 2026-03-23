@@ -34,6 +34,12 @@ export interface WorkspaceEnvConfig {
 
 export type PreferredEditorName = "Cursor" | "VSCode";
 
+export interface ToggleSettingResult {
+  success: boolean;
+  enabled: boolean;
+  error?: string;
+}
+
 export interface OpenProjectInEditorResult {
   success: boolean;
   error?: string;
@@ -85,7 +91,9 @@ export interface ElectronAPI {
   toggleQuickSidebar: () => Promise<{ visible: boolean }>;
   hideQuickSidebar: () => Promise<{ hidden: boolean }>;
   getQuickSidebarHotkeyEnabled: () => Promise<boolean>;
-  setQuickSidebarHotkeyEnabled: (enabled: boolean) => Promise<{ success: boolean; enabled: boolean; error?: string }>;
+  setQuickSidebarHotkeyEnabled: (enabled: boolean) => Promise<ToggleSettingResult>;
+  getEventNotificationsEnabled: () => Promise<boolean>;
+  setEventNotificationsEnabled: (enabled: boolean) => Promise<ToggleSettingResult>;
   checkForUpdates: () => Promise<{ supported: boolean; updateAvailable?: boolean; version?: string | null; message?: string; error?: string }>;
   applyUpdate: () => Promise<{ success: boolean; error?: string }>;
   onUpdateEvent: (
