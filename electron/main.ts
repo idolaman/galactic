@@ -1,12 +1,13 @@
 import {
   app,
   BrowserWindow,
-  shell,
-  ipcMain,
   dialog,
-  type OpenDialogOptions,
   globalShortcut,
+  ipcMain,
+  Notification,
+  type OpenDialogOptions,
   screen,
+  shell,
 } from "electron";
 import updaterPackage from "electron-updater";
 import type { UpdateInfo, UpdateCheckResult } from "electron-updater";
@@ -22,6 +23,8 @@ import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import type { ExecFileException } from "node:child_process";
 import { initAnalytics, analytics, isAnalyticsEvent, trackEvent } from "./analytics.js";
+import { createEditorLaunchService, parseEditorName } from "./editor-launch/service.js";
+import type { SupportedEditorName } from "./editor-launch/types.js";
 import { registerEditorLaunchIpc } from "./ipc/register-editor-launch.js";
 import { registerGitWorktreeIpc } from "./ipc/register-git-worktree.js";
 import { MCP_SERVER_PORT, registerMcpIpc } from "./ipc/register-mcp.js";
@@ -34,6 +37,14 @@ import {
   getMcpServerUrl,
 } from "./mcp-server.js";
 import { getGalacticUpdateUrl } from "./release-config.js";
+import {
+  DEFAULT_APP_SETTINGS,
+  loadAppSettings,
+  saveAppSettings,
+  type AppSettings,
+} from "./utils/app-settings.js";
+import { getFinishedSessionNotifications } from "./utils/session-notifications.js";
+import { syncFinishedSessionNotificationState } from "./utils/session-notification-sync.js";
 import { fetchGitBranchesWithReason } from "./utils/git-fetch-branches.js";
 import { listGitBranches } from "./utils/git-list-branches.js";
 import { isWorktreeAlreadyRemovedError } from "./utils/git-worktree-remove.js";
@@ -48,6 +59,10 @@ let mainWindow: BrowserWindow | null = null;
 let quickSidebarWindow: BrowserWindow | null = null;
 const dismissedSessions = new Map<string, string>();
 let cachedSessions: unknown[] = [];
+let sessionCachePrimed = false;
+let lastPreferredEditor: SupportedEditorName = "Cursor";
+const notifiedFinishedSessionSignatures = new Set<string>();
+const activeSessionNotifications = new Set<Notification>();
 const QUICK_SIDEBAR_HOTKEY = "Command+Shift+G";
 const QUICK_SIDEBAR_WIDTH = 420;
 const QUICK_SIDEBAR_MARGIN = 16;
@@ -56,47 +71,18 @@ const UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 let updateCheckTimer: NodeJS.Timeout | null = null;
 let updateCheckInFlight: Promise<UpdateCheckResult | null> | null = null;
 const isUpdateEnabled = () => getGalacticUpdateUrl().length > 0;
+const editorLaunchService = createEditorLaunchService();
 
-interface AppSettings {
-  quickSidebarHotkeyEnabled: boolean;
+interface SessionCacheSnapshot {
+  sessions: unknown[];
+  preferredEditor?: string;
 }
 
 const APP_SETTINGS_FILE = "settings.json";
-const DEFAULT_APP_SETTINGS: AppSettings = {
-  quickSidebarHotkeyEnabled: false,
-};
 let appSettings: AppSettings = { ...DEFAULT_APP_SETTINGS };
 
 const getAppSettingsPath = () => path.join(app.getPath("userData"), APP_SETTINGS_FILE);
-
-const loadAppSettings = async (): Promise<AppSettings> => {
-  const settingsPath = getAppSettingsPath();
-  if (!existsSync(settingsPath)) {
-    return { ...DEFAULT_APP_SETTINGS };
-  }
-
-  try {
-    const raw = await fsPromises.readFile(settingsPath, "utf-8");
-    const parsed = JSON.parse(raw) as Partial<AppSettings>;
-    return {
-      ...DEFAULT_APP_SETTINGS,
-      quickSidebarHotkeyEnabled: Boolean(parsed.quickSidebarHotkeyEnabled),
-    };
-  } catch (error) {
-    console.warn("Failed to read app settings:", error);
-    return { ...DEFAULT_APP_SETTINGS };
-  }
-};
-
-const saveAppSettings = async (settings: AppSettings) => {
-  try {
-    const settingsPath = getAppSettingsPath();
-    await fsPromises.mkdir(path.dirname(settingsPath), { recursive: true });
-    await fsPromises.writeFile(settingsPath, JSON.stringify(settings, null, 2), "utf-8");
-  } catch (error) {
-    console.warn("Failed to save app settings:", error);
-  }
-};
+const persistAppSettings = async () => saveAppSettings(getAppSettingsPath(), appSettings);
 
 type UpdateEvent =
   | "available"
@@ -427,6 +413,125 @@ const createWindow = async () => {
   }
 };
 
+const normalizeSessionCacheSnapshot = (payload: unknown): SessionCacheSnapshot => {
+  if (Array.isArray(payload)) {
+    return { sessions: payload };
+  }
+
+  if (payload && typeof payload === "object") {
+    const value = payload as Record<string, unknown>;
+    return {
+      sessions: Array.isArray(value.sessions) ? value.sessions : [],
+      preferredEditor: typeof value.preferredEditor === "string" ? value.preferredEditor : undefined,
+    };
+  }
+
+  return { sessions: [] };
+};
+
+const getPreferredEditorFromSnapshot = (snapshot: SessionCacheSnapshot): SupportedEditorName => {
+  const parsedEditor = snapshot.preferredEditor ? parseEditorName(snapshot.preferredEditor) : null;
+  if (parsedEditor) {
+    lastPreferredEditor = parsedEditor;
+  }
+
+  return lastPreferredEditor;
+};
+
+const getWorkspaceOpenPath = (targetPath: string): string => {
+  const workspacePath = getWorkspaceFilePath(targetPath);
+  return existsSync(workspacePath) ? workspacePath : targetPath;
+};
+
+const openNotificationWorkspace = async (
+  workspacePath: string,
+  preferredEditor: SupportedEditorName,
+) => {
+  const targetPath = getWorkspaceOpenPath(workspacePath);
+  if (!existsSync(targetPath)) {
+    console.warn(`Notification workspace path does not exist: ${targetPath}`);
+    return;
+  }
+
+  const result = await editorLaunchService.openProject(preferredEditor, targetPath);
+  if (result.success && result.usedEditor) {
+    lastPreferredEditor = result.usedEditor;
+    analytics.editorLaunched(result.usedEditor);
+    return;
+  }
+
+  console.warn(`Failed to open workspace from notification: ${result.error ?? "Unknown error"}`);
+};
+
+const showFinishedSessionNotification = (
+  notificationPayload: ReturnType<typeof getFinishedSessionNotifications>[number],
+  preferredEditor: SupportedEditorName,
+) => {
+  if (process.platform !== "darwin" || !Notification.isSupported()) {
+    return;
+  }
+
+  const notification = new Notification({
+    title: notificationPayload.title,
+    subtitle: notificationPayload.subtitle,
+    body: notificationPayload.body,
+    actions: notificationPayload.actionText
+      ? [{ type: "button", text: notificationPayload.actionText }]
+      : [],
+  });
+  activeSessionNotifications.add(notification);
+  let didHandleNavigation = false;
+
+  const handleOpenWorkspace = () => {
+    if (didHandleNavigation || !notificationPayload.workspacePath) {
+      return;
+    }
+
+    didHandleNavigation = true;
+    void openNotificationWorkspace(notificationPayload.workspacePath, preferredEditor);
+  };
+
+  const cleanupNotification = () => {
+    activeSessionNotifications.delete(notification);
+  };
+
+  notification.on("close", cleanupNotification);
+  notification.on("click", () => {
+    handleOpenWorkspace();
+    cleanupNotification();
+  });
+  notification.on("action", (_event, index) => {
+    if (index === 0) {
+      handleOpenWorkspace();
+      cleanupNotification();
+    }
+  });
+  notification.show();
+};
+
+const syncFinishedSessionNotifications = (payload: unknown) => {
+  const snapshot = normalizeSessionCacheSnapshot(payload);
+  const preferredEditor = getPreferredEditorFromSnapshot(snapshot);
+  const result = syncFinishedSessionNotificationState({
+    hotkeyEnabled: appSettings.quickSidebarHotkeyEnabled,
+    nextSessions: snapshot.sessions,
+    notificationsEnabled: appSettings.eventNotificationsEnabled,
+    notifiedSignatures: notifiedFinishedSessionSignatures,
+    preferredEditor,
+    previousSessions: cachedSessions,
+    sessionCachePrimed,
+  });
+
+  cachedSessions = result.nextCachedSessions;
+  sessionCachePrimed = result.nextSessionCachePrimed;
+  result.signaturesToRecord.forEach((signature) => {
+    notifiedFinishedSessionSignatures.add(signature);
+  });
+  result.notificationsToShow.forEach((notificationPayload) => {
+    showFinishedSessionNotification(notificationPayload, preferredEditor);
+  });
+};
+
 ipcMain.handle("ping", () => {
   return "pong";
 });
@@ -454,18 +559,29 @@ ipcMain.handle("settings/get-quick-sidebar-hotkey", () => {
   return appSettings.quickSidebarHotkeyEnabled;
 });
 
+ipcMain.handle("settings/get-event-notifications", () => {
+  return appSettings.eventNotificationsEnabled;
+});
+
 ipcMain.handle("settings/set-quick-sidebar-hotkey", async (_event, enabled: boolean) => {
   const nextValue = Boolean(enabled);
   const applied = applyQuickSidebarHotkeySetting(nextValue);
   const resolvedValue = nextValue && applied;
 
   appSettings = { ...appSettings, quickSidebarHotkeyEnabled: resolvedValue };
-  await saveAppSettings(appSettings);
+  await persistAppSettings();
 
   if (!applied && nextValue) {
     return { success: false, enabled: false, error: `Failed to register hotkey ${QUICK_SIDEBAR_HOTKEY}` };
   }
 
+  return { success: true, enabled: resolvedValue };
+});
+
+ipcMain.handle("settings/set-event-notifications", async (_event, enabled: boolean) => {
+  const resolvedValue = Boolean(enabled);
+  appSettings = { ...appSettings, eventNotificationsEnabled: resolvedValue };
+  await persistAppSettings();
   return { success: true, enabled: resolvedValue };
 });
 
@@ -488,7 +604,7 @@ ipcMain.handle("session/broadcast-dismiss", (event, sessionId: string, signature
 });
 
 ipcMain.handle("session/set-cache", (_event, sessions: unknown) => {
-  cachedSessions = Array.isArray(sessions) ? sessions : [];
+  syncFinishedSessionNotifications(sessions);
   return { success: true };
 });
 
@@ -523,11 +639,11 @@ app.whenReady().then(async () => {
   // Start the MCP server
   startMcpServer({ port: MCP_SERVER_PORT, tokenless: true });
 
-  appSettings = await loadAppSettings();
+  appSettings = await loadAppSettings(getAppSettingsPath());
   const hotkeyApplied = applyQuickSidebarHotkeySetting(appSettings.quickSidebarHotkeyEnabled);
   if (!hotkeyApplied && appSettings.quickSidebarHotkeyEnabled) {
     appSettings = { ...appSettings, quickSidebarHotkeyEnabled: false };
-    await saveAppSettings(appSettings);
+    await persistAppSettings();
   }
 
   createWindow().catch((error) => {
@@ -740,6 +856,7 @@ ipcMain.handle("git/fetch-branches", async (_event, projectPath: string) => {
 registerEditorLaunchIpc({
   ipcMain,
   editorLaunched: (editor) => analytics.editorLaunched(editor),
+  editorLaunchService,
 });
 
 registerGitWorktreeIpc({

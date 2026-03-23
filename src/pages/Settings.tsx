@@ -4,9 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Switch } from "@/components/ui/switch";
 import { ArrowDownToLine, CheckCircle2, Info, Loader2, RefreshCw } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AsyncToggleSettingCard } from "@/components/Settings/AsyncToggleSettingCard";
 import { useToast } from "@/hooks/use-toast";
 import vscodeIcon from "@/assets/vscode-icon.png";
 import cursorIcon from "@/assets/cursor.jpeg";
@@ -60,9 +60,6 @@ export default function Settings() {
   const [installing, setInstalling] = useState<Partial<Record<McpToolName, boolean>>>({});
   const [selectedConfig, setSelectedConfig] = useState<McpToolName | null>(null);
   const [appVersion, setAppVersion] = useState<string | null>(null);
-  const [quickSidebarHotkeyEnabled, setQuickSidebarHotkeyEnabled] = useState(false);
-  const [quickSidebarHotkeyLoading, setQuickSidebarHotkeyLoading] = useState(true);
-  const [quickSidebarHotkeySaving, setQuickSidebarHotkeySaving] = useState(false);
 
   useEffect(() => {
     window.localStorage.setItem("preferredEditor", preferredEditor);
@@ -105,43 +102,6 @@ export default function Settings() {
     window.electronAPI?.getAppVersion?.().then(setAppVersion);
   }, [checkEditors, checkMcpStatus]);
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadHotkeySetting = async () => {
-      if (!window.electronAPI?.getQuickSidebarHotkeyEnabled) {
-        if (isMounted) {
-          setQuickSidebarHotkeyLoading(false);
-        }
-        return;
-      }
-
-      try {
-        const enabled = await window.electronAPI.getQuickSidebarHotkeyEnabled();
-        if (isMounted) {
-          setQuickSidebarHotkeyEnabled(enabled);
-        }
-      } catch (error) {
-        if (isMounted) {
-          toast({
-            title: "Hotkey setting unavailable",
-            description: "Unable to load the global hotkey preference.",
-            variant: "destructive",
-          });
-        }
-      } finally {
-        if (isMounted) {
-          setQuickSidebarHotkeyLoading(false);
-        }
-      }
-    };
-
-    loadHotkeySetting();
-    return () => {
-      isMounted = false;
-    };
-  }, [toast]);
-
   const handleEditorChange = (value: string) => {
     const nextValue: EditorName = value === "VSCode" ? "VSCode" : "Cursor";
     setPreferredEditor(nextValue);
@@ -181,7 +141,7 @@ export default function Settings() {
     }
   };
 
-  const handleInstallMcp = async (tool: McpToolName) => {
+  const handleInstallMcp = async (tool: string) => {
     if (!window.electronAPI?.installMcp) return;
 
     setInstalling(prev => ({ ...prev, [tool]: true }));
@@ -305,31 +265,44 @@ export default function Settings() {
         </CardContent>
       </Card>
 
-      <Card className="border-border bg-card" id="global-hotkey">
-        <CardHeader className="pb-4">
-          <CardTitle>Global Hotkey</CardTitle>
-          <CardDescription>Enable the system shortcut to open the Quick Launcher.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1">
-            <Label htmlFor="quick-sidebar-hotkey" className="text-sm font-medium">Quick Launcher</Label>
-            <p className="text-xs text-muted-foreground">
-              Press{" "}
-              <kbd className="inline-flex items-center gap-1 rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary shadow-sm">
-                Cmd+Shift+G
-              </kbd>{" "}
-              to toggle the Quick Launcher.
-            </p>
-          </div>
-          <Switch
-            id="quick-sidebar-hotkey"
-            checked={quickSidebarHotkeyEnabled}
-            onCheckedChange={handleQuickSidebarHotkeyChange}
-            disabled={quickSidebarHotkeyLoading || quickSidebarHotkeySaving}
-            className={cn(highlightHotkey && "ring-2 ring-primary ring-offset-2 ring-offset-background transition-all duration-500")}
-          />
-        </CardContent>
-      </Card>
+      <AsyncToggleSettingCard
+        cardId="event-notifications"
+        title="Event Notifications"
+        description="Allow Galactic to alert you about important events."
+        label="Galactic event alerts"
+        details="Currently includes finished coding sessions on macOS. Future event alerts will use this setting too."
+        switchId="event-notifications-enabled"
+        getValue={window.electronAPI?.getEventNotificationsEnabled}
+        setValue={window.electronAPI?.setEventNotificationsEnabled}
+        loadErrorTitle="Notification setting unavailable"
+        loadErrorDescription="Unable to load the event notification preference."
+        saveErrorTitle="Notification update failed"
+        saveErrorDescription="Unable to update the event notification preference."
+      />
+
+      <AsyncToggleSettingCard
+        cardId="global-hotkey"
+        title="Global Hotkey"
+        description="Enable the system shortcut to open the Quick Launcher."
+        label="Quick Launcher"
+        details={(
+          <p>
+            Press{" "}
+            <kbd className="inline-flex items-center gap-1 rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary shadow-sm">
+              Cmd+Shift+G
+            </kbd>{" "}
+            to toggle the Quick Launcher.
+          </p>
+        )}
+        switchId="quick-sidebar-hotkey"
+        getValue={window.electronAPI?.getQuickSidebarHotkeyEnabled}
+        setValue={window.electronAPI?.setQuickSidebarHotkeyEnabled}
+        loadErrorTitle="Hotkey setting unavailable"
+        loadErrorDescription="Unable to load the global hotkey preference."
+        saveErrorTitle="Hotkey update failed"
+        saveErrorDescription="Unable to update the global hotkey."
+        switchClassName={cn(highlightHotkey && "ring-2 ring-primary ring-offset-2 ring-offset-background transition-all duration-500")}
+      />
 
       <Card className="border-border bg-card" id="mcp-installation">
         <CardHeader className="pb-4">
