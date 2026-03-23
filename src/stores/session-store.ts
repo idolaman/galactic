@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { getPreferredEditor } from '../services/editor';
 import { initialize, readClientSessions, SessionSummary } from '../services/session-rpc';
 
 interface SessionState {
@@ -219,7 +220,10 @@ export const useSessionStore = create<SessionState>((set, get) => {
 
             set({ sessions: ordered, loading: false, error: null, lastPoll: Date.now() });
             if (typeof window !== 'undefined') {
-                void window.electronAPI?.setCachedSessions?.(ordered);
+                void window.electronAPI?.setCachedSessions?.({
+                    sessions: ordered,
+                    preferredEditor: getPreferredEditor(),
+                });
             }
 
         } catch (err) {

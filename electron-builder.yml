@@ -26,6 +26,8 @@ mac:
   icon: src/assets/icon.png
   hardenedRuntime: true
   gatekeeperAssess: false
+  extendInfo:
+    NSUserNotificationAlertStyle: alert
 
 dmg:
   contents:
