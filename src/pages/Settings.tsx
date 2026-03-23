@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -13,9 +14,8 @@ import cursorIcon from "@/assets/cursor.jpeg";
 import { Button } from "@/components/ui/button";
 import { type EditorName } from "@/services/editor";
 import { cn } from "@/lib/utils";
+import { handleMcpInstallResult, MCP_INSTALL_NOTE } from "@/lib/mcp-installation";
 import { getMcpInstallationDetails, MCP_TOOL_NAMES, type McpToolName } from "@/lib/mcp-installation-details";
-import { projectStorage } from "@/services/projects";
-import { markAllWorkspacesRequireRelaunch } from "@/services/workspace-state";
 import { useUpdate } from "@/hooks/use-update";
 
 export default function Settings() {
@@ -141,34 +141,13 @@ export default function Settings() {
     }
   };
 
-  const handleInstallMcp = async (tool: string) => {
+  const handleInstallMcp = async (tool: McpToolName) => {
     if (!window.electronAPI?.installMcp) return;
 
     setInstalling(prev => ({ ...prev, [tool]: true }));
     try {
       const result = await window.electronAPI.installMcp(tool);
-      if (result.success) {
-        // Mark all workspaces for relaunch
-        const projects = projectStorage.load();
-        const allPaths: string[] = [];
-        for (const p of projects) {
-          allPaths.push(p.path);
-          if (p.workspaces) {
-            for (const ws of p.workspaces) {
-              allPaths.push(ws.workspace);
-            }
-          }
-        }
-        markAllWorkspacesRequireRelaunch(allPaths);
-
-        await checkMcpStatus();
-      } else {
-        toast({
-          title: "Installation Failed",
-          description: result.error || `Failed to install MCP for ${tool}.`,
-          variant: "destructive"
-        });
-      }
+      await handleMcpInstallResult({ result, refreshStatus: checkMcpStatus, toast, tool });
     } catch (error) {
       toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
     } finally {
@@ -438,6 +417,13 @@ export default function Settings() {
               {mcpInstalled["Codex"] ? "Installed" : installing["Codex"] ? "Installing..." : "Install"}
             </Button>
           </Card>
+
+          <Alert className="border-primary/10 bg-primary/5 sm:col-span-2 lg:col-span-4 [&>svg]:text-primary">
+            <Info className="h-4 w-4" />
+            <AlertDescription className="text-xs text-muted-foreground">
+              {MCP_INSTALL_NOTE}
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
 
