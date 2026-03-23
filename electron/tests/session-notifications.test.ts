@@ -35,16 +35,14 @@ test("getFinishedSessionNotifications emits a notification when a session turns 
         started_at: "2026-03-21T10:00:00.000Z",
       },
     ],
+    preferredEditor: "Cursor",
   });
 
   assert.equal(notifications.length, 1);
-  assert.equal(notifications[0]?.title, "Claude has finished Ship the notification feature");
-  assert.equal(
-    notifications[0]?.body,
-    "Go to it now or press Cmd+Shift+G for more information.",
-  );
-  assert.equal(notifications[0]?.subtitle, "galactic-ide - feature/mac-notifications");
-  assert.equal(notifications[0]?.actionText, "Go to");
+  assert.equal(notifications[0]?.title, "Claude finished");
+  assert.equal(notifications[0]?.subtitle, "Ship the notification feature");
+  assert.equal(notifications[0]?.body, "galactic-ide | feature/mac-notifications | 5m");
+  assert.equal(notifications[0]?.actionText, "Open in Cursor");
   assert.equal(notifications[0]?.workspacePath, "/tmp/feature/mac-notifications");
 });
 
@@ -77,6 +75,7 @@ test("getFinishedSessionNotifications skips duplicate finished signatures", () =
         status: "in_progress",
       },
     ],
+    preferredEditor: "Cursor",
   });
 
   assert.deepEqual(notifications, []);
@@ -97,6 +96,7 @@ test("getFinishedSessionNotifications does not replay finished sessions from the
       },
     ],
     notifiedSignatures: new Set<string>(),
+    preferredEditor: "Cursor",
     previousSessions: [],
   });
 
@@ -112,11 +112,12 @@ test("buildFinishedSessionNotification omits Go to when no workspace path exists
       platform: "my-custom-agent",
     },
     false,
+    "Cursor",
   );
 
-  assert.equal(notification.title, "My Custom Agent has finished Review tests");
-  assert.equal(notification.body, "Open Galactic for more information.");
-  assert.equal(notification.subtitle, undefined);
+  assert.equal(notification.title, "My Custom Agent finished");
+  assert.equal(notification.subtitle, "Review tests");
+  assert.equal(notification.body, "Open Galactic for full session details.");
   assert.equal(notification.actionText, undefined);
 });
 
@@ -130,10 +131,34 @@ test("buildFinishedSessionNotification includes Go to when a workspace path exis
       workspacePath: "/tmp/feature/open-the-worktree",
     },
     false,
+    "VSCode",
   );
 
-  assert.equal(notification.title, "Codex has finished Open the worktree");
-  assert.equal(notification.body, "Go to it now for more information.");
-  assert.equal(notification.actionText, "Go to");
+  assert.equal(notification.title, "Codex finished");
+  assert.equal(notification.subtitle, "Open the worktree");
+  assert.equal(notification.body, "open-the-worktree");
+  assert.equal(notification.actionText, "Open in VS Code");
   assert.equal(notification.workspacePath, "/tmp/feature/open-the-worktree");
+});
+
+test("buildFinishedSessionNotification adds compact context and hotkey hint when no workspace is available", () => {
+  const notification = buildFinishedSessionNotification(
+    {
+      id: "session-5",
+      title: "Investigate the scanner failure",
+      status: "done",
+      platform: "codex",
+      project: "ScannerEngine",
+      gitBranch: "feature/redesign",
+      startedAt: "2026-03-21T10:00:00.000Z",
+      endedAt: "2026-03-21T10:08:00.000Z",
+    },
+    true,
+    "Cursor",
+  );
+
+  assert.equal(notification.title, "Codex finished");
+  assert.equal(notification.subtitle, "Investigate the scanner failure");
+  assert.equal(notification.body, "ScannerEngine | feature/redesign | 8m | Cmd+Shift+G");
+  assert.equal(notification.actionText, undefined);
 });

@@ -537,6 +537,7 @@ const syncFinishedSessionNotifications = (payload: unknown) => {
     allowNewDoneSessions,
     hotkeyEnabled: appSettings.quickSidebarHotkeyEnabled,
     nextSessions: snapshot.sessions,
+    preferredEditor,
     notifiedSignatures: notifiedFinishedSessionSignatures,
     previousSessions: cachedSessions,
   });
@@ -546,6 +547,7 @@ const syncFinishedSessionNotifications = (payload: unknown) => {
       allowNewDoneSessions: true,
       hotkeyEnabled: appSettings.quickSidebarHotkeyEnabled,
       nextSessions: snapshot.sessions,
+      preferredEditor,
       notifiedSignatures: notifiedFinishedSessionSignatures,
       previousSessions: cachedSessions,
     }).forEach((notificationPayload) => {
