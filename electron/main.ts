@@ -30,7 +30,6 @@ import { registerGitWorktreeIpc } from "./ipc/register-git-worktree.js";
 import { registerProjectSyncIpc } from "./ipc/register-project-sync.js";
 import { getGalacticUpdateUrl } from "./release-config.js";
 import { getFinishedSessionNotifications } from "./utils/session-notifications.js";
-import { getGitCurrentBranch } from "./utils/git-current-branch.js";
 import { fetchGitBranchesWithReason } from "./utils/git-fetch-branches.js";
 import { listGitBranches } from "./utils/git-list-branches.js";
 import { isWorktreeAlreadyRemovedError } from "./utils/git-worktree-remove.js";
