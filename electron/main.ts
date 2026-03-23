@@ -32,6 +32,7 @@ import { getGalacticUpdateUrl } from "./release-config.js";
 import { getFinishedSessionNotifications } from "./utils/session-notifications.js";
 import { getGitCurrentBranch } from "./utils/git-current-branch.js";
 import { fetchGitBranchesWithReason } from "./utils/git-fetch-branches.js";
+import { listGitBranches } from "./utils/git-list-branches.js";
 import { isWorktreeAlreadyRemovedError } from "./utils/git-worktree-remove.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -737,23 +738,6 @@ ipcMain.handle("git/get-info", async (_event, projectPath: string) => {
   }
 });
 
-ipcMain.handle("git/get-current-branch", async (_event, projectPath: string) => {
-  if (!projectPath) {
-    return { success: false, error: "Project path is required." };
-  }
-
-  const gitDirExists = existsSync(path.join(projectPath, ".git"));
-  if (!gitDirExists) {
-    return { success: false, error: "Git repository not found." };
-  }
-
-  const result = await getGitCurrentBranch(projectPath);
-  if (!result.success) {
-    console.warn(`Failed to resolve current branch for ${projectPath}:`, result.error);
-  }
-  return result;
-});
-
 ipcMain.handle("git/remove-worktree", async (_event, projectPath: string, worktreePath: string) => {
   if (!projectPath || !worktreePath) {
     return { success: false, error: "Project path and worktree path are required." };
@@ -796,7 +780,7 @@ ipcMain.handle("git/remove-worktree", async (_event, projectPath: string, worktr
   }
 });
 
-ipcMain.handle("git/list-branches", async (_event, projectPath: string) => {
+ipcMain.handle("git/list-branches", async (_event, projectPath: string, options?: { scope?: "all" | "local" }) => {
   if (!projectPath) {
     return [];
   }
@@ -807,33 +791,7 @@ ipcMain.handle("git/list-branches", async (_event, projectPath: string) => {
   }
 
   try {
-    // Get local branches
-    const { stdout: localStdout } = await execFileAsync(
-      "git",
-      ["for-each-ref", "--format=%(refname:short)", "refs/heads/"],
-      { cwd: projectPath },
-    );
-    const localBranches = localStdout
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean);
-
-    // Get remote branches and strip origin/ prefix
-    const { stdout: remoteStdout } = await execFileAsync(
-      "git",
-      ["for-each-ref", "--format=%(refname:short)", "refs/remotes/origin/"],
-      { cwd: projectPath },
-    );
-    const remoteBranches = remoteStdout
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .map((branch) => branch.replace(/^origin\//, ""))
-      .filter((branch) => branch !== "HEAD" && branch !== "origin" && branch !== "");
-
-    // Merge and deduplicate (local branches take precedence)
-    const allBranches = [...new Set([...localBranches, ...remoteBranches])];
-    return allBranches.sort();
+    return await listGitBranches(projectPath, options);
   } catch (error) {
     console.warn(`Failed to list git branches for ${projectPath}:`, error);
     return [];
