@@ -107,40 +107,6 @@ export default function Settings() {
     setPreferredEditor(nextValue);
   };
 
-  const handleQuickSidebarHotkeyChange = async (enabled: boolean) => {
-    if (!window.electronAPI?.setQuickSidebarHotkeyEnabled) {
-      setQuickSidebarHotkeyEnabled(enabled);
-      return;
-    }
-
-    const previous = quickSidebarHotkeyEnabled;
-    setQuickSidebarHotkeyEnabled(enabled);
-    setQuickSidebarHotkeySaving(true);
-
-    try {
-      const result = await window.electronAPI.setQuickSidebarHotkeyEnabled(enabled);
-      if (!result?.success) {
-        setQuickSidebarHotkeyEnabled(result?.enabled ?? previous);
-        toast({
-          title: "Hotkey update failed",
-          description: result?.error ?? "Unable to update the global hotkey.",
-          variant: "destructive",
-        });
-        return;
-      }
-      setQuickSidebarHotkeyEnabled(result.enabled);
-    } catch (error) {
-      setQuickSidebarHotkeyEnabled(previous);
-      toast({
-        title: "Hotkey update failed",
-        description: "Unable to update the global hotkey.",
-        variant: "destructive",
-      });
-    } finally {
-      setQuickSidebarHotkeySaving(false);
-    }
-  };
-
   const handleInstallMcp = async (tool: McpToolName) => {
     if (!window.electronAPI?.installMcp) return;
 
