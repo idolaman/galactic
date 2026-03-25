@@ -4,13 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useAppToast } from "@/hooks/use-app-toast";
+import {
+  loadAsyncToggleSettingValue,
+  saveAsyncToggleSettingValue,
+  type ToggleSettingResult,
+} from "@/lib/async-toggle-setting";
 import { cn } from "@/lib/utils";
-
-interface ToggleSettingResult {
-  success: boolean;
-  enabled: boolean;
-  error?: string;
-}
 
 interface AsyncToggleSettingCardProps {
   cardId?: string;
@@ -43,7 +42,7 @@ export function AsyncToggleSettingCard({
   switchId,
   title,
 }: AsyncToggleSettingCardProps) {
-  const { error } = useAppToast();
+  const { error: showError } = useAppToast();
   const [enabled, setEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -51,35 +50,20 @@ export function AsyncToggleSettingCard({
   useEffect(() => {
     let isMounted = true;
 
-    const loadValue = async () => {
-      if (!getValue) {
-        if (isMounted) {
-          setLoading(false);
-        }
-        return;
-      }
-
-      try {
-        const nextValue = await getValue();
-        if (isMounted) {
-          setEnabled(nextValue);
-        }
-      } catch (error) {
-        if (isMounted) {
-          error({ title: loadErrorTitle, description: loadErrorDescription });
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
+    const loadValue = async () =>
+      loadAsyncToggleSettingValue({
+        getValue,
+        isMounted: () => isMounted,
+        onError: () => showError({ title: loadErrorTitle, description: loadErrorDescription }),
+        onLoaded: setEnabled,
+        onSettled: () => setLoading(false),
+      });
 
     void loadValue();
     return () => {
       isMounted = false;
     };
-  }, [error, getValue, loadErrorDescription, loadErrorTitle]);
+  }, [getValue, loadErrorDescription, loadErrorTitle, showError]);
 
   const handleCheckedChange = async (nextValue: boolean) => {
     if (!setValue) {
@@ -88,20 +72,17 @@ export function AsyncToggleSettingCard({
     }
 
     const previousValue = enabled;
-    setEnabled(nextValue);
     setSaving(true);
 
     try {
-      const result = await setValue(nextValue);
-      if (!result?.success) {
-        setEnabled(result?.enabled ?? previousValue);
-        error({ title: saveErrorTitle, description: result?.error ?? saveErrorDescription });
-        return;
-      }
-      setEnabled(result.enabled);
-    } catch (error) {
-      setEnabled(previousValue);
-      error({ title: saveErrorTitle, description: saveErrorDescription });
+      await saveAsyncToggleSettingValue({
+        fallbackErrorMessage: saveErrorDescription,
+        nextValue,
+        onChanged: setEnabled,
+        onError: (description) => showError({ title: saveErrorTitle, description }),
+        previousValue,
+        setValue,
+      });
     } finally {
       setSaving(false);
     }

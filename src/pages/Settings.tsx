@@ -19,7 +19,8 @@ import { getMcpInstallationDetails, MCP_TOOL_NAMES, type McpToolName } from "@/l
 import { useUpdate } from "@/hooks/use-update";
 
 export default function Settings() {
-  const { error } = useAppToast();
+  const toast = useAppToast();
+  const { error: showError } = toast;
   const { state: updateState, checkForUpdates, installUpdate } = useUpdate();
   const location = useLocation();
 
@@ -114,8 +115,8 @@ export default function Settings() {
     try {
       const result = await window.electronAPI.installMcp(tool);
       await handleMcpInstallResult({ result, refreshStatus: checkMcpStatus, toast, tool });
-    } catch (error) {
-      error({ title: "Error", description: "An unexpected error occurred." });
+    } catch (_caughtError) {
+      showError({ title: "Error", description: "An unexpected error occurred." });
     } finally {
       setInstalling(prev => ({ ...prev, [tool]: false }));
     }
