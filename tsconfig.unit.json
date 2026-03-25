@@ -20,6 +20,8 @@
     "src/lib/load-project-branches.ts",
     "src/lib/create-workspace-request.ts",
     "src/lib/toast-defaults.ts",
+    "src/lib/mcp-installation.ts",
+    "src/lib/mcp-installation-details.ts",
     "src/lib/workspace-session-display.ts"
   ]
 }

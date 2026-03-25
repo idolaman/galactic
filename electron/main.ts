@@ -27,7 +27,15 @@ import { createEditorLaunchService, parseEditorName } from "./editor-launch/serv
 import type { SupportedEditorName } from "./editor-launch/types.js";
 import { registerEditorLaunchIpc } from "./ipc/register-editor-launch.js";
 import { registerGitWorktreeIpc } from "./ipc/register-git-worktree.js";
+import { MCP_SERVER_PORT, registerMcpIpc } from "./ipc/register-mcp.js";
 import { registerProjectSyncIpc } from "./ipc/register-project-sync.js";
+import {
+  startMcpServer,
+  stopMcpServer,
+  isMcpServerRunning,
+  restartMcpServer,
+  getMcpServerUrl,
+} from "./mcp-server.js";
 import { getGalacticUpdateUrl } from "./release-config.js";
 import {
   DEFAULT_APP_SETTINGS,
@@ -862,6 +870,11 @@ registerProjectSyncIpc({
   workspaceFilesCopied: (count, success) => analytics.workspaceFilesCopied(count, success),
 });
 
+registerMcpIpc({
+  ipcMain,
+  mcpConnected: (tool) => analytics.mcpConnected(tool),
+});
+
 const resolveWorktreePath = (projectPath: string, worktreePath: string) => {
   const candidates: string[] = [];
   if (path.isAbsolute(worktreePath)) {
@@ -1111,82 +1124,6 @@ ipcMain.handle("update/apply", async () => {
     console.error("Failed to apply update:", error);
     return { success: false, error: error instanceof Error ? error.message : "Failed to install update." };
   }
-});
-
-import { updateMcpConfig, checkMcpConfig } from "./utils/config.js";
-import {
-  startMcpServer,
-  stopMcpServer,
-  isMcpServerRunning,
-  restartMcpServer,
-  getMcpServerUrl,
-} from "./mcp-server.js";
-
-const MCP_SERVER_PORT = 17890;
-
-const THINKING_LOGGER_CONFIG = {
-  type: "http",
-  url: `http://localhost:${MCP_SERVER_PORT}`
-} as const;
-
-const MCP_SERVER_NAME = "galactic";
-
-ipcMain.handle("mcp/check-installed", async (_event, tool: string) => {
-  if (tool === "Cursor") {
-    return await checkMcpConfig(path.join(os.homedir(), ".cursor", "mcp.json"), MCP_SERVER_NAME);
-  }
-
-  if (tool === "VSCode") {
-    return await checkMcpConfig(path.join(os.homedir(), "Library", "Application Support", "Code", "User", "mcp.json"), MCP_SERVER_NAME);
-  }
-
-  if (tool === "Claude") {
-    return await checkMcpConfig(path.join(os.homedir(), ".claude.json"), MCP_SERVER_NAME);
-  }
-
-  if (tool === "Codex") {
-    return await checkMcpConfig(path.join(os.homedir(), ".codex", "config.toml"), MCP_SERVER_NAME);
-  }
-
-  return false;
-});
-
-ipcMain.handle("mcp/install", async (_event, tool: string) => {
-  let result: { success: boolean; error?: string };
-
-  if (tool === "Cursor") {
-    result = await updateMcpConfig(
-      path.join(os.homedir(), ".cursor", "mcp.json"),
-      MCP_SERVER_NAME,
-      THINKING_LOGGER_CONFIG
-    );
-  } else if (tool === "VSCode") {
-    result = await updateMcpConfig(
-      path.join(os.homedir(), "Library", "Application Support", "Code", "User", "mcp.json"),
-      MCP_SERVER_NAME,
-      THINKING_LOGGER_CONFIG
-    );
-  } else if (tool === "Claude") {
-    result = await updateMcpConfig(
-      path.join(os.homedir(), ".claude.json"),
-      MCP_SERVER_NAME,
-      THINKING_LOGGER_CONFIG
-    );
-  } else if (tool === "Codex") {
-    result = await updateMcpConfig(
-      path.join(os.homedir(), ".codex", "config.toml"),
-      MCP_SERVER_NAME,
-      THINKING_LOGGER_CONFIG
-    );
-  } else {
-    return { success: false, error: "Tool not supported yet." };
-  }
-
-  if (result.success) {
-    analytics.mcpConnected(tool);
-  }
-
-  return result;
 });
 
 ipcMain.handle("mcp/server-status", () => {
