@@ -377,7 +377,7 @@ const Index = () => {
     const result = await removeWorktree(selectedProject.path, workspacePath);
     const removalDecision = evaluateWorktreeRemovalResult(result);
     if (!removalDecision.shouldCleanup) {
-      deleteWorkspaceToast.error(getWorktreeRemovalFailureToast());
+      deleteWorkspaceToast.error(getWorktreeRemovalFailureToast(result.error));
       return;
     }
 

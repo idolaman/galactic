@@ -9,6 +9,8 @@ interface WorktreeRemovalDecision {
   shouldCleanup: boolean;
 }
 
+const DEFAULT_WORKTREE_REMOVAL_ERROR = "Please try again.";
+
 export const evaluateWorktreeRemovalResult = (
   result: WorktreeRemovalResult,
 ): WorktreeRemovalDecision => {
@@ -21,8 +23,10 @@ export const getWorktreeRemovalLoadingToast = (): AppToastOptions => ({
   title: "Removing workspace...",
 });
 
-export const getWorktreeRemovalFailureToast = (): AppToastMessage => ({
+export const getWorktreeRemovalFailureToast = (
+  errorMessage?: string,
+): AppToastMessage => ({
   kind: "error",
   title: "Could not remove workspace",
-  description: "Please try again.",
+  description: errorMessage?.trim() || DEFAULT_WORKTREE_REMOVAL_ERROR,
 });
