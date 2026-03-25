@@ -6,7 +6,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ArrowDownToLine, CheckCircle2, Info, Loader2, RefreshCw } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AsyncToggleSettingCard } from "@/components/Settings/AsyncToggleSettingCard";
-import { useToast } from "@/hooks/use-toast";
+import { useAppToast } from "@/hooks/use-app-toast";
 import vscodeIcon from "@/assets/vscode-icon.png";
 import cursorIcon from "@/assets/cursor.jpeg";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ import { useUpdate } from "@/hooks/use-update";
 import { useLocation } from "react-router-dom";
 
 export default function Settings() {
-  const { toast } = useToast();
+  const { error } = useAppToast();
   const { state: updateState, checkForUpdates, installUpdate } = useUpdate();
   const location = useLocation();
 
@@ -130,14 +130,13 @@ export default function Settings() {
 
         await checkMcpStatus();
       } else {
-        toast({
+        error({
           title: "Installation Failed",
           description: result.error || `Failed to install MCP for ${tool}.`,
-          variant: "destructive"
         });
       }
     } catch (error) {
-      toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
+      error({ title: "Error", description: "An unexpected error occurred." });
     } finally {
       setInstalling(prev => ({ ...prev, [tool]: false }));
     }

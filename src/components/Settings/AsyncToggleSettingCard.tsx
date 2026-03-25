@@ -3,7 +3,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/hooks/use-toast";
+import { useAppToast } from "@/hooks/use-app-toast";
 import { cn } from "@/lib/utils";
 
 interface ToggleSettingResult {
@@ -43,7 +43,7 @@ export function AsyncToggleSettingCard({
   switchId,
   title,
 }: AsyncToggleSettingCardProps) {
-  const { toast } = useToast();
+  const { error } = useAppToast();
   const [enabled, setEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -66,7 +66,7 @@ export function AsyncToggleSettingCard({
         }
       } catch (error) {
         if (isMounted) {
-          toast({ title: loadErrorTitle, description: loadErrorDescription, variant: "destructive" });
+          error({ title: loadErrorTitle, description: loadErrorDescription });
         }
       } finally {
         if (isMounted) {
@@ -79,7 +79,7 @@ export function AsyncToggleSettingCard({
     return () => {
       isMounted = false;
     };
-  }, [getValue, loadErrorDescription, loadErrorTitle, toast]);
+  }, [error, getValue, loadErrorDescription, loadErrorTitle]);
 
   const handleCheckedChange = async (nextValue: boolean) => {
     if (!setValue) {
@@ -95,13 +95,13 @@ export function AsyncToggleSettingCard({
       const result = await setValue(nextValue);
       if (!result?.success) {
         setEnabled(result?.enabled ?? previousValue);
-        toast({ title: saveErrorTitle, description: result?.error ?? saveErrorDescription, variant: "destructive" });
+        error({ title: saveErrorTitle, description: result?.error ?? saveErrorDescription });
         return;
       }
       setEnabled(result.enabled);
     } catch (error) {
       setEnabled(previousValue);
-      toast({ title: saveErrorTitle, description: saveErrorDescription, variant: "destructive" });
+      error({ title: saveErrorTitle, description: saveErrorDescription });
     } finally {
       setSaving(false);
     }

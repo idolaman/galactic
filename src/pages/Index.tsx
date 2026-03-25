@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { toast as sonnerToast } from "sonner";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ProjectList } from "@/components/ProjectList";
 import { ProjectDetail } from "@/components/ProjectDetail";
-import { useToast } from "@/hooks/use-toast";
+import { useAppToast } from "@/hooks/use-app-toast";
 import { useBranchLoader } from "@/hooks/use-branch-loader";
 import { chooseProjectDirectory } from "@/services/os";
 import {
@@ -32,7 +31,16 @@ import {
 } from "@/services/workspace-state";
 import { trackConfigFileAdded } from "@/services/analytics";
 import { dedupeSyncTargets, includesSyncTarget, normalizeSyncTargetPath } from "@/services/sync-targets";
-import { evaluateWorktreeRemovalResult, getWorktreeRemovalFailureToast } from "@/lib/worktree-removal";
+import {
+  DEFAULT_CREATE_WORKSPACE_COMMAND_ERROR,
+  DEFAULT_CREATE_WORKSPACE_UNKNOWN_ERROR,
+  getCreateWorkspaceFailureToast,
+} from "@/lib/create-workspace-toast";
+import {
+  evaluateWorktreeRemovalResult,
+  getWorktreeRemovalFailureToast,
+  getWorktreeRemovalLoadingToast,
+} from "@/lib/worktree-removal";
 import { reconcileProjectWorkspaces, toAdditionalWorkspaces } from "@/lib/workspace-reconciliation";
 import type { CreateWorkspaceRequest } from "@/lib/create-workspace-request";
 import type { SyncTarget } from "@/types/sync-target";
@@ -41,7 +49,7 @@ type Project = StoredProject;
 
 const Index = () => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const { toast } = useToast();
+  const appToast = useAppToast();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -72,7 +80,7 @@ const Index = () => {
   const { loadProjectBranches } = useBranchLoader({
     setIsLoadingBranches,
     setProjectBranches,
-    toast,
+    showToast: appToast.show,
   });
 
   const handleAddProject = async () => {
@@ -267,7 +275,9 @@ const Index = () => {
     }
 
     setIsCreatingWorkspace(true);
-    const toastId = sonnerToast.loading("Creating workspace...");
+    const createWorkspaceToast = appToast.loading({
+      title: "Creating workspace...",
+    });
 
     try {
       const syncTargets = selectedProject.syncTargets ?? [];
@@ -277,17 +287,18 @@ const Index = () => {
       });
 
       if (!result.success || !result.path) {
-        sonnerToast.error("Failed to create workspace", {
-          id: toastId,
-          description: result.error ?? "Unknown error running git worktree.",
-          duration: Number.POSITIVE_INFINITY,
-        });
+        createWorkspaceToast.error(
+          getCreateWorkspaceFailureToast({
+            errorMessage: result.error,
+            fallbackDescription: DEFAULT_CREATE_WORKSPACE_COMMAND_ERROR,
+          }),
+        );
         return false;
       }
 
       if (syncTargets.length > 0 && result.path) {
-        sonnerToast.loading("Copying selected files and folders...", {
-          id: toastId,
+        createWorkspaceToast.update({
+          title: "Copying selected files and folders...",
         });
         const copyResult = await copyProjectSyncTargetsToWorktree(
           selectedProject.path,
@@ -302,7 +313,7 @@ const Index = () => {
         }
       }
 
-      sonnerToast.loading("Finalizing workspace...", { id: toastId });
+      createWorkspaceToast.update({ title: "Finalizing workspace..." });
       // Clear any existing environment binding and create .code-workspace without env vars.
       // Fresh worktrees also start clean.
       unassignTarget(result.path!);
@@ -339,21 +350,18 @@ const Index = () => {
         return next;
       });
 
-      sonnerToast.success("Workspace created!", {
-        id: toastId,
-        duration: 2000,
+      createWorkspaceToast.success({
+        title: "Workspace created!",
       });
 
       return true;
     } catch (error) {
-      sonnerToast.error("Failed to create workspace", {
-        id: toastId,
-        description:
-          error instanceof Error
-            ? error.message
-            : "Unknown workspace creation error.",
-        duration: Number.POSITIVE_INFINITY,
-      });
+      createWorkspaceToast.error(
+        getCreateWorkspaceFailureToast({
+          errorMessage: error instanceof Error ? error.message : undefined,
+          fallbackDescription: DEFAULT_CREATE_WORKSPACE_UNKNOWN_ERROR,
+        }),
+      );
       return false;
     } finally {
       setIsCreatingWorkspace(false);
@@ -363,10 +371,13 @@ const Index = () => {
   const handleDeleteWorkspace = async (workspacePath: string, branchName: string) => {
     if (!selectedProject) return;
 
+    const deleteWorkspaceToast = appToast.loading(
+      getWorktreeRemovalLoadingToast(),
+    );
     const result = await removeWorktree(selectedProject.path, workspacePath);
     const removalDecision = evaluateWorktreeRemovalResult(result);
     if (!removalDecision.shouldCleanup) {
-      toast(getWorktreeRemovalFailureToast());
+      deleteWorkspaceToast.error(getWorktreeRemovalFailureToast());
       return;
     }
 
@@ -399,6 +410,8 @@ const Index = () => {
 
       return next;
     });
+
+    deleteWorkspaceToast.dismiss();
   };
 
   const handleEnvironmentChange = async (
@@ -421,10 +434,9 @@ const Index = () => {
 
     const result = assignTarget(environmentId, binding);
     if (!result.success) {
-      toast({
+      appToast.error({
         title: "Unable to attach environment",
         description: result.error ?? "Unknown environment error.",
-        variant: "destructive",
       });
       return;
     }
@@ -471,16 +483,15 @@ const Index = () => {
         setSyncTargetSearchResults(targets);
       } catch (error) {
         console.error("Sync target search failed:", error);
-        toast({
+        appToast.error({
           title: "Sync search failed",
           description: "Unable to list files and folders for this project.",
-          variant: "destructive",
         });
       } finally {
         setIsSearchingSyncTargets(false);
       }
     },
-    [selectedProject?.path, toast],
+    [appToast, selectedProject?.path],
   );
 
   const updateSelectedProject = (next: Project) => {
@@ -550,10 +561,9 @@ const Index = () => {
       return;
     }
 
-    toast({
+    appToast.error({
       title: "Failed to open editor",
       description: result.error ?? `Unable to launch ${preferredEditor}.`,
-      variant: "destructive",
     });
   };
 

@@ -1,3 +1,5 @@
+import type { AppToastMessage, AppToastOptions } from "./app-toast.js";
+
 interface WorktreeRemovalResult {
   success: boolean;
   alreadyRemoved?: boolean;
@@ -5,12 +7,6 @@ interface WorktreeRemovalResult {
 
 interface WorktreeRemovalDecision {
   shouldCleanup: boolean;
-}
-
-interface WorktreeRemovalToast {
-  title: string;
-  description?: string;
-  variant?: "default" | "destructive";
 }
 
 export const evaluateWorktreeRemovalResult = (
@@ -21,8 +17,12 @@ export const evaluateWorktreeRemovalResult = (
   };
 };
 
-export const getWorktreeRemovalFailureToast = (): WorktreeRemovalToast => ({
+export const getWorktreeRemovalLoadingToast = (): AppToastOptions => ({
+  title: "Removing workspace...",
+});
+
+export const getWorktreeRemovalFailureToast = (): AppToastMessage => ({
+  kind: "error",
   title: "Could not remove workspace",
   description: "Please try again.",
-  variant: "destructive",
 });

@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   evaluateWorktreeRemovalResult,
   getWorktreeRemovalFailureToast,
+  getWorktreeRemovalLoadingToast,
 } from "../../src/lib/worktree-removal.js";
 
 test("evaluateWorktreeRemovalResult cleans up on normal success", () => {
@@ -22,7 +23,12 @@ test("evaluateWorktreeRemovalResult blocks cleanup on failure", () => {
 
 test("getWorktreeRemovalFailureToast returns non-technical copy", () => {
   const toast = getWorktreeRemovalFailureToast();
+  assert.equal(toast.kind, "error");
   assert.equal(toast.title, "Could not remove workspace");
   assert.equal(toast.description, "Please try again.");
-  assert.equal(toast.variant, "destructive");
+});
+
+test("getWorktreeRemovalLoadingToast returns progress copy", () => {
+  const toast = getWorktreeRemovalLoadingToast();
+  assert.equal(toast.title, "Removing workspace...");
 });

@@ -3,9 +3,9 @@ import test from "node:test";
 import { loadProjectBranchesCore, type ToastOptions } from "../../src/lib/load-project-branches.js";
 
 const defaultToast: ToastOptions = {
+  kind: "error",
   title: "Fetch failed",
   description: "Unable to fetch branches.",
-  variant: "destructive",
 };
 
 test("clears branches and skips loading when project is not a git repo", async () => {
@@ -30,7 +30,7 @@ test("clears branches and skips loading when project is not a git repo", async (
     {
       setIsLoadingBranches: (isLoading) => loading.push(isLoading),
       setProjectBranches: (next) => branches.push(next),
-      toast: () => undefined,
+      showToast: () => undefined,
     },
   );
 
@@ -63,7 +63,7 @@ test("fetches and lists branches for a valid git project", async () => {
     {
       setIsLoadingBranches: (isLoading) => loading.push(isLoading),
       setProjectBranches: (next) => branches.push(next),
-      toast: (next) => toastCalls.push(next),
+      showToast: (next) => toastCalls.push(next),
     },
   );
 
@@ -93,7 +93,7 @@ test("lists branches and shows toast when fetch fails", async () => {
     {
       setIsLoadingBranches: (isLoading) => loading.push(isLoading),
       setProjectBranches: (next) => branches.push(next),
-      toast: (next) => toastCalls.push(next),
+      showToast: (next) => toastCalls.push(next),
     },
   );
 

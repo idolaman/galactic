@@ -14,9 +14,12 @@
   },
   "include": [
     "tests/unit/**/*.ts",
+    "src/lib/app-toast.ts",
+    "src/lib/create-workspace-toast.ts",
     "src/lib/create-workspace-flow.ts",
     "src/lib/load-project-branches.ts",
     "src/lib/create-workspace-request.ts",
+    "src/lib/toast-defaults.ts",
     "src/lib/workspace-session-display.ts"
   ]
 }

@@ -1,11 +1,11 @@
-import { useToast } from "@/hooks/use-toast";
+import { useAppToast } from "@/hooks/use-app-toast";
 import { getPreferredEditor, openProjectInEditor } from "@/services/editor";
 import { getCodeWorkspacePath } from "@/services/workspace";
 import { useEnvironmentManager } from "@/hooks/use-environment-manager";
 import { trackQuickLauncherWorkspaceOpened } from "@/services/analytics";
 
 export function useEditorLauncher() {
-  const { toast } = useToast();
+  const { error } = useAppToast();
   const { environmentForTarget } = useEnvironmentManager();
 
   const launchWorkspace = async (targetPath: string) => {
@@ -32,10 +32,9 @@ export function useEditorLauncher() {
       return true;
     }
 
-    toast({
+    error({
       title: "Failed to open editor",
       description: result.error ?? `Unable to launch ${preferredEditor}.`,
-      variant: "destructive",
     });
     return false;
   };
