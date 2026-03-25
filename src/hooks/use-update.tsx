@@ -7,7 +7,8 @@ import {
   shouldShowUpdateToast,
   type UpdateEventPayload,
 } from "@/services/update";
-import { useToast } from "@/hooks/use-toast";
+import { useAppToast } from "@/hooks/use-app-toast";
+import type { AppToastController } from "@/lib/app-toast";
 import { ToastAction } from "@/components/ui/toast";
 
 // Types
@@ -56,15 +57,15 @@ function subscribe(listener: (state: UpdateState) => void) {
  * Should be called ONCE at the App level.
  */
 export function useUpdateListener() {
-  const { toast } = useToast();
-  const toastRef = useRef<{ id: string; dismiss: () => void } | null>(null);
+  const { info } = useAppToast();
+  const toastRef = useRef<AppToastController | null>(null);
 
   const showUpdateToast = useCallback(
     (version?: string) => {
       toastRef.current?.dismiss();
 
       const versionLabel = version ? `v${version}` : "New version";
-      toastRef.current = toast({
+      toastRef.current = info({
         title: "Update ready to install",
         description: `${versionLabel} is ready. Restart to update.`,
         duration: Infinity,
@@ -80,7 +81,7 @@ export function useUpdateListener() {
         },
       });
     },
-    [toast],
+    [info],
   );
 
   useEffect(() => {
@@ -120,7 +121,7 @@ export function useUpdateListener() {
  * Can be called in any component (e.g., Settings).
  */
 export function useUpdate() {
-  const { toast } = useToast();
+  const { error } = useAppToast();
   const [, forceUpdate] = useState(0);
 
   useEffect(() => {
@@ -140,10 +141,9 @@ export function useUpdate() {
 
     if (result.error) {
       setGlobalState(() => ({ status: "error", message: result.error }));
-      toast({
+      error({
         title: "Update check failed",
         description: result.error,
-        variant: "destructive",
       });
       return;
     }
@@ -157,18 +157,17 @@ export function useUpdate() {
       status: "idle",
       version: result.version ?? prev.version,
     }));
-  }, [toast]);
+  }, [error]);
 
   const handleInstall = useCallback(async () => {
     const result = await applyUpdate();
     if (!result.success) {
-      toast({
+      error({
         title: "Update failed",
         description: result.error ?? "Unable to install the update.",
-        variant: "destructive",
       });
     }
-  }, [toast]);
+  }, [error]);
 
   return {
     state: globalState,

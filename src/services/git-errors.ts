@@ -1,31 +1,28 @@
+import type { AppToastMessage } from "@/lib/app-toast";
 import type { GitFetchBranchesResult, GitFetchFailureReason } from "@/types/git";
 
-export interface FetchBranchesToastConfig {
-  title: string;
-  description: string;
-  variant: "default" | "destructive";
-}
+export type FetchBranchesToastConfig = AppToastMessage;
 
 const fetchReasonToToast: Record<GitFetchFailureReason, FetchBranchesToastConfig> = {
   "auth-cancelled": {
+    kind: "info",
     title: "Fetch skipped",
     description: "Git authentication was cancelled. Showing cached branches.",
-    variant: "default",
   },
   "auth-required": {
+    kind: "info",
     title: "Authentication required",
     description: "Git needs credentials for remote fetch. Showing cached branches.",
-    variant: "default",
   },
   network: {
+    kind: "error",
     title: "Fetch failed",
     description: "Unable to reach remote. Showing cached branches.",
-    variant: "destructive",
   },
   unknown: {
+    kind: "error",
     title: "Fetch failed",
     description: "Unable to fetch remote branches. Showing cached branches.",
-    variant: "destructive",
   },
 };
 

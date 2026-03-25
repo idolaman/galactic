@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   evaluateWorktreeRemovalResult,
   getWorktreeRemovalFailureToast,
+  getWorktreeRemovalLoadingToast,
 } from "../../src/lib/worktree-removal.js";
 
 test("evaluateWorktreeRemovalResult cleans up on normal success", () => {
@@ -20,9 +21,24 @@ test("evaluateWorktreeRemovalResult blocks cleanup on failure", () => {
   assert.equal(result.shouldCleanup, false);
 });
 
-test("getWorktreeRemovalFailureToast returns non-technical copy", () => {
-  const toast = getWorktreeRemovalFailureToast();
+test("getWorktreeRemovalFailureToast returns the git error message when available", () => {
+  const toast = getWorktreeRemovalFailureToast(
+    " fatal: '/tmp/worktree' contains modified or untracked files, use --force to delete it\n",
+  );
+  assert.equal(toast.kind, "error");
   assert.equal(toast.title, "Could not remove workspace");
+  assert.equal(
+    toast.description,
+    "fatal: '/tmp/worktree' contains modified or untracked files, use --force to delete it",
+  );
+});
+
+test("getWorktreeRemovalFailureToast falls back when the git error is blank", () => {
+  const toast = getWorktreeRemovalFailureToast("   ");
   assert.equal(toast.description, "Please try again.");
-  assert.equal(toast.variant, "destructive");
+});
+
+test("getWorktreeRemovalLoadingToast returns progress copy", () => {
+  const toast = getWorktreeRemovalLoadingToast();
+  assert.equal(toast.title, "Removing workspace...");
 });

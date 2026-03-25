@@ -53,7 +53,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
+import { useAppToast } from "@/hooks/use-app-toast";
 import { useEnvironmentManager } from "@/hooks/use-environment-manager";
 import type { Environment } from "@/types/environment";
 import { cn } from "@/lib/utils";
@@ -63,7 +63,7 @@ import { markWorkspaceRequiresRelaunch } from "@/services/workspace-state";
 export default function Environments() {
   const { environments, createEnvironment, updateEnvironment, deleteEnvironment, unassignTarget } =
     useEnvironmentManager();
-  const { toast } = useToast();
+  const { error } = useAppToast();
 
   // State
   const [selectedEnvironmentId, setSelectedEnvironmentId] = useState<string | null>(
@@ -115,10 +115,9 @@ export default function Environments() {
 
     // Check if key already exists
     if (Object.keys(envVars).some(k => k.trim() === key)) {
-      toast({
+      error({
         title: "Variable exists",
         description: `Environment variable '${key}' already exists.`,
-        variant: "destructive",
       });
       return;
     }
@@ -154,10 +153,9 @@ export default function Environments() {
     });
 
     if (!result.success) {
-      toast({
+      error({
         title: "Failed to update",
         description: result.error || "Unknown error.",
-        variant: "destructive",
       });
       return;
     }
@@ -176,19 +174,17 @@ export default function Environments() {
   const handleCreateEnvironment = async () => {
     const trimmed = newEnvName.trim();
     if (!trimmed) {
-      toast({
+      error({
         title: "Name required",
         description: "Please give the environment a name.",
-        variant: "destructive",
       });
       return;
     }
 
     if (environments.some((env) => env.name.toLowerCase() === trimmed.toLowerCase())) {
-      toast({
+      error({
         title: "Name taken",
         description: "An environment with this name already exists.",
-        variant: "destructive",
       });
       return;
     }
@@ -197,10 +193,9 @@ export default function Environments() {
     try {
       const result = await createEnvironment(trimmed);
       if (!result.success) {
-        toast({
+        error({
           title: "Failed to create environment",
           description: result.error || "Unknown error occurred.",
-          variant: "destructive",
         });
         return;
       }
@@ -219,10 +214,9 @@ export default function Environments() {
     if (!selectedEnvironmentId) return;
     const trimmed = renameName.trim();
     if (!trimmed) {
-      toast({
+      error({
         title: "Name required",
         description: "Environment name cannot be empty.",
-        variant: "destructive",
       });
       return;
     }
@@ -234,10 +228,9 @@ export default function Environments() {
           env.name.toLowerCase() === trimmed.toLowerCase()
       )
     ) {
-      toast({
+      error({
         title: "Name taken",
         description: "An environment with this name already exists.",
-        variant: "destructive",
       });
       return;
     }
@@ -247,10 +240,9 @@ export default function Environments() {
     });
 
     if (!result.success) {
-      toast({
+      error({
         title: "Failed to rename",
         description: result.error || "Unknown error.",
-        variant: "destructive",
       });
       return;
     }
@@ -264,10 +256,9 @@ export default function Environments() {
     try {
       const result = await deleteEnvironment(environmentToDelete.id);
       if (!result.success) {
-        toast({
+        error({
           title: "Failed to delete",
           description: result.error || "Could not remove loopback alias.",
-          variant: "destructive",
         });
         return;
       }

@@ -7,13 +7,13 @@ import { getFetchBranchesToast } from "@/services/git-errors";
 interface UseBranchLoaderOptions {
   setIsLoadingBranches: (loading: boolean) => void;
   setProjectBranches: (branches: string[]) => void;
-  toast: (options: ToastOptions) => void;
+  showToast: (options: ToastOptions) => void;
 }
 
 export const useBranchLoader = ({
   setIsLoadingBranches,
   setProjectBranches,
-  toast,
+  showToast,
 }: UseBranchLoaderOptions) => {
   const requestIdRef = useRef(0);
 
@@ -39,14 +39,14 @@ export const useBranchLoader = ({
             setProjectBranches(branches);
           }
         },
-        toast: (options) => {
+        showToast: (options) => {
           if (requestIdRef.current === requestId) {
-            toast(options);
+            showToast(options);
           }
         },
       },
     );
-  }, [setIsLoadingBranches, setProjectBranches, toast]);
+  }, [setIsLoadingBranches, setProjectBranches, showToast]);
 
   return { loadProjectBranches };
 };

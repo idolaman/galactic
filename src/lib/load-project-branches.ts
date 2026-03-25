@@ -1,3 +1,5 @@
+import type { AppToastMessage } from "./app-toast.js";
+
 type BranchFetchFailureReason = "auth-cancelled" | "auth-required" | "network" | "unknown";
 
 interface BranchFetchResult {
@@ -11,11 +13,7 @@ interface BranchProject {
   isGitRepo: boolean;
 }
 
-interface ToastOptions {
-  title: string;
-  description: string;
-  variant?: "default" | "destructive";
-}
+type ToastOptions = AppToastMessage;
 
 interface LoadProjectBranchesDependencies {
   fetchBranches: (projectPath: string) => Promise<BranchFetchResult>;
@@ -26,7 +24,7 @@ interface LoadProjectBranchesDependencies {
 interface LoadProjectBranchesCallbacks {
   setIsLoadingBranches: (loading: boolean) => void;
   setProjectBranches: (branches: string[]) => void;
-  toast: (options: ToastOptions) => void;
+  showToast: (options: ToastOptions) => void;
 }
 
 export const loadProjectBranchesCore = async (
@@ -45,7 +43,7 @@ export const loadProjectBranchesCore = async (
     const fetchResult = await dependencies.fetchBranches(project.path);
     const fetchToast = dependencies.getFetchBranchesToast(fetchResult);
     if (fetchToast) {
-      callbacks.toast(fetchToast);
+      callbacks.showToast(fetchToast);
     }
 
     const branches = await dependencies.listBranches(project.path);

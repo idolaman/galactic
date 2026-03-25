@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ArrowDownToLine, CheckCircle2, Info, Loader2, RefreshCw } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AsyncToggleSettingCard } from "@/components/Settings/AsyncToggleSettingCard";
-import { useToast } from "@/hooks/use-toast";
+import { useAppToast } from "@/hooks/use-app-toast";
 import vscodeIcon from "@/assets/vscode-icon.png";
 import cursorIcon from "@/assets/cursor.jpeg";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,8 @@ import { getMcpInstallationDetails, MCP_TOOL_NAMES, type McpToolName } from "@/l
 import { useUpdate } from "@/hooks/use-update";
 
 export default function Settings() {
-  const { toast } = useToast();
+  const toast = useAppToast();
+  const { error: showError } = toast;
   const { state: updateState, checkForUpdates, installUpdate } = useUpdate();
   const location = useLocation();
 
@@ -114,8 +115,8 @@ export default function Settings() {
     try {
       const result = await window.electronAPI.installMcp(tool);
       await handleMcpInstallResult({ result, refreshStatus: checkMcpStatus, toast, tool });
-    } catch (error) {
-      toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
+    } catch (_caughtError) {
+      showError({ title: "Error", description: "An unexpected error occurred." });
     } finally {
       setInstalling(prev => ({ ...prev, [tool]: false }));
     }

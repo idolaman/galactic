@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
+import { applyToastDefaults } from "@/lib/toast-defaults";
 
 const TOAST_LIMIT = Infinity;
 const TOAST_REMOVE_DELAY = 1000000;
@@ -73,13 +74,15 @@ export const reducer = (state: State, action: Action): State => {
     case "ADD_TOAST":
       return {
         ...state,
-        toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
+        toasts: [applyToastDefaults(action.toast), ...state.toasts].slice(0, TOAST_LIMIT),
       };
 
     case "UPDATE_TOAST":
       return {
         ...state,
-        toasts: state.toasts.map((t) => (t.id === action.toast.id ? { ...t, ...action.toast } : t)),
+        toasts: state.toasts.map((t) =>
+          t.id === action.toast.id ? applyToastDefaults({ ...t, ...action.toast }) : t,
+        ),
       };
 
     case "DISMISS_TOAST": {

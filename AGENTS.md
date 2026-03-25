@@ -92,6 +92,15 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 - Use `lucide-react` only; no custom SVGs.
 - Size icons with Tailwind classes (`className="h-4 w-4"`). No inline `width`/`height`.
 
+### Toasts (CRITICAL)
+
+- ALWAYS use `useAppToast` from `@/hooks/use-app-toast` in feature code.
+- NEVER import `sonner`, `@/hooks/use-toast`, or `@/components/ui/use-toast` directly outside toast infrastructure files.
+- Use `error(...)` for standard failures; shared error toasts auto-dismiss after 5 seconds unless an explicit override is required.
+- Use `info(...)` for non-error informational messages and `success(...)` for standard completion messages.
+- Use `loading(...)` for long-running async flows; update the same toast during progress and finish it with `success(...)`, `error(...)`, `info(...)`, or `dismiss()`.
+- Only use persistent toasts when product behavior requires it, and set `duration: Infinity` explicitly.
+
 ---
 
 ## TypeScript Rules
