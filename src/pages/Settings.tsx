@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -12,11 +14,9 @@ import cursorIcon from "@/assets/cursor.jpeg";
 import { Button } from "@/components/ui/button";
 import { type EditorName } from "@/services/editor";
 import { cn } from "@/lib/utils";
-import { projectStorage } from "@/services/projects";
-import { markAllWorkspacesRequireRelaunch } from "@/services/workspace-state";
+import { handleMcpInstallResult, MCP_INSTALL_NOTE } from "@/lib/mcp-installation";
+import { getMcpInstallationDetails, MCP_TOOL_NAMES, type McpToolName } from "@/lib/mcp-installation-details";
 import { useUpdate } from "@/hooks/use-update";
-
-import { useLocation } from "react-router-dom";
 
 export default function Settings() {
   const { toast } = useToast();
@@ -51,14 +51,14 @@ export default function Settings() {
   const [cursorInstalled, setCursorInstalled] = useState<boolean>(false);
   const [vscodeInstalled, setVscodeInstalled] = useState<boolean>(false);
 
-  const [mcpInstalled, setMcpInstalled] = useState<Record<string, boolean>>({
+  const [mcpInstalled, setMcpInstalled] = useState<Record<McpToolName, boolean>>({
     Cursor: false,
     VSCode: false,
     Claude: false,
     Codex: false,
   });
-  const [installing, setInstalling] = useState<Record<string, boolean>>({});
-  const [selectedConfig, setSelectedConfig] = useState<string | null>(null);
+  const [installing, setInstalling] = useState<Partial<Record<McpToolName, boolean>>>({});
+  const [selectedConfig, setSelectedConfig] = useState<McpToolName | null>(null);
   const [appVersion, setAppVersion] = useState<string | null>(null);
 
   useEffect(() => {
@@ -87,10 +87,9 @@ export default function Settings() {
 
   const checkMcpStatus = useCallback(async () => {
     if (window.electronAPI?.checkMcpInstalled) {
-      const tools = ["Cursor", "VSCode", "Claude", "Codex"];
-      const status: Record<string, boolean> = {};
+      const status = {} as Record<McpToolName, boolean>;
 
-      for (const tool of tools) {
+      for (const tool of MCP_TOOL_NAMES) {
         status[tool] = await window.electronAPI.checkMcpInstalled(tool);
       }
       setMcpInstalled(status);
@@ -108,34 +107,13 @@ export default function Settings() {
     setPreferredEditor(nextValue);
   };
 
-  const handleInstallMcp = async (tool: string) => {
+  const handleInstallMcp = async (tool: McpToolName) => {
     if (!window.electronAPI?.installMcp) return;
 
     setInstalling(prev => ({ ...prev, [tool]: true }));
     try {
       const result = await window.electronAPI.installMcp(tool);
-      if (result.success) {
-        // Mark all workspaces for relaunch
-        const projects = projectStorage.load();
-        const allPaths: string[] = [];
-        for (const p of projects) {
-          allPaths.push(p.path);
-          if (p.workspaces) {
-            for (const ws of p.workspaces) {
-              allPaths.push(ws.workspace);
-            }
-          }
-        }
-        markAllWorkspacesRequireRelaunch(allPaths);
-
-        await checkMcpStatus();
-      } else {
-        toast({
-          title: "Installation Failed",
-          description: result.error || `Failed to install MCP for ${tool}.`,
-          variant: "destructive"
-        });
-      }
+      await handleMcpInstallResult({ result, refreshStatus: checkMcpStatus, toast, tool });
     } catch (error) {
       toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
     } finally {
@@ -159,6 +137,7 @@ export default function Settings() {
       installed: vscodeInstalled,
     },
   ] as const;
+  const selectedConfigDetails = selectedConfig ? getMcpInstallationDetails(selectedConfig) : null;
 
   return (
     <div className="space-y-8 p-6">
@@ -404,6 +383,13 @@ export default function Settings() {
               {mcpInstalled["Codex"] ? "Installed" : installing["Codex"] ? "Installing..." : "Install"}
             </Button>
           </Card>
+
+          <Alert className="border-primary/10 bg-primary/5 sm:col-span-2 lg:col-span-4 [&>svg]:text-primary">
+            <Info className="h-4 w-4" />
+            <AlertDescription className="text-xs text-muted-foreground">
+              {MCP_INSTALL_NOTE}
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
 
@@ -479,36 +465,20 @@ export default function Settings() {
         <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>Configuration Details</DialogTitle>
-            <DialogDescription>
-              Galactic injects the following configuration into your agent's settings file.
-            </DialogDescription>
+            <DialogDescription>{selectedConfigDetails?.description}</DialogDescription>
           </DialogHeader>
-          {selectedConfig && (
+          {selectedConfigDetails && (
             <div className="space-y-4 pt-2">
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Target File</Label>
-                <div className="rounded-md bg-muted px-3 py-2 text-sm font-mono text-foreground border border-border">
-                  {selectedConfig === "VSCode" && "~/Library/Application Support/Code/User/mcp.json"}
-                  {selectedConfig === "Cursor" && "~/.cursor/mcp.json"}
-                  {selectedConfig === "Claude" && "~/.claude.json"}
-                  {selectedConfig === "Codex" && "~/.codex/config.toml"}
+              {selectedConfigDetails.sections.map((section) => (
+                <div className="space-y-2" key={section.label}>
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{section.label}</Label>
+                  <div className="rounded-md border bg-muted/30 p-4">
+                    <pre className="text-xs font-mono leading-relaxed overflow-x-auto whitespace-pre-wrap">
+                      {section.value}
+                    </pre>
+                  </div>
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Injected Config</Label>
-                <div className="rounded-md border bg-muted/30 p-4">
-                  <pre className="text-xs font-mono leading-relaxed overflow-x-auto whitespace-pre-wrap">
-                    {selectedConfig === "Codex" ?
-                      `[mcp_servers.galactic]
-type = "http"
-url = "http://localhost:17890"` :
-                      `"galactic": {
-  "type": "http",
-  "url": "http://localhost:17890"
-}`}
-                  </pre>
-                </div>
-              </div>
+              ))}
             </div>
           )}
         </DialogContent>
