@@ -146,12 +146,10 @@ const formatContext = (
   }
 
   if (parts.length === 0) {
-    return hotkeyEnabled
-      ? "Cmd+Shift+G for full session details."
-      : "Open Galactic for full session details.";
+    return "Workspace unavailable.";
   }
 
-  return hotkeyEnabled ? `${parts.join(" | ")} | Cmd+Shift+G` : parts.join(" | ");
+  return parts.join(" | ");
 };
 
 const formatActionText = (preferredEditor?: string): string => {

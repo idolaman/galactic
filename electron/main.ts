@@ -471,6 +471,7 @@ const showFinishedSessionNotification = (
     return;
   }
 
+  const notificationOpenedFromBackground = BrowserWindow.getFocusedWindow() === null;
   const notification = new Notification({
     title: notificationPayload.title,
     subtitle: notificationPayload.subtitle,
@@ -495,13 +496,29 @@ const showFinishedSessionNotification = (
     activeSessionNotifications.delete(notification);
   };
 
+  const restoreBackgroundAppState = () => {
+    if (!notificationOpenedFromBackground || app.isHidden()) {
+      return;
+    }
+
+    setTimeout(() => {
+      if (!app.isHidden()) {
+        app.hide();
+      }
+    }, 0);
+  };
+
   notification.on("close", cleanupNotification);
-  notification.on("click", () => {
+  notification.on("click", (event) => {
+    event.preventDefault();
+    restoreBackgroundAppState();
     handleOpenWorkspace();
     cleanupNotification();
   });
-  notification.on("action", (_event, index) => {
+  notification.on("action", (event, index) => {
     if (index === 0) {
+      event.preventDefault();
+      restoreBackgroundAppState();
       handleOpenWorkspace();
       cleanupNotification();
     }
