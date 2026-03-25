@@ -1,10 +1,7 @@
-import { existsSync, promises as fsPromises } from "node:fs";
+import { promises as fsPromises } from "node:fs";
 import path from "node:path";
-import {
-  isWithinRoot,
-  normalizeRelativePath,
-  normalizeSyncTargetPath,
-} from "./path-utils.js";
+import { copyEntry, pathExists } from "./copy-entry.js";
+import { isWithinRoot, normalizeRelativePath, normalizeSyncTargetPath } from "./path-utils.js";
 import type { CopySyncTargetError, CopySyncTargetsResult, SyncTarget } from "./types.js";
 
 const collectDirectoryFiles = async (
@@ -70,9 +67,14 @@ const collectTargetFilePaths = async (
 
     let stats: import("node:fs").Stats;
     try {
-      stats = await fsPromises.stat(sourcePath);
+      stats = await fsPromises.lstat(sourcePath);
     } catch (error) {
       errors.push({ path: relativePath, message: error instanceof Error ? error.message : "Source path does not exist." });
+      continue;
+    }
+
+    if (stats.isSymbolicLink()) {
+      filePaths.add(relativePath);
       continue;
     }
 
@@ -86,7 +88,7 @@ const collectTargetFilePaths = async (
       continue;
     }
 
-    if (!stats.isFile() && !stats.isSymbolicLink()) {
+    if (!stats.isFile()) {
       errors.push({ path: relativePath, message: "Expected a file target." });
       continue;
     }
@@ -115,14 +117,15 @@ export const copySyncTargetsToWorktree = async (
       errors.push({ path: relativePath, message: "Invalid file path." });
       continue;
     }
-    if (existsSync(targetPath)) {
-      skipped.push(relativePath);
-      continue;
-    }
 
     try {
+      if (await pathExists(targetPath)) {
+        skipped.push(relativePath);
+        continue;
+      }
+
       await fsPromises.mkdir(path.dirname(targetPath), { recursive: true });
-      await fsPromises.copyFile(sourcePath, targetPath);
+      await copyEntry(sourcePath, targetPath);
       copied.push(relativePath);
     } catch (error) {
       console.error(`Failed to copy ${relativePath}:`, error);
