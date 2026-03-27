@@ -1,101 +1,34 @@
+import { execFile } from "node:child_process";
 import { promises as fsPromises } from "node:fs";
 import path from "node:path";
+import { promisify } from "node:util";
+import type { ExecFileException } from "node:child_process";
+import { collectDirectoryReportPaths } from "./collect-directory-report-paths.js";
 import { copyEntry, pathExists } from "./copy-entry.js";
-import { isWithinRoot, normalizeRelativePath, normalizeSyncTargetPath } from "./path-utils.js";
+import { isWithinRoot, normalizeSyncTargetPath, normalizeSyncTargets } from "./path-utils.js";
 import type { CopySyncTargetError, CopySyncTargetsResult, SyncTarget } from "./types.js";
 
-const collectDirectoryFiles = async (
-  projectRoot: string,
-  startPath: string,
-  errors: CopySyncTargetError[],
-): Promise<string[]> => {
-  const collectedFiles: string[] = [];
-  const stack: string[] = [startPath];
+const DITTO_PATH = "/usr/bin/ditto";
+const execFileAsync = promisify(execFile);
 
-  while (stack.length > 0) {
-    const currentDir = stack.pop();
-    if (!currentDir) {
-      continue;
-    }
-
-    let entries: import("node:fs").Dirent[];
-    try {
-      entries = await fsPromises.readdir(currentDir, { withFileTypes: true });
-    } catch (error) {
-      const relativeDir = normalizeRelativePath(projectRoot, currentDir);
-      errors.push({ path: relativeDir || ".", message: error instanceof Error ? error.message : "Unknown read error." });
-      continue;
-    }
-
-    for (const entry of entries) {
-      const entryPath = path.join(currentDir, entry.name);
-      if (!isWithinRoot(projectRoot, entryPath)) {
-        continue;
-      }
-
-      if (entry.isDirectory()) {
-        stack.push(entryPath);
-        continue;
-      }
-
-      if (entry.isFile() || entry.isSymbolicLink()) {
-        const relativePath = normalizeRelativePath(projectRoot, entryPath);
-        if (relativePath && !relativePath.startsWith("..")) {
-          collectedFiles.push(relativePath);
-        }
-      }
-    }
+const replaceExistingTarget = async (targetPath: string) => {
+  if (!(await pathExists(targetPath))) {
+    return;
   }
 
-  return collectedFiles;
+  await fsPromises.rm(targetPath, { force: true, recursive: true });
 };
 
-const collectTargetFilePaths = async (
-  projectRoot: string,
-  targets: SyncTarget[],
-  errors: CopySyncTargetError[],
-): Promise<string[]> => {
-  const filePaths = new Set<string>();
+const copyDirectoryTarget = async (sourcePath: string, targetPath: string) => {
+  await replaceExistingTarget(targetPath);
+  await fsPromises.mkdir(path.dirname(targetPath), { recursive: true });
+  await execFileAsync(DITTO_PATH, [sourcePath, targetPath]);
+};
 
-  for (const target of targets) {
-    const relativePath = normalizeSyncTargetPath(target.path);
-    const sourcePath = path.resolve(projectRoot, relativePath);
-    if (!relativePath || !isWithinRoot(projectRoot, sourcePath)) {
-      errors.push({ path: target.path, message: "Invalid sync path." });
-      continue;
-    }
-
-    let stats: import("node:fs").Stats;
-    try {
-      stats = await fsPromises.lstat(sourcePath);
-    } catch (error) {
-      errors.push({ path: relativePath, message: error instanceof Error ? error.message : "Source path does not exist." });
-      continue;
-    }
-
-    if (stats.isSymbolicLink()) {
-      filePaths.add(relativePath);
-      continue;
-    }
-
-    if (target.kind === "directory") {
-      if (!stats.isDirectory()) {
-        errors.push({ path: relativePath, message: "Expected a directory target." });
-        continue;
-      }
-      const nestedFiles = await collectDirectoryFiles(projectRoot, sourcePath, errors);
-      nestedFiles.forEach((file) => filePaths.add(file));
-      continue;
-    }
-
-    if (!stats.isFile()) {
-      errors.push({ path: relativePath, message: "Expected a file target." });
-      continue;
-    }
-    filePaths.add(relativePath);
-  }
-
-  return [...filePaths];
+const copyFileTarget = async (sourcePath: string, targetPath: string) => {
+  await replaceExistingTarget(targetPath);
+  await fsPromises.mkdir(path.dirname(targetPath), { recursive: true });
+  await copyEntry(sourcePath, targetPath);
 };
 
 export const copySyncTargetsToWorktree = async (
@@ -108,9 +41,10 @@ export const copySyncTargetsToWorktree = async (
   const copied: string[] = [];
   const skipped: string[] = [];
   const errors: CopySyncTargetError[] = [];
-  const filePaths = await collectTargetFilePaths(projectRoot, targets, errors);
+  const normalizedTargets = normalizeSyncTargets(targets);
 
-  for (const relativePath of filePaths) {
+  for (const target of normalizedTargets) {
+    const relativePath = normalizeSyncTargetPath(target.path);
     const sourcePath = path.resolve(projectRoot, relativePath);
     const targetPath = path.resolve(worktreeRoot, relativePath);
     if (!isWithinRoot(projectRoot, sourcePath) || !isWithinRoot(worktreeRoot, targetPath)) {
@@ -119,17 +53,33 @@ export const copySyncTargetsToWorktree = async (
     }
 
     try {
-      if (await pathExists(targetPath)) {
-        skipped.push(relativePath);
+      const sourceStats = await fsPromises.lstat(sourcePath);
+      if (sourceStats.isDirectory()) {
+        if (target.kind !== "directory") {
+          errors.push({ path: relativePath, message: "Expected a file target." });
+          continue;
+        }
+
+        const copiedPaths = await collectDirectoryReportPaths(projectRoot, sourcePath);
+        await copyDirectoryTarget(sourcePath, targetPath);
+        copied.push(...copiedPaths);
         continue;
       }
 
-      await fsPromises.mkdir(path.dirname(targetPath), { recursive: true });
-      await copyEntry(sourcePath, targetPath);
+      if (!sourceStats.isFile() && !sourceStats.isSymbolicLink()) {
+        errors.push({ path: relativePath, message: "Expected a file or symlink target." });
+        continue;
+      }
+
+      await copyFileTarget(sourcePath, targetPath);
       copied.push(relativePath);
     } catch (error) {
       console.error(`Failed to copy ${relativePath}:`, error);
-      errors.push({ path: relativePath, message: error instanceof Error ? error.message : "Unknown copy error." });
+      const execError = error as ExecFileException & { stderr?: string };
+      errors.push({
+        path: relativePath,
+        message: execError.stderr || execError.message || "Unknown copy error.",
+      });
     }
   }
 

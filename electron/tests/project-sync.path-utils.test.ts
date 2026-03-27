@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import test from "node:test";
 import {
+  isPathWithinTarget,
   isWithinRoot,
+  normalizeSyncTargets,
   normalizeRelativePath,
   normalizeSyncTargetPath,
   sanitizeSyncTarget,
@@ -10,7 +12,7 @@ import {
 
 test("normalizeSyncTargetPath converts slashes and trims leading separators", () => {
   assert.equal(normalizeSyncTargetPath("\\config\\\\env\\.env"), "config/env/.env");
-  assert.equal(normalizeSyncTargetPath("  /nested/path/file.txt  "), "nested/path/file.txt");
+  assert.equal(normalizeSyncTargetPath("  /nested/path/file.txt/  "), "nested/path/file.txt");
 });
 
 test("normalizeRelativePath always uses forward slashes", () => {
@@ -38,4 +40,35 @@ test("isWithinRoot blocks path traversal outside root", () => {
   const unsafePath = path.resolve(root, "..", "outside", ".env");
   assert.equal(isWithinRoot(root, safePath), true);
   assert.equal(isWithinRoot(root, unsafePath), false);
+});
+
+test("normalizeSyncTargets collapses nested selections under a parent directory", () => {
+  assert.deepEqual(
+    normalizeSyncTargets([
+      { path: "config/app.json", kind: "file" },
+      { path: "config", kind: "directory" },
+      { path: "config/nested", kind: "directory" },
+    ]),
+    [{ path: "config", kind: "directory" }],
+  );
+});
+
+test("normalizeSyncTargets keeps unrelated targets after parent normalization", () => {
+  assert.deepEqual(
+    normalizeSyncTargets([
+      { path: "config/app.json", kind: "file" },
+      { path: ".env", kind: "file" },
+      { path: "config", kind: "directory" },
+    ]),
+    [
+      { path: "config", kind: "directory" },
+      { path: ".env", kind: "file" },
+    ],
+  );
+});
+
+test("isPathWithinTarget recognizes descendants and exact matches", () => {
+  assert.equal(isPathWithinTarget("config", "config"), true);
+  assert.equal(isPathWithinTarget("config", "config/app.json"), true);
+  assert.equal(isPathWithinTarget("config", "configs/app.json"), false);
 });

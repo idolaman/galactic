@@ -2,7 +2,7 @@ import type { SyncTarget } from "@/types/sync-target";
 
 export const normalizeSyncTargetPath = (value: string): string => {
   const normalized = value.trim().replace(/\\/g, "/").replace(/^\/+/, "");
-  return normalized.replace(/\/+/g, "/");
+  return normalized.replace(/\/+/g, "/").replace(/\/+$/, "");
 };
 
 export const isSyncTargetKind = (value: unknown): value is SyncTarget["kind"] => {
@@ -39,18 +39,44 @@ export const isSameSyncTarget = (left: SyncTarget, right: SyncTarget): boolean =
   return left.path === right.path && left.kind === right.kind;
 };
 
+const isPathWithinTarget = (targetPath: string, candidatePath: string): boolean => {
+  return targetPath === candidatePath || candidatePath.startsWith(`${targetPath}/`);
+};
+
+const compareSyncTargets = (left: SyncTarget, right: SyncTarget): number => {
+  const depthDifference = left.path.split("/").length - right.path.split("/").length;
+  if (depthDifference !== 0) {
+    return depthDifference;
+  }
+
+  if (left.kind !== right.kind) {
+    return left.kind === "directory" ? -1 : 1;
+  }
+
+  return left.path.localeCompare(right.path);
+};
+
 export const includesSyncTarget = (list: SyncTarget[], candidate: SyncTarget): boolean => {
   return list.some((target) => isSameSyncTarget(target, candidate));
 };
 
-export const dedupeSyncTargets = (targets: SyncTarget[]): SyncTarget[] => {
-  const seen = new Set<string>();
-  return targets.filter((target) => {
-    const key = `${target.kind}:${target.path}`;
-    if (seen.has(key)) {
-      return false;
+export const normalizeSyncTargets = (targets: SyncTarget[]): SyncTarget[] => {
+  const cleanedTargets = targets
+    .map((target) => sanitizeSyncTarget(target))
+    .filter((target): target is SyncTarget => Boolean(target))
+    .sort(compareSyncTargets);
+  const normalizedTargets: SyncTarget[] = [];
+
+  for (const target of cleanedTargets) {
+    const coveredByExistingTarget = normalizedTargets.some((existingTarget) => {
+      return existingTarget.kind === "directory" && isPathWithinTarget(existingTarget.path, target.path);
+    });
+    if (coveredByExistingTarget || includesSyncTarget(normalizedTargets, target)) {
+      continue;
     }
-    seen.add(key);
-    return true;
-  });
+
+    normalizedTargets.push(target);
+  }
+
+  return normalizedTargets;
 };

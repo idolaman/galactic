@@ -263,12 +263,12 @@ export const ProjectDetail = ({
                     Sync your .env files
                   </p>
                   <p className="text-xs">
-                    Files and folders selected here will be automatically copied
+                    Files and folders selected here will be automatically synced
                     from{" "}
                     <code className="font-mono bg-muted/50 px-1 rounded">
                       {project.path}
                     </code>{" "}
-                    into every new workspace.
+                    into every new workspace, replacing matching paths.
                   </p>
                 </div>
               </div>

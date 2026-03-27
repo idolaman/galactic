@@ -1,7 +1,7 @@
 import type { Workspace } from "@/types/workspace";
 import { trackProjectAdded, trackProjectRemoved } from "@/services/analytics";
 import {
-  dedupeSyncTargets,
+  normalizeSyncTargets,
   sanitizeSyncTarget,
   toFileSyncTargets,
 } from "@/services/sync-targets";
@@ -44,10 +44,10 @@ const toValidSyncTargets = (project: StoredProject): SyncTarget[] => {
     const cleanedTargets = project.syncTargets
       .map((target) => sanitizeSyncTarget(target))
       .filter((target): target is SyncTarget => Boolean(target));
-    return dedupeSyncTargets(cleanedTargets);
+    return normalizeSyncTargets(cleanedTargets);
   }
 
-  return dedupeSyncTargets(toFileSyncTargets(project.configFiles));
+  return normalizeSyncTargets(toFileSyncTargets(project.configFiles));
 };
 
 const normalizeProject = (project: StoredProject): StoredProject | null => {
