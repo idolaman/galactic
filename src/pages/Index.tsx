@@ -30,7 +30,12 @@ import {
   ensureLaunchedEnvironment,
 } from "@/services/workspace-state";
 import { trackConfigFileAdded } from "@/services/analytics";
-import { dedupeSyncTargets, includesSyncTarget, normalizeSyncTargetPath } from "@/services/sync-targets";
+import {
+  includesSyncTarget,
+  isSameSyncTarget,
+  normalizeSyncTargetPath,
+  normalizeSyncTargets,
+} from "@/services/sync-targets";
 import {
   DEFAULT_CREATE_WORKSPACE_COMMAND_ERROR,
   DEFAULT_CREATE_WORKSPACE_UNKNOWN_ERROR,
@@ -281,6 +286,7 @@ const Index = () => {
 
     try {
       const syncTargets = selectedProject.syncTargets ?? [];
+      let syncWarningDescription: string | null = null;
       const result = await createWorktree(selectedProject.path, branch, {
         createBranch: request.createBranch,
         startPoint: request.startPoint,
@@ -298,7 +304,7 @@ const Index = () => {
 
       if (syncTargets.length > 0 && result.path) {
         createWorkspaceToast.update({
-          title: "Copying selected files and folders...",
+          title: "Syncing selected files and folders...",
         });
         const copyResult = await copyProjectSyncTargetsToWorktree(
           selectedProject.path,
@@ -306,10 +312,9 @@ const Index = () => {
           syncTargets,
         );
         if (!copyResult.success) {
-          const copyFailureDescription =
+          syncWarningDescription =
             copyResult.errors?.map((entry) => `${entry.path}: ${entry.message}`).join("\n") ??
-            "Unable to copy selected sync files and folders.";
-          console.warn("Workspace sync copy had issues:", copyFailureDescription);
+            "Unable to sync selected files and folders.";
         }
       }
 
@@ -353,6 +358,12 @@ const Index = () => {
       createWorkspaceToast.success({
         title: "Workspace created!",
       });
+      if (syncWarningDescription) {
+        appToast.info({
+          title: "Workspace sync incomplete",
+          description: syncWarningDescription,
+        });
+      }
 
       return true;
     } catch (error) {
@@ -520,9 +531,17 @@ const Index = () => {
       return;
     }
 
+    const nextSyncTargets = normalizeSyncTargets([...existing, normalizedTarget]);
+    const selectionDidChange =
+      existing.length !== nextSyncTargets.length ||
+      existing.some((candidate, index) => !isSameSyncTarget(candidate, nextSyncTargets[index]!));
+    if (!selectionDidChange) {
+      return;
+    }
+
     const updatedProject: Project = {
       ...selectedProject,
-      syncTargets: dedupeSyncTargets([...existing, normalizedTarget]),
+      syncTargets: nextSyncTargets,
     };
     updateSelectedProject(updatedProject);
     trackConfigFileAdded(normalizedTarget.path, normalizedTarget.kind);
