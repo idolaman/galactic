@@ -5,6 +5,12 @@ export interface EditorLaunchCommand {
   args: string[];
 }
 
+export interface MacEditorLaunchTarget {
+  appName: string;
+  editor: SupportedEditorName;
+  workspacePath: string;
+}
+
 export interface OpenProjectInEditorResult {
   success: boolean;
   error?: string;
@@ -18,6 +24,10 @@ export interface EditorLaunchService {
     editorName: string,
     projectPath: string,
   ) => Promise<OpenProjectInEditorResult>;
+  resolveMacLaunchTargets: (
+    editorName: string,
+    projectPath: string,
+  ) => Promise<MacEditorLaunchTarget[]>;
 }
 
 export interface EditorLaunchServiceDeps {

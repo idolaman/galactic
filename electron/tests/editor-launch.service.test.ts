@@ -86,6 +86,39 @@ test("openProject returns a helpful error when no supported editor is installed"
   );
 });
 
+test("resolveMacLaunchTargets returns the installed editors in fallback order", async () => {
+  const service = createEditorLaunchService({
+    platform: "darwin",
+    homeDirectory: "/Users/tester",
+    pathExists: (filePath) => filePath.endsWith("Visual Studio Code.app"),
+    execFileAsync: async () => {
+      throw new Error("Command not found.");
+    },
+    logError: () => {},
+  });
+
+  const result = await service.resolveMacLaunchTargets("Cursor", "/tmp/project.code-workspace");
+
+  assert.deepEqual(result, [
+    {
+      appName: "Visual Studio Code",
+      editor: "VSCode",
+      workspacePath: "/tmp/project.code-workspace",
+    },
+  ]);
+});
+
+test("resolveMacLaunchTargets returns an empty list on unsupported platforms", async () => {
+  const service = createEditorLaunchService({
+    platform: "linux",
+    logError: () => {},
+  });
+
+  const result = await service.resolveMacLaunchTargets("Cursor", "/tmp/project");
+
+  assert.deepEqual(result, []);
+});
+
 test("openProject maps launch errors to friendly messages", async () => {
   const service = createEditorLaunchService({
     platform: "darwin",

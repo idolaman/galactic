@@ -29,7 +29,9 @@ bun.lockb
 
 # MCP Server build artifacts
 .mcp-build-cache/
+.build-cache/
 resources/mcp-server/*.cjs
+resources/mac-notifier/
 
 .env
 .claude/settings.local.json

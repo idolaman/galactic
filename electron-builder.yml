@@ -7,6 +7,9 @@ files:
   - dist/**
   - dist-electron/**
 asar: true
+extraFiles:
+  - from: resources/mac-notifier/Galactic Notifier.app
+    to: Contents/Helpers/Galactic Notifier.app
 extraResources:
   - from: resources/mcp-server
     to: mcp-server

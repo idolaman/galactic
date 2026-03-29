@@ -4,7 +4,6 @@ import {
   dialog,
   globalShortcut,
   ipcMain,
-  Notification,
   type OpenDialogOptions,
   screen,
   shell,
@@ -43,6 +42,7 @@ import {
   saveAppSettings,
   type AppSettings,
 } from "./utils/app-settings.js";
+import { createMacNotifierService } from "./mac-notifier/service.js";
 import { getFinishedSessionNotifications } from "./utils/session-notifications.js";
 import { syncFinishedSessionNotificationState } from "./utils/session-notification-sync.js";
 import { fetchGitBranchesWithReason } from "./utils/git-fetch-branches.js";
@@ -62,7 +62,6 @@ let cachedSessions: unknown[] = [];
 let sessionCachePrimed = false;
 let lastPreferredEditor: SupportedEditorName = "Cursor";
 const notifiedFinishedSessionSignatures = new Set<string>();
-const activeSessionNotifications = new Set<Notification>();
 const QUICK_SIDEBAR_HOTKEY = "Command+Shift+G";
 const QUICK_SIDEBAR_WIDTH = 420;
 const QUICK_SIDEBAR_MARGIN = 16;
@@ -72,10 +71,26 @@ let updateCheckTimer: NodeJS.Timeout | null = null;
 let updateCheckInFlight: Promise<UpdateCheckResult | null> | null = null;
 const isUpdateEnabled = () => getGalacticUpdateUrl().length > 0;
 const editorLaunchService = createEditorLaunchService();
+const macNotifierService = createMacNotifierService({
+  appDir: __dirname,
+  isPackaged: app.isPackaged,
+  resourcesPath: process.resourcesPath,
+});
+const macNotificationActionText: Record<SupportedEditorName, string> = {
+  Cursor: "Open in Cursor",
+  VSCode: "Open in VS Code",
+};
 
 interface SessionCacheSnapshot {
   sessions: unknown[];
   preferredEditor?: string;
+}
+
+interface EventNotificationStatus {
+  authorizationStatus: "authorized" | "denied" | "not-determined" | "unsupported";
+  enabled: boolean;
+  message?: string;
+  supported: boolean;
 }
 
 const APP_SETTINGS_FILE = "settings.json";
@@ -443,87 +458,59 @@ const getWorkspaceOpenPath = (targetPath: string): string => {
   return existsSync(workspacePath) ? workspacePath : targetPath;
 };
 
-const openNotificationWorkspace = async (
-  workspacePath: string,
+const getMacNotifierLaunchTargets = async (
+  workspacePath: string | undefined,
   preferredEditor: SupportedEditorName,
 ) => {
+  if (!workspacePath) {
+    return [];
+  }
+
   const targetPath = getWorkspaceOpenPath(workspacePath);
   if (!existsSync(targetPath)) {
     console.warn(`Notification workspace path does not exist: ${targetPath}`);
-    return;
+    return [];
   }
 
-  const result = await editorLaunchService.openProject(preferredEditor, targetPath);
-  if (result.success && result.usedEditor) {
-    lastPreferredEditor = result.usedEditor;
-    analytics.editorLaunched(result.usedEditor);
-    return;
-  }
+  return await editorLaunchService.resolveMacLaunchTargets(preferredEditor, targetPath);
+};
 
-  console.warn(`Failed to open workspace from notification: ${result.error ?? "Unknown error"}`);
+const getEventNotificationStatus = async (): Promise<EventNotificationStatus> => {
+  const status = await macNotifierService.getStatus();
+  return {
+    authorizationStatus: status.authorizationStatus,
+    enabled: appSettings.eventNotificationsEnabled,
+    message: status.message,
+    supported: status.supported,
+  };
 };
 
 const showFinishedSessionNotification = (
   notificationPayload: ReturnType<typeof getFinishedSessionNotifications>[number],
   preferredEditor: SupportedEditorName,
 ) => {
-  if (process.platform !== "darwin" || !Notification.isSupported()) {
+  if (process.platform !== "darwin" || !app.isPackaged) {
     return;
   }
 
-  const notificationOpenedFromBackground = BrowserWindow.getFocusedWindow() === null;
-  const notification = new Notification({
-    title: notificationPayload.title,
-    subtitle: notificationPayload.subtitle,
-    body: notificationPayload.body,
-    actions: notificationPayload.actionText
-      ? [{ type: "button", text: notificationPayload.actionText }]
-      : [],
-  });
-  activeSessionNotifications.add(notification);
-  let didHandleNavigation = false;
+  void (async () => {
+    const launchTargets = await getMacNotifierLaunchTargets(
+      notificationPayload.workspacePath,
+      preferredEditor,
+    );
+    const result = await macNotifierService.showNotification({
+      actionText: launchTargets[0] ? macNotificationActionText[launchTargets[0].editor] : undefined,
+      body: notificationPayload.body,
+      launchTargets,
+      signature: notificationPayload.signature,
+      subtitle: notificationPayload.subtitle,
+      title: notificationPayload.title,
+    });
 
-  const handleOpenWorkspace = () => {
-    if (didHandleNavigation || !notificationPayload.workspacePath) {
-      return;
+    if (!result.success) {
+      console.warn(`Failed to show macOS helper notification: ${result.error ?? "Unknown error"}`);
     }
-
-    didHandleNavigation = true;
-    void openNotificationWorkspace(notificationPayload.workspacePath, preferredEditor);
-  };
-
-  const cleanupNotification = () => {
-    activeSessionNotifications.delete(notification);
-  };
-
-  const restoreBackgroundAppState = () => {
-    if (!notificationOpenedFromBackground || app.isHidden()) {
-      return;
-    }
-
-    setTimeout(() => {
-      if (!app.isHidden()) {
-        app.hide();
-      }
-    }, 0);
-  };
-
-  notification.on("close", cleanupNotification);
-  notification.on("click", (event) => {
-    event.preventDefault();
-    restoreBackgroundAppState();
-    handleOpenWorkspace();
-    cleanupNotification();
-  });
-  notification.on("action", (event, index) => {
-    if (index === 0) {
-      event.preventDefault();
-      restoreBackgroundAppState();
-      handleOpenWorkspace();
-      cleanupNotification();
-    }
-  });
-  notification.show();
+  })();
 };
 
 const syncFinishedSessionNotifications = (payload: unknown) => {
@@ -580,6 +567,10 @@ ipcMain.handle("settings/get-event-notifications", () => {
   return appSettings.eventNotificationsEnabled;
 });
 
+ipcMain.handle("settings/get-event-notification-status", async () => {
+  return await getEventNotificationStatus();
+});
+
 ipcMain.handle("settings/set-quick-sidebar-hotkey", async (_event, enabled: boolean) => {
   const nextValue = Boolean(enabled);
   const applied = applyQuickSidebarHotkeySetting(nextValue);
@@ -597,9 +588,24 @@ ipcMain.handle("settings/set-quick-sidebar-hotkey", async (_event, enabled: bool
 
 ipcMain.handle("settings/set-event-notifications", async (_event, enabled: boolean) => {
   const resolvedValue = Boolean(enabled);
-  appSettings = { ...appSettings, eventNotificationsEnabled: resolvedValue };
+  if (!resolvedValue) {
+    appSettings = { ...appSettings, eventNotificationsEnabled: false };
+    await persistAppSettings();
+    return { success: true, enabled: false };
+  }
+
+  const authorizeResult = await macNotifierService.authorizeNotifications();
+  if (!authorizeResult.success) {
+    return {
+      success: false,
+      enabled: false,
+      error: authorizeResult.message ?? "Unable to enable event notifications.",
+    };
+  }
+
+  appSettings = { ...appSettings, eventNotificationsEnabled: true };
   await persistAppSettings();
-  return { success: true, enabled: resolvedValue };
+  return { success: true, enabled: true };
 });
 
 // Session sync between windows - broadcast dismissal to all windows except sender

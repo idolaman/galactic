@@ -6,6 +6,7 @@ import { promisify } from "node:util";
 import {
   editorCandidateOrder,
   editorCliCommands,
+  editorApplicationNames,
   editorLaunchCommands,
   getEditorBundlePaths,
   supportedEditors,
@@ -13,6 +14,7 @@ import {
 import type {
   EditorLaunchService,
   EditorLaunchServiceDeps,
+  MacEditorLaunchTarget,
   OpenProjectInEditorResult,
   SupportedEditorName,
 } from "./types.js";
@@ -38,6 +40,7 @@ export const getFriendlyEditorLaunchError = (editorName: SupportedEditorName, er
 
   return `Unable to launch ${editorName}.`;
 };
+
 export const createEditorLaunchService = (deps: EditorLaunchServiceDeps = {}): EditorLaunchService => {
   const platform = deps.platform ?? process.platform;
   const homeDirectory = deps.homeDirectory ?? os.homedir();
@@ -92,6 +95,30 @@ export const createEditorLaunchService = (deps: EditorLaunchServiceDeps = {}): E
     return candidates;
   };
 
+  const resolveMacLaunchTargets = async (
+    preferredEditor: SupportedEditorName,
+    projectPath: string,
+  ): Promise<MacEditorLaunchTarget[]> => {
+    if (platform !== "darwin") {
+      return [];
+    }
+
+    const targets: MacEditorLaunchTarget[] = [];
+    for (const editor of editorCandidateOrder[preferredEditor]) {
+      if (!(await isEditorInstalled(editor))) {
+        continue;
+      }
+
+      targets.push({
+        appName: editorApplicationNames[editor],
+        editor,
+        workspacePath: projectPath,
+      });
+    }
+
+    return targets;
+  };
+
   return {
     checkEditorInstalled: async (editorName: string) => {
       const parsed = parseEditorName(editorName);
@@ -134,6 +161,14 @@ export const createEditorLaunchService = (deps: EditorLaunchServiceDeps = {}): E
         success: false,
         error: lastError ?? `Unable to launch ${preferredEditor}.`,
       };
+    },
+    resolveMacLaunchTargets: async (editorName: string, projectPath: string): Promise<MacEditorLaunchTarget[]> => {
+      const preferredEditor = parseEditorName(editorName);
+      if (!preferredEditor) {
+        return [];
+      }
+
+      return await resolveMacLaunchTargets(preferredEditor, projectPath);
     },
   };
 };

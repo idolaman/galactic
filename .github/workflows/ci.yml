@@ -32,5 +32,8 @@ jobs:
       - name: Build Electron main
         run: npm run build:main
 
+      - name: Build macOS notifier helper
+        run: npm run build:mac-notifier
+
       - name: Test Electron
         run: npm run test:electron
