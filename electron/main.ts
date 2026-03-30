@@ -43,6 +43,7 @@ import {
   type AppSettings,
 } from "./utils/app-settings.js";
 import { createMacNotifierService } from "./mac-notifier/service.js";
+import { maybeAuthorizeEventNotificationsOnLaunch } from "./utils/event-notification-authorization.js";
 import { getFinishedSessionNotifications } from "./utils/session-notifications.js";
 import { syncFinishedSessionNotificationState } from "./utils/session-notification-sync.js";
 import { fetchGitBranchesWithReason } from "./utils/git-fetch-branches.js";
@@ -72,7 +73,6 @@ let updateCheckInFlight: Promise<UpdateCheckResult | null> | null = null;
 const isUpdateEnabled = () => getGalacticUpdateUrl().length > 0;
 const editorLaunchService = createEditorLaunchService();
 const macNotifierService = createMacNotifierService({
-  appDir: __dirname,
   isPackaged: app.isPackaged,
   resourcesPath: process.resourcesPath,
 });
@@ -517,7 +517,6 @@ const syncFinishedSessionNotifications = (payload: unknown) => {
   const snapshot = normalizeSessionCacheSnapshot(payload);
   const preferredEditor = getPreferredEditorFromSnapshot(snapshot);
   const result = syncFinishedSessionNotificationState({
-    hotkeyEnabled: appSettings.quickSidebarHotkeyEnabled,
     nextSessions: snapshot.sessions,
     notificationsEnabled: appSettings.eventNotificationsEnabled,
     notifiedSignatures: notifiedFinishedSessionSignatures,
@@ -561,10 +560,6 @@ ipcMain.handle("quick-sidebar/hide", () => {
 
 ipcMain.handle("settings/get-quick-sidebar-hotkey", () => {
   return appSettings.quickSidebarHotkeyEnabled;
-});
-
-ipcMain.handle("settings/get-event-notifications", () => {
-  return appSettings.eventNotificationsEnabled;
 });
 
 ipcMain.handle("settings/get-event-notification-status", async () => {
@@ -672,6 +667,16 @@ app.whenReady().then(async () => {
   createWindow().catch((error) => {
     console.error("Failed to create window:", error);
     app.quit();
+  });
+
+  void maybeAuthorizeEventNotificationsOnLaunch({
+    isPackaged: app.isPackaged,
+    logWarning: (message) => {
+      console.warn(message);
+    },
+    notificationsEnabled: appSettings.eventNotificationsEnabled,
+    notifier: macNotifierService,
+    platform: process.platform,
   });
 
   app.on("activate", () => {

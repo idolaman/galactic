@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 import UserNotifications
 
-private struct LaunchTarget: Decodable {
+private struct LaunchTarget: Codable {
   let appName: String
   let workspacePath: String
 }
@@ -14,6 +14,11 @@ private struct NotificationPayload: Decodable {
   let signature: String
   let subtitle: String?
   let title: String
+}
+
+private struct StoredNotificationPayload: Codable {
+  let launchTargets: [LaunchTarget]
+  let signature: String
 }
 
 private enum AuthorizationStatus: String, Encodable {
@@ -34,16 +39,18 @@ private enum HelperModeError: Error {
 
 private enum HelperMode {
   case authorize(resultFilePath: String)
+  case idle
   case notify(NotificationPayload)
   case status(resultFilePath: String)
 }
 
 private final class HelperAppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
   private let dismissActionIdentifier = UNNotificationDismissActionIdentifier
+  private let idleTimeoutInterval: TimeInterval = 15
   private let mode: HelperMode
   private let notificationCategoryIdentifier = "com.galactic.ide.notifier.open"
   private let openActionIdentifier = "com.galactic.ide.notifier.open.action"
-  private let timeoutInterval: TimeInterval = 1800
+  private let notificationPayloadUserInfoKey = "com.galactic.ide.notifier.payload"
   private var timeoutWorkItem: DispatchWorkItem?
 
   init(mode: HelperMode) {
@@ -51,19 +58,17 @@ private final class HelperAppDelegate: NSObject, NSApplicationDelegate, UNUserNo
   }
 
   func applicationDidFinishLaunching(_ notification: Notification) {
-    NSApp.setActivationPolicy(.accessory)
     let center = UNUserNotificationCenter.current()
     center.delegate = self
 
     switch mode {
     case .authorize(let resultFilePath):
       resolveAuthorization(center: center, resultFilePath: resultFilePath)
+    case .idle:
+      scheduleIdleTermination()
     case .notify(let payload):
-      center.setNotificationCategories([buildNotificationCategory(payload: payload)])
+      center.setNotificationCategories([buildNotificationCategory(payload)])
       scheduleNotification(center: center, payload: payload)
-      let workItem = DispatchWorkItem { [weak self] in self?.terminate() }
-      timeoutWorkItem = workItem
-      DispatchQueue.main.asyncAfter(deadline: .now() + timeoutInterval, execute: workItem)
     case .status(let resultFilePath):
       writeCurrentStatus(center: center, resultFilePath: resultFilePath)
     }
@@ -82,17 +87,20 @@ private final class HelperAppDelegate: NSObject, NSApplicationDelegate, UNUserNo
     didReceive response: UNNotificationResponse,
     withCompletionHandler completionHandler: @escaping () -> Void
   ) {
-    defer { completionHandler() }
-    guard case .notify(let payload) = mode, response.notification.request.identifier == payload.signature else {
-      return
-    }
-
     switch response.actionIdentifier {
-    case dismissActionIdentifier:
+    case openActionIdentifier:
+      guard let launchTargets = resolveLaunchTargets(for: response) else {
+        completionHandler()
+        terminate()
+        return
+      }
+      completionHandler()
+      openWorkspaceTargetsAndTerminate(launchTargets)
+    case dismissActionIdentifier, UNNotificationDefaultActionIdentifier:
+      completionHandler()
       terminate()
-    case UNNotificationDefaultActionIdentifier, openActionIdentifier:
-      openWorkspaceTargetsAndTerminate(payload.launchTargets)
     default:
+      completionHandler()
       terminate()
     }
   }
@@ -138,17 +146,19 @@ private final class HelperAppDelegate: NSObject, NSApplicationDelegate, UNUserNo
     }
   }
 
-  private func buildNotificationCategory(payload: NotificationPayload) -> UNNotificationCategory {
-    guard let actionText = payload.actionText, !payload.launchTargets.isEmpty else {
-      return UNNotificationCategory(identifier: notificationCategoryIdentifier, actions: [], intentIdentifiers: [], options: [])
+  private func buildNotificationCategory(_ payload: NotificationPayload) -> UNNotificationCategory {
+    let actions: [UNNotificationAction]
+    if let actionText = payload.actionText, !payload.launchTargets.isEmpty {
+      actions = [UNNotificationAction(identifier: openActionIdentifier, title: actionText, options: [])]
+    } else {
+      actions = []
     }
 
-    let openAction = UNNotificationAction(identifier: openActionIdentifier, title: actionText, options: [])
     return UNNotificationCategory(
       identifier: notificationCategoryIdentifier,
-      actions: [openAction],
+      actions: actions,
       intentIdentifiers: [],
-      options: [],
+      options: [.customDismissAction],
     )
   }
 
@@ -167,19 +177,69 @@ private final class HelperAppDelegate: NSObject, NSApplicationDelegate, UNUserNo
       if let subtitle = payload.subtitle, !subtitle.isEmpty {
         content.subtitle = subtitle
       }
-      if !payload.launchTargets.isEmpty {
-        content.categoryIdentifier = notificationCategoryIdentifier
+      content.categoryIdentifier = notificationCategoryIdentifier
+      if let encodedPayload = encodeStoredNotificationPayload(payload) {
+        content.userInfo = [notificationPayloadUserInfoKey: encodedPayload]
       }
 
       let request = UNNotificationRequest(identifier: payload.signature, content: content, trigger: nil)
       center.removeDeliveredNotifications(withIdentifiers: [payload.signature])
       center.removePendingNotificationRequests(withIdentifiers: [payload.signature])
-      center.add(request) { error in
-        if error != nil {
+      center.add(request) { _ in
+        DispatchQueue.main.async {
           self.terminate()
         }
       }
     }
+  }
+
+  private func encodeStoredNotificationPayload(_ payload: NotificationPayload) -> String? {
+    let storedPayload = StoredNotificationPayload(
+      launchTargets: payload.launchTargets,
+      signature: payload.signature,
+    )
+    guard let payloadData = try? JSONEncoder().encode(storedPayload) else {
+      return nil
+    }
+
+    return payloadData.base64EncodedString()
+  }
+
+  private func loadStoredNotificationPayload(
+    signature: String,
+    from userInfo: [AnyHashable: Any],
+  ) -> StoredNotificationPayload? {
+    guard let encodedPayload = userInfo[notificationPayloadUserInfoKey] as? String,
+          let payloadData = Data(base64Encoded: encodedPayload) else {
+      return nil
+    }
+
+    if let payload = try? JSONDecoder().decode(NotificationPayload.self, from: payloadData),
+       payload.signature == signature {
+      return StoredNotificationPayload(
+        launchTargets: payload.launchTargets,
+        signature: payload.signature,
+      )
+    }
+
+    guard let storedPayload = try? JSONDecoder().decode(StoredNotificationPayload.self, from: payloadData),
+          storedPayload.signature == signature else {
+      return nil
+    }
+
+    return storedPayload
+  }
+
+  private func resolveLaunchTargets(for response: UNNotificationResponse) -> [LaunchTarget]? {
+    let signature = response.notification.request.identifier
+    if case .notify(let payload) = mode, payload.signature == signature {
+      return payload.launchTargets
+    }
+
+    return loadStoredNotificationPayload(
+      signature: signature,
+      from: response.notification.request.content.userInfo,
+    )?.launchTargets
   }
 
   private func openWorkspaceTargetsAndTerminate(_ launchTargets: [LaunchTarget]) {
@@ -253,6 +313,12 @@ private final class HelperAppDelegate: NSObject, NSApplicationDelegate, UNUserNo
     return .authorized
   }
 
+  private func scheduleIdleTermination() {
+    let workItem = DispatchWorkItem { [weak self] in self?.terminate() }
+    timeoutWorkItem = workItem
+    DispatchQueue.main.asyncAfter(deadline: .now() + idleTimeoutInterval, execute: workItem)
+  }
+
   private func terminate() {
     timeoutWorkItem?.cancel()
     timeoutWorkItem = nil
@@ -284,6 +350,9 @@ private func parsePayload() throws -> NotificationPayload {
 }
 
 private func parseMode() throws -> HelperMode {
+  if CommandLine.arguments.count <= 1 {
+    return .idle
+  }
   if CommandLine.arguments.contains("--status") {
     return .status(resultFilePath: try parseResultFilePath())
   }

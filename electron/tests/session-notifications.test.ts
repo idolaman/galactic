@@ -9,7 +9,6 @@ import {
 test("getFinishedSessionNotifications emits a notification when a session turns done", () => {
   const notifications = getFinishedSessionNotifications({
     allowNewDoneSessions: true,
-    hotkeyEnabled: true,
     nextSessions: [
       {
         id: "session-1",
@@ -57,7 +56,6 @@ test("getFinishedSessionNotifications skips duplicate finished signatures", () =
 
   const notifications = getFinishedSessionNotifications({
     allowNewDoneSessions: true,
-    hotkeyEnabled: false,
     nextSessions: [doneSession],
     notifiedSignatures: new Set<string>([
       getFinishedSessionSignature({
@@ -84,7 +82,6 @@ test("getFinishedSessionNotifications skips duplicate finished signatures", () =
 test("getFinishedSessionNotifications does not replay finished sessions from the initial snapshot", () => {
   const notifications = getFinishedSessionNotifications({
     allowNewDoneSessions: false,
-    hotkeyEnabled: true,
     nextSessions: [
       {
         id: "session-3",
@@ -111,7 +108,6 @@ test("buildFinishedSessionNotification omits Go to when no workspace path exists
       status: "done",
       platform: "my-custom-agent",
     },
-    false,
     "Cursor",
   );
 
@@ -130,7 +126,6 @@ test("buildFinishedSessionNotification includes Go to when a workspace path exis
       platform: "chatgpt",
       workspacePath: "/tmp/feature/open-the-worktree",
     },
-    false,
     "VSCode",
   );
 
@@ -153,7 +148,6 @@ test("buildFinishedSessionNotification keeps compact context when no workspace i
       startedAt: "2026-03-21T10:00:00.000Z",
       endedAt: "2026-03-21T10:08:00.000Z",
     },
-    true,
     "Cursor",
   );
 
@@ -166,7 +160,6 @@ test("buildFinishedSessionNotification keeps compact context when no workspace i
 test("getFinishedSessionNotifications does not add an open action for blank workspace paths", () => {
   const notifications = getFinishedSessionNotifications({
     allowNewDoneSessions: true,
-    hotkeyEnabled: false,
     nextSessions: [
       {
         id: "session-6",

@@ -37,7 +37,6 @@ export interface MacNotifierService {
 }
 
 export interface MacNotifierServiceDeps {
-  appDir?: string;
   execFileAsync?: ExecFileAsync;
   isPackaged?: boolean;
   makeTempDir?: MakeTempDir;
@@ -63,7 +62,7 @@ export const encodeMacNotifierPayload = (payload: MacNotifierPayload): string =>
   Buffer.from(JSON.stringify(payload), "utf-8").toString("base64");
 
 export const getPackagedMacNotifierAppPath = (resourcesPath: string): string =>
-  path.resolve(resourcesPath, `../Helpers/${HELPER_APP_NAME}`);
+  path.resolve(resourcesPath, `../Library/LoginItems/${HELPER_APP_NAME}`);
 
 const buildUnsupportedStatus = (message = PACKAGED_ONLY_MESSAGE): MacNotifierStatus => ({
   authorizationStatus: "unsupported",

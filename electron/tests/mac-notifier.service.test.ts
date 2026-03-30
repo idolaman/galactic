@@ -34,7 +34,7 @@ const createPayload = (): MacNotifierPayload => ({
 test("getPackagedMacNotifierAppPath resolves the bundled helper inside Galactic.app", () => {
   assert.equal(
     getPackagedMacNotifierAppPath("/Applications/Galactic.app/Contents/Resources"),
-    "/Applications/Galactic.app/Contents/Helpers/Galactic Notifier.app",
+    "/Applications/Galactic.app/Contents/Library/LoginItems/Galactic Notifier.app",
   );
 });
 
@@ -86,7 +86,7 @@ test("authorizeNotifications reads the packaged helper result file", async () =>
       "-W",
       "-n",
       "-a",
-      "/Applications/Galactic.app/Contents/Helpers/Galactic Notifier.app",
+      "/Applications/Galactic.app/Contents/Library/LoginItems/Galactic Notifier.app",
       "--args",
       "--authorize",
       "--result-file",
@@ -129,7 +129,7 @@ test("showNotification launches the packaged helper only after status is authori
     "-g",
     "-n",
     "-a",
-    "/Applications/Galactic.app/Contents/Helpers/Galactic Notifier.app",
+    "/Applications/Galactic.app/Contents/Library/LoginItems/Galactic Notifier.app",
     "--args",
     "--notify",
     "--payload",

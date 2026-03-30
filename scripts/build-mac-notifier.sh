@@ -2,13 +2,14 @@
 set -euo pipefail
 
 APP_NAME="Galactic Notifier"
+APP_VERSION="$(node -p "require('./package.json').version")"
 PROJECT_FILE="macos/GalacticNotifier.xcodeproj"
 OUTPUT_DIR="resources/mac-notifier"
 DERIVED_DATA_DIR=".build-cache/galactic-notifier"
 BUILT_APP_DIR="$DERIVED_DATA_DIR/Build/Products/Release/$APP_NAME.app"
 DESTINATION_APP_DIR="$OUTPUT_DIR/$APP_NAME.app"
 
-echo "🚀 Building macOS notifier helper..."
+echo "🚀 Building macOS notifier helper v$APP_VERSION..."
 
 rm -rf "$DERIVED_DATA_DIR"
 rm -rf "$DESTINATION_APP_DIR"
@@ -21,6 +22,8 @@ xcodebuild \
   -derivedDataPath "$DERIVED_DATA_DIR" \
   -destination "generic/platform=macOS" \
   CODE_SIGNING_ALLOWED=NO \
+  CURRENT_PROJECT_VERSION="$APP_VERSION" \
+  MARKETING_VERSION="$APP_VERSION" \
   build
 
 ditto "$BUILT_APP_DIR" "$DESTINATION_APP_DIR"

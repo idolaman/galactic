@@ -106,7 +106,6 @@ export interface ElectronAPI {
   getQuickSidebarHotkeyEnabled: () => Promise<boolean>;
   setQuickSidebarHotkeyEnabled: (enabled: boolean) => Promise<ToggleSettingResult>;
   getEventNotificationStatus: () => Promise<EventNotificationStatus>;
-  getEventNotificationsEnabled: () => Promise<boolean>;
   setEventNotificationsEnabled: (enabled: boolean) => Promise<ToggleSettingResult>;
   checkForUpdates: () => Promise<{ supported: boolean; updateAvailable?: boolean; version?: string | null; message?: string; error?: string }>;
   applyUpdate: () => Promise<{ success: boolean; error?: string }>;

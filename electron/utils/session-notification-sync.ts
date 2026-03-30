@@ -4,7 +4,6 @@ import {
 } from "./session-notifications.js";
 
 export interface FinishedSessionNotificationSyncParams {
-  hotkeyEnabled: boolean;
   nextSessions: unknown[];
   notificationsEnabled: boolean;
   notifiedSignatures: ReadonlySet<string>;
@@ -21,7 +20,6 @@ export interface FinishedSessionNotificationSyncResult {
 }
 
 export const syncFinishedSessionNotificationState = ({
-  hotkeyEnabled,
   nextSessions,
   notificationsEnabled,
   notifiedSignatures,
@@ -32,7 +30,6 @@ export const syncFinishedSessionNotificationState = ({
   const allowNewDoneSessions = sessionCachePrimed;
   const notifications = getFinishedSessionNotifications({
     allowNewDoneSessions,
-    hotkeyEnabled,
     nextSessions,
     preferredEditor,
     notifiedSignatures,
@@ -43,7 +40,6 @@ export const syncFinishedSessionNotificationState = ({
   if (!allowNewDoneSessions) {
     getFinishedSessionNotifications({
       allowNewDoneSessions: true,
-      hotkeyEnabled,
       nextSessions,
       preferredEditor,
       notifiedSignatures,

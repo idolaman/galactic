@@ -33,7 +33,7 @@
     "watch:electron": "concurrently -k \"tsc -p electron/tsconfig.json --watch\" \"tsc -p electron/tsconfig.preload.json --watch\"",
     "start:electron": "wait-on http://${VITE_HOST:-127.0.0.1}:${VITE_PORT:-8080} && ELECTRON_START_URL=http://${VITE_HOST:-127.0.0.1}:${VITE_PORT:-8080} electron .",
     "build:ui": "vite build",
-    "build:main": "tsc -p electron/tsconfig.json && tsc -p electron/tsconfig.preload.json",
+    "build:main": "node scripts/clean-dist-electron.mjs && tsc -p electron/tsconfig.json && tsc -p electron/tsconfig.preload.json",
     "build:mcp-server": "bash scripts/build-mcp-server.sh",
     "build:mac-notifier": "bash scripts/build-mac-notifier.sh",
     "build:electron": "npm run build:ui && npm run build:main && npm run build:mcp-server && npm run build:mac-notifier && electron-builder --mac dmg zip",

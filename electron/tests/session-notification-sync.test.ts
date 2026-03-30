@@ -5,7 +5,6 @@ import { syncFinishedSessionNotificationState } from "../utils/session-notificat
 
 test("disabled event notifications suppress display but still record finished signatures", () => {
   const result = syncFinishedSessionNotificationState({
-    hotkeyEnabled: true,
     nextSessions: [
       {
         id: "session-1",
@@ -36,7 +35,6 @@ test("disabled event notifications suppress display but still record finished si
 
 test("re-enabling event notifications only emits for later finished sessions", () => {
   const disabledResult = syncFinishedSessionNotificationState({
-    hotkeyEnabled: false,
     nextSessions: [
       {
         id: "session-1",
@@ -61,7 +59,6 @@ test("re-enabling event notifications only emits for later finished sessions", (
   });
 
   const enabledResult = syncFinishedSessionNotificationState({
-    hotkeyEnabled: false,
     nextSessions: [
       ...disabledResult.nextCachedSessions,
       {

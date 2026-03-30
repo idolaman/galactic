@@ -22,7 +22,7 @@ const getStatusDetails = (status: EventNotificationStatus): string => {
   }
 
   if (status.authorizationStatus === "authorized") {
-    return "Finished coding sessions will appear as macOS notifications and open the workspace directly from the notification.";
+    return "Finished coding sessions will appear as macOS notifications. Use the notification button to open the workspace directly.";
   }
 
   if (status.authorizationStatus === "denied") {
