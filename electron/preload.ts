@@ -56,7 +56,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getQuickSidebarHotkeyEnabled: () => ipcRenderer.invoke("settings/get-quick-sidebar-hotkey"),
   setQuickSidebarHotkeyEnabled: (enabled: boolean) =>
     ipcRenderer.invoke("settings/set-quick-sidebar-hotkey", enabled),
-  getEventNotificationsEnabled: () => ipcRenderer.invoke("settings/get-event-notifications"),
+  getEventNotificationStatus: () => ipcRenderer.invoke("settings/get-event-notification-status"),
   setEventNotificationsEnabled: (enabled: boolean) =>
     ipcRenderer.invoke("settings/set-event-notifications", enabled),
   checkForUpdates: () => ipcRenderer.invoke("update/check"),

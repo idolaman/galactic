@@ -40,6 +40,19 @@ export interface ToggleSettingResult {
   error?: string;
 }
 
+export type EventNotificationAuthorizationStatus =
+  | "authorized"
+  | "denied"
+  | "not-determined"
+  | "unsupported";
+
+export interface EventNotificationStatus {
+  authorizationStatus: EventNotificationAuthorizationStatus;
+  enabled: boolean;
+  message?: string;
+  supported: boolean;
+}
+
 export interface OpenProjectInEditorResult {
   success: boolean;
   error?: string;
@@ -92,7 +105,7 @@ export interface ElectronAPI {
   hideQuickSidebar: () => Promise<{ hidden: boolean }>;
   getQuickSidebarHotkeyEnabled: () => Promise<boolean>;
   setQuickSidebarHotkeyEnabled: (enabled: boolean) => Promise<ToggleSettingResult>;
-  getEventNotificationsEnabled: () => Promise<boolean>;
+  getEventNotificationStatus: () => Promise<EventNotificationStatus>;
   setEventNotificationsEnabled: (enabled: boolean) => Promise<ToggleSettingResult>;
   checkForUpdates: () => Promise<{ supported: boolean; updateAvailable?: boolean; version?: string | null; message?: string; error?: string }>;
   applyUpdate: () => Promise<{ success: boolean; error?: string }>;

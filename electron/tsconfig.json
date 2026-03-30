@@ -17,6 +17,7 @@
   },
   "include": [
     "main.ts",
+    "mac-notifier/**/*",
     "utils/**/*",
     "editor-launch/**/*",
     "ipc/**/*",

@@ -38,6 +38,7 @@ test("registerEditorLaunchIpc registers expected channels and returns validation
         fallbackApplied: projectPath === "/project",
       };
     },
+    resolveMacLaunchTargets: async () => [],
   };
   const { handlers, launchedEditors } = setupEditorLaunchIpc(
     fakeEditorLaunchService,
@@ -83,6 +84,7 @@ test("editor/open-project falls back to VSCode when Cursor is selected but unava
         fallbackApplied: true,
       };
     },
+    resolveMacLaunchTargets: async () => [],
   };
   const { handlers, launchedEditors } = setupEditorLaunchIpc(fakeEditorLaunchService);
   const openEditorHandler = handlers.get("editor/open-project");
@@ -108,6 +110,7 @@ test("editor/open-project falls back to Cursor when VSCode is selected but unava
         fallbackApplied: true,
       };
     },
+    resolveMacLaunchTargets: async () => [],
   };
   const { handlers, launchedEditors } = setupEditorLaunchIpc(fakeEditorLaunchService);
   const openEditorHandler = handlers.get("editor/open-project");
@@ -131,6 +134,7 @@ test("editor/open-project returns a clear error when both editors are unavailabl
         error: "No supported editor installation found. Install Cursor or Visual Studio Code.",
       };
     },
+    resolveMacLaunchTargets: async () => [],
   };
   const { handlers, launchedEditors } = setupEditorLaunchIpc(fakeEditorLaunchService);
   const openEditorHandler = handlers.get("editor/open-project");

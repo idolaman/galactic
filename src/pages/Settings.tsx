@@ -8,6 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ArrowDownToLine, CheckCircle2, Info, Loader2, RefreshCw } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AsyncToggleSettingCard } from "@/components/Settings/AsyncToggleSettingCard";
+import { EventNotificationsSettingCard } from "@/components/Settings/EventNotificationsSettingCard";
 import { useAppToast } from "@/hooks/use-app-toast";
 import vscodeIcon from "@/assets/vscode-icon.png";
 import cursorIcon from "@/assets/cursor.jpeg";
@@ -211,20 +212,7 @@ export default function Settings() {
         </CardContent>
       </Card>
 
-      <AsyncToggleSettingCard
-        cardId="event-notifications"
-        title="Event Notifications"
-        description="Allow Galactic to alert you about important events."
-        label="Galactic event alerts"
-        details="Currently includes finished coding sessions on macOS. Future event alerts will use this setting too."
-        switchId="event-notifications-enabled"
-        getValue={window.electronAPI?.getEventNotificationsEnabled}
-        setValue={window.electronAPI?.setEventNotificationsEnabled}
-        loadErrorTitle="Notification setting unavailable"
-        loadErrorDescription="Unable to load the event notification preference."
-        saveErrorTitle="Notification update failed"
-        saveErrorDescription="Unable to update the event notification preference."
-      />
+      <EventNotificationsSettingCard />
 
       <AsyncToggleSettingCard
         cardId="global-hotkey"

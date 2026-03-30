@@ -23,7 +23,6 @@ export interface FinishedSessionNotification {
 
 interface FinishedSessionNotificationParams {
   allowNewDoneSessions: boolean;
-  hotkeyEnabled: boolean;
   nextSessions: unknown[];
   preferredEditor?: string;
   notifiedSignatures: ReadonlySet<string>;
@@ -130,10 +129,7 @@ const formatDuration = (session: SessionNotificationSession): string | undefined
   return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`;
 };
 
-const formatContext = (
-  session: SessionNotificationSession,
-  hotkeyEnabled: boolean,
-): string => {
+const formatContext = (session: SessionNotificationSession): string => {
   const workspaceLabel = session.workspacePath ? path.basename(session.workspacePath) : undefined;
   const parts = [
     session.project ? truncateMiddle(session.project, 24) : workspaceLabel ? truncateMiddle(workspaceLabel, 24) : undefined,
@@ -146,12 +142,10 @@ const formatContext = (
   }
 
   if (parts.length === 0) {
-    return hotkeyEnabled
-      ? "Cmd+Shift+G for full session details."
-      : "Open Galactic for full session details.";
+    return "Workspace unavailable.";
   }
 
-  return hotkeyEnabled ? `${parts.join(" | ")} | Cmd+Shift+G` : parts.join(" | ");
+  return parts.join(" | ");
 };
 
 const formatActionText = (preferredEditor?: string): string => {
@@ -199,7 +193,6 @@ export const getFinishedSessionSignature = (session: SessionNotificationSession)
 
 export const buildFinishedSessionNotification = (
   session: SessionNotificationSession,
-  hotkeyEnabled: boolean,
   preferredEditor?: string,
 ): FinishedSessionNotification => {
   const sourceLabel = formatPlatformLabel(session.platform);
@@ -207,7 +200,7 @@ export const buildFinishedSessionNotification = (
 
   return {
     actionText: canOpenWorkspace ? formatActionText(preferredEditor) : undefined,
-    body: formatContext(session, hotkeyEnabled),
+    body: formatContext(session),
     signature: getFinishedSessionSignature(session),
     subtitle: formatSubtitle(session),
     title: `${sourceLabel} finished`,
@@ -217,7 +210,6 @@ export const buildFinishedSessionNotification = (
 
 export const getFinishedSessionNotifications = ({
   allowNewDoneSessions,
-  hotkeyEnabled,
   nextSessions,
   preferredEditor,
   notifiedSignatures,
@@ -261,5 +253,5 @@ export const getFinishedSessionNotifications = ({
 
       return previousSession.status !== "done";
     })
-    .map((session) => buildFinishedSessionNotification(session, hotkeyEnabled, preferredEditor));
+    .map((session) => buildFinishedSessionNotification(session, preferredEditor));
 };
