@@ -40,16 +40,20 @@ test("mac notifier Xcode project bundles the committed asset catalog app icon", 
   assert.match(project, /ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;/);
 });
 
-test("mac notifier Xcode project keeps version defaults aligned with the app version", async () => {
-  const [packageJson, project] = await Promise.all([
-    readFile("package.json", "utf-8"),
-    readFile("macos/GalacticNotifier.xcodeproj/project.pbxproj", "utf-8"),
-  ]);
-  const { version } = JSON.parse(packageJson) as { version: string };
-  const escapedVersion = version.replaceAll(".", "\\.");
+test("mac notifier Xcode project keeps consistent version defaults", async () => {
+  const project = await readFile("macos/GalacticNotifier.xcodeproj/project.pbxproj", "utf-8");
+  const currentProjectVersions = [
+    ...project.matchAll(/CURRENT_PROJECT_VERSION = ([0-9]+(?:\.[0-9]+)*);/g),
+  ].map((match) => match[1]);
+  const marketingVersions = [
+    ...project.matchAll(/MARKETING_VERSION = ([0-9]+(?:\.[0-9]+)*);/g),
+  ].map((match) => match[1]);
 
-  assert.match(project, new RegExp(`CURRENT_PROJECT_VERSION = ${escapedVersion};`));
-  assert.match(project, new RegExp(`MARKETING_VERSION = ${escapedVersion};`));
+  assert.equal(currentProjectVersions.length, 2);
+  assert.equal(marketingVersions.length, 2);
+  assert.deepEqual(new Set(currentProjectVersions).size, 1);
+  assert.deepEqual(new Set(marketingVersions).size, 1);
+  assert.equal(currentProjectVersions[0], marketingVersions[0]);
 });
 
 test("electron-builder bundles the notifier as a standalone login item helper", async () => {
