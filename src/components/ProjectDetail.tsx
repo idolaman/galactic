@@ -12,9 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CreateWorkspaceDialog } from "@/components/CreateWorkspaceDialog";
-import { EnvironmentSelector } from "@/components/EnvironmentSelector";
 import { LaunchButton } from "@/components/LaunchButton";
 import { ProjectSyncTargets } from "@/components/ProjectSyncTargets";
+import { WorkspaceNetworkingPanel } from "@/components/WorkspaceNetworkingPanel";
 import type { CreateWorkspaceRequest } from "@/lib/create-workspace-request";
 import type { Workspace } from "@/types/workspace";
 import type { Environment, EnvironmentBinding } from "@/types/environment";
@@ -110,8 +110,8 @@ export const ProjectDetail = ({
           <Card className="p-4 bg-gradient-card border-primary/20 shadow-sm group">
             <div className="flex flex-col gap-4">
               {/* Header */}
-              <div className="flex items-start justify-between">
-                <div className="space-y-1 min-w-0 max-w-[85%]">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1 min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <HardDrive className="h-4 w-4 text-primary" />
                     <h3 className="font-semibold text-lg text-primary">
@@ -131,40 +131,37 @@ export const ProjectDetail = ({
                     </div>
                   )}
                 </div>
-              </div>
-
-              {/* Footer */}
-              <div className="flex items-end gap-3 pt-2 border-t border-border/50">
-                <div className="flex-1 min-w-0">
-                  <div className="mb-1.5 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
-                    Environment
-                  </div>
-                  <EnvironmentSelector
-                    environments={environments}
-                    value={getEnvironmentIdForTarget(project.path)}
-                    targetLabel="Repository Root"
-                    minimal
-                    onChange={(environmentId) =>
-                      onEnvironmentChange(environmentId, {
-                        projectId: project.id,
-                        projectName: project.name,
-                        targetPath: project.path,
-                        targetLabel: "Repository Root",
-                        kind: "base",
-                      })
-                    }
-                  />
-                </div>
-
+                
                 <LaunchButton
                   path={project.path}
                   environmentId={getEnvironmentIdForTarget(project.path)}
                   onLaunch={onOpenInEditor}
-                  className="h-9 px-4 text-sm font-medium bg-primary hover:bg-primary/90 shadow-sm shrink-0"
+                  className="h-9 px-5 text-sm font-medium shadow-sm shrink-0"
                 >
-                  <FolderOpen className="mr-2 h-3.5 w-3.5" />
+                  <FolderOpen className="mr-2 h-4 w-4" />
                   Open
                 </LaunchButton>
+              </div>
+
+              {/* Networking */}
+              <div className="pt-1">
+                <WorkspaceNetworkingPanel
+                  projectId={project.id}
+                  projectName={project.name}
+                  workspacePath={project.path}
+                  workspaceLabel="Repository Root"
+                  environments={environments}
+                  localEnvironmentId={getEnvironmentIdForTarget(project.path)}
+                  onLocalEnvironmentChange={(environmentId) =>
+                    onEnvironmentChange(environmentId, {
+                      projectId: project.id,
+                      projectName: project.name,
+                      targetPath: project.path,
+                      targetLabel: "Repository Root",
+                      kind: "base",
+                    })
+                  }
+                />
               </div>
             </div>
           </Card>
@@ -175,8 +172,8 @@ export const ProjectDetail = ({
             >
               <div className="flex flex-col gap-4">
                 {/* Header: Branch Name + Delete */}
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1 min-w-0 max-w-[85%]">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1 min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <Badge
                         variant="outline"
@@ -194,51 +191,49 @@ export const ProjectDetail = ({
                     </div>
                   </div>
 
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 -mr-1 -mt-1 opacity-0 group-hover:opacity-100 transition-all duration-200"
-                    onClick={() =>
-                      onDeleteWorkspace(branch.workspace, branch.name)
-                    }
-                    title="Delete Workspace"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all duration-200"
+                      onClick={() =>
+                        onDeleteWorkspace(branch.workspace, branch.name)
+                      }
+                      title="Delete Workspace"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                    <LaunchButton
+                      path={branch.workspace}
+                      environmentId={getEnvironmentIdForTarget(branch.workspace)}
+                      onLaunch={onOpenInEditor}
+                      className="h-9 px-5 text-sm font-medium shadow-sm shrink-0"
+                    >
+                      <FolderOpen className="mr-2 h-4 w-4" />
+                      Open
+                    </LaunchButton>
+                  </div>
                 </div>
 
-                {/* Footer: Environment + Action */}
-                <div className="flex items-end gap-3 pt-2 border-t border-border/50">
-                  <div className="flex-1 min-w-0">
-                    <div className="mb-1.5 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
-                      Environment
-                    </div>
-                    <EnvironmentSelector
-                      environments={environments}
-                      value={getEnvironmentIdForTarget(branch.workspace)}
-                      targetLabel={`${branch.name} workspace`}
-                      minimal
-                      onChange={(environmentId) =>
-                        onEnvironmentChange(environmentId, {
-                          projectId: project.id,
-                          projectName: project.name,
-                          targetPath: branch.workspace,
-                          targetLabel: branch.name,
-                          kind: "workspace",
-                        })
-                      }
-                    />
-                  </div>
-
-                  <LaunchButton
-                    path={branch.workspace}
-                    environmentId={getEnvironmentIdForTarget(branch.workspace)}
-                    onLaunch={onOpenInEditor}
-                    className="h-9 px-4 text-sm font-medium bg-primary hover:bg-primary/90 shadow-sm shrink-0"
-                  >
-                    <FolderOpen className="mr-2 h-3.5 w-3.5" />
-                    Open
-                  </LaunchButton>
+                {/* Networking */}
+                <div className="pt-1">
+                  <WorkspaceNetworkingPanel
+                    projectId={project.id}
+                    projectName={project.name}
+                    workspacePath={branch.workspace}
+                    workspaceLabel={branch.name}
+                    environments={environments}
+                    localEnvironmentId={getEnvironmentIdForTarget(branch.workspace)}
+                    onLocalEnvironmentChange={(environmentId) =>
+                      onEnvironmentChange(environmentId, {
+                        projectId: project.id,
+                        projectName: project.name,
+                        targetPath: branch.workspace,
+                        targetLabel: branch.name,
+                        kind: "workspace",
+                      })
+                    }
+                  />
                 </div>
               </div>
             </Card>
