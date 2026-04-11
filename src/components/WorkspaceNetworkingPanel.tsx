@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { ShieldCheck } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { WorkspaceIsolationDialog } from "@/components/WorkspaceIsolationDialog";
 import { WorkspaceLegacyEnvironmentCard } from "@/components/WorkspaceLegacyEnvironmentCard";
 import { WorkspaceIsolationServices } from "@/components/WorkspaceIsolationServices";
 import { useWorkspaceIsolationManager } from "@/hooks/use-workspace-isolation-manager";
+import { getWorkspaceIsolationServicesOpenState } from "@/lib/workspace-networking-panel";
 import { cn } from "@/lib/utils";
 import type { Environment } from "@/types/environment";
 
@@ -38,12 +38,13 @@ export const WorkspaceNetworkingPanel = ({
 
   useEffect(() => {
     const nextStackId = stack?.id ?? null;
-    if (!previousStackIdRef.current && nextStackId) {
-      setIsServicesOpen(true);
-    }
-    if (previousStackIdRef.current && !nextStackId) {
-      setIsServicesOpen(false);
-    }
+    setIsServicesOpen((currentOpen) =>
+      getWorkspaceIsolationServicesOpenState(
+        previousStackIdRef.current,
+        nextStackId,
+        currentOpen,
+      ),
+    );
     previousStackIdRef.current = nextStackId;
   }, [stack?.id]);
 
@@ -59,7 +60,6 @@ export const WorkspaceNetworkingPanel = ({
               <div className="flex items-center gap-2">
                 <ShieldCheck className={cn("h-4 w-4", stack ? "text-primary" : "text-muted-foreground")} />
                 <p className="text-sm font-medium">Workspace Isolation</p>
-                {stack ? <Badge variant="secondary" className="h-[22px] bg-primary/20 hover:bg-primary/30 text-primary border-primary/20 text-[10px]">Active</Badge> : null}
               </div>
               <p className="text-xs text-muted-foreground">
                 {stack

@@ -1,5 +1,6 @@
 import type { IpcMain } from "electron";
 import type {
+  WorkspaceIsolationProxyStatus,
   SaveWorkspaceIsolationInput,
   WorkspaceIsolationShellHookStatus,
   WorkspaceIsolationStack,
@@ -11,6 +12,7 @@ interface WorkspaceIsolationIpcDeps {
   saveStack: (input: SaveWorkspaceIsolationInput) => Promise<{ success: boolean; error?: string; stack?: WorkspaceIsolationStack }>;
   deleteStack: (stackId: string) => Promise<{ success: boolean; error?: string }>;
   getShellHookStatus: () => WorkspaceIsolationShellHookStatus;
+  getProxyStatus: () => WorkspaceIsolationProxyStatus;
   setShellHooksEnabled: (enabled: boolean) => Promise<WorkspaceIsolationShellHookStatus>;
 }
 
@@ -20,6 +22,7 @@ export const registerWorkspaceIsolationIpc = ({
   saveStack,
   deleteStack,
   getShellHookStatus,
+  getProxyStatus,
   setShellHooksEnabled,
 }: WorkspaceIsolationIpcDeps): void => {
   ipcMain.on("workspace-isolation/get-sync", (event) => {
@@ -29,6 +32,7 @@ export const registerWorkspaceIsolationIpc = ({
   ipcMain.handle("workspace-isolation/list", () => getStacks());
   ipcMain.handle("workspace-isolation/save", async (_event, input: SaveWorkspaceIsolationInput) => saveStack(input));
   ipcMain.handle("workspace-isolation/delete", async (_event, stackId: string) => deleteStack(stackId));
+  ipcMain.handle("workspace-isolation/proxy-status", () => getProxyStatus());
   ipcMain.handle("settings/get-workspace-isolation-shell-hooks", () => getShellHookStatus());
   ipcMain.handle("settings/set-workspace-isolation-shell-hooks", async (_event, enabled: boolean) => {
     const status = await setShellHooksEnabled(Boolean(enabled));

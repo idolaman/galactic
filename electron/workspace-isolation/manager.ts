@@ -14,6 +14,7 @@ import { syncWorkspaceIsolationShellFiles } from "./shell-hooks.js";
 import type {
   SaveWorkspaceIsolationInput,
   WorkspaceIsolationMutationResult,
+  WorkspaceIsolationProxyStatus,
   WorkspaceIsolationRoute,
   WorkspaceIsolationShellHookStatus,
   WorkspaceIsolationStack,
@@ -73,6 +74,16 @@ export class WorkspaceIsolationManager {
 
   getShellHookStatus(): WorkspaceIsolationShellHookStatus {
     return { ...this.shellHookStatus };
+  }
+
+  getProxyStatus(): WorkspaceIsolationProxyStatus {
+    return {
+      running: this.server.listening,
+      port: PROXY_PORT,
+      message: this.server.listening
+        ? `Proxy running on localhost:${PROXY_PORT}.`
+        : "Proxy unavailable. Restart Galactic to restore routed workspace domains.",
+    };
   }
 
   async setShellHooksEnabled(enabled: boolean): Promise<WorkspaceIsolationShellHookStatus> {

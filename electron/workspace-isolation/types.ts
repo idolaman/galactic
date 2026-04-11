@@ -57,6 +57,12 @@ export interface WorkspaceIsolationShellHookStatus {
   message?: string;
 }
 
+export interface WorkspaceIsolationProxyStatus {
+  running: boolean;
+  port: number;
+  message?: string;
+}
+
 export interface WorkspaceIsolationRoute {
   hostname: string;
   port: number;

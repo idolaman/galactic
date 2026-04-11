@@ -926,6 +926,7 @@ registerWorkspaceIsolationIpc({
   saveStack: (input) => workspaceIsolationManager.saveStack(input),
   deleteStack: (stackId) => workspaceIsolationManager.deleteStack(stackId),
   getShellHookStatus: () => workspaceIsolationManager.getShellHookStatus(),
+  getProxyStatus: () => workspaceIsolationManager.getProxyStatus(),
   setShellHooksEnabled: async (enabled) => {
     const status = await workspaceIsolationManager.setShellHooksEnabled(enabled);
     appSettings = {

@@ -48,6 +48,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("workspace-isolation/save", input),
   deleteWorkspaceIsolationStack: (stackId: string) =>
     ipcRenderer.invoke("workspace-isolation/delete", stackId),
+  getWorkspaceIsolationProxyStatus: () =>
+    ipcRenderer.invoke("workspace-isolation/proxy-status"),
   writeCodeWorkspace: (
     targetPath: string,
     envConfig: { address?: string; envVars?: Record<string, string> } | null,

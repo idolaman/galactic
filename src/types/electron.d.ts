@@ -62,6 +62,12 @@ export interface WorkspaceIsolationShellHookStatus {
   message?: string;
 }
 
+export interface WorkspaceIsolationProxyStatus {
+  running: boolean;
+  port: number;
+  message?: string;
+}
+
 export interface OpenProjectInEditorResult {
   success: boolean;
   error?: string;
@@ -104,6 +110,7 @@ export interface ElectronAPI {
   deleteWorkspaceIsolationStack: (
     stackId: string
   ) => Promise<{ success: boolean; error?: string }>;
+  getWorkspaceIsolationProxyStatus: () => Promise<WorkspaceIsolationProxyStatus>;
   configureEnvironmentInterface: (
     action: "add" | "remove",
     address: string

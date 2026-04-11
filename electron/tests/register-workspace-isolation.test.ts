@@ -45,6 +45,11 @@ test("registerWorkspaceIsolationIpc registers handlers and sync bootstrap", asyn
       zshrcPath: "/.zshrc",
       message: "ready",
     }),
+    getProxyStatus: () => ({
+      running: true,
+      port: 1355,
+      message: "Proxy running on localhost:1355.",
+    }),
     setShellHooksEnabled: async (enabled) => ({
       enabled,
       supported: true,
@@ -59,6 +64,7 @@ test("registerWorkspaceIsolationIpc registers handlers and sync bootstrap", asyn
   assert.equal(handleHandlers.has("workspace-isolation/list"), true);
   assert.equal(handleHandlers.has("workspace-isolation/save"), true);
   assert.equal(handleHandlers.has("workspace-isolation/delete"), true);
+  assert.equal(handleHandlers.has("workspace-isolation/proxy-status"), true);
   assert.equal(handleHandlers.has("settings/get-workspace-isolation-shell-hooks"), true);
   assert.equal(handleHandlers.has("settings/set-workspace-isolation-shell-hooks"), true);
 
@@ -80,6 +86,15 @@ test("registerWorkspaceIsolationIpc registers handlers and sync bootstrap", asyn
     },
   );
   assert.deepEqual(saveResult, { success: true, stack: { ...stacks[0], id: "stack-2" } });
+
+  const proxyStatus = await handleHandlers.get("workspace-isolation/proxy-status")?.(
+    {} as IpcMainInvokeEvent,
+  );
+  assert.deepEqual(proxyStatus, {
+    running: true,
+    port: 1355,
+    message: "Proxy running on localhost:1355.",
+  });
 
   const toggleResult = await handleHandlers.get("settings/set-workspace-isolation-shell-hooks")?.(
     {} as IpcMainInvokeEvent,

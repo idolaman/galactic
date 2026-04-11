@@ -1,4 +1,7 @@
-import type { WorkspaceIsolationShellHookStatus } from "@/types/electron";
+import type {
+  WorkspaceIsolationProxyStatus,
+  WorkspaceIsolationShellHookStatus,
+} from "@/types/electron";
 import type { SaveWorkspaceIsolationInput } from "@/hooks/workspace-isolation-manager-context";
 import type { WorkspaceIsolationStack } from "@/types/workspace-isolation";
 
@@ -12,6 +15,14 @@ const isWorkspaceIsolationStack = (
 
 const toWorkspaceIsolationStacks = (value: unknown): WorkspaceIsolationStack[] =>
   Array.isArray(value) ? value.filter(isWorkspaceIsolationStack) : [];
+
+const isWorkspaceIsolationProxyStatus = (
+  value: unknown,
+): value is WorkspaceIsolationProxyStatus =>
+  typeof value === "object" &&
+  value !== null &&
+  typeof (value as WorkspaceIsolationProxyStatus).running === "boolean" &&
+  typeof (value as WorkspaceIsolationProxyStatus).port === "number";
 
 export const getInitialWorkspaceIsolationStacks = (): WorkspaceIsolationStack[] =>
   typeof window === "undefined"
@@ -50,6 +61,24 @@ export const deleteWorkspaceIsolationStack = async (
     success: false,
     error: "Workspace Isolation IPC bridge is unavailable.",
   };
+
+export const getWorkspaceIsolationProxyStatus = async (): Promise<WorkspaceIsolationProxyStatus> => {
+  if (typeof window === "undefined") {
+    return {
+      running: false,
+      port: 1355,
+      message: "Workspace Isolation proxy status is unavailable.",
+    };
+  }
+  const result = await window.electronAPI?.getWorkspaceIsolationProxyStatus?.();
+  return isWorkspaceIsolationProxyStatus(result)
+    ? result
+    : {
+        running: false,
+        port: 1355,
+        message: "Workspace Isolation proxy status is unavailable.",
+      };
+};
 
 export const getWorkspaceIsolationShellHookStatus = async (): Promise<WorkspaceIsolationShellHookStatus> =>
   typeof window === "undefined"
