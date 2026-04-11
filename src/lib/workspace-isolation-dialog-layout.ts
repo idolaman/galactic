@@ -4,6 +4,6 @@ export const WORKSPACE_ISOLATION_DIALOG_CONTENT_CLASS_NAME =
   "flex h-[78vh] max-h-[42rem] max-w-3xl flex-col";
 
 export const isSingleAppOverviewStep = (
-  step: 1 | 2,
+  step: 1 | 2 | 3,
   workspaceMode: WorkspaceIsolationMode,
-): boolean => step === 1 && workspaceMode === "single-app";
+): boolean => step === 2 && workspaceMode === "single-app";

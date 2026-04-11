@@ -103,6 +103,7 @@ export interface ElectronAPI {
     targets: SyncTarget[]
   ) => Promise<CopySyncTargetsResult>;
   initialWorkspaceIsolationStacks?: unknown[];
+  initialWorkspaceIsolationShellHookStatus?: unknown;
   getWorkspaceIsolationStacks: () => Promise<unknown[]>;
   saveWorkspaceIsolationStack: (
     input: unknown

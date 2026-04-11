@@ -24,12 +24,31 @@ const isWorkspaceIsolationProxyStatus = (
   typeof (value as WorkspaceIsolationProxyStatus).running === "boolean" &&
   typeof (value as WorkspaceIsolationProxyStatus).port === "number";
 
+const isWorkspaceIsolationShellHookStatus = (
+  value: unknown,
+): value is WorkspaceIsolationShellHookStatus =>
+  typeof value === "object" &&
+  value !== null &&
+  typeof (value as WorkspaceIsolationShellHookStatus).enabled === "boolean" &&
+  typeof (value as WorkspaceIsolationShellHookStatus).supported === "boolean" &&
+  typeof (value as WorkspaceIsolationShellHookStatus).installed === "boolean";
+
 export const getInitialWorkspaceIsolationStacks = (): WorkspaceIsolationStack[] =>
   typeof window === "undefined"
     ? []
     : toWorkspaceIsolationStacks(
         window.electronAPI?.initialWorkspaceIsolationStacks ?? [],
       );
+
+export const getInitialWorkspaceIsolationShellHookStatus =
+  (): WorkspaceIsolationShellHookStatus | null =>
+    typeof window === "undefined"
+      ? null
+      : isWorkspaceIsolationShellHookStatus(
+          window.electronAPI?.initialWorkspaceIsolationShellHookStatus,
+        )
+        ? window.electronAPI.initialWorkspaceIsolationShellHookStatus
+        : null;
 
 export const getWorkspaceIsolationStacks = async (): Promise<WorkspaceIsolationStack[]> =>
   typeof window === "undefined"

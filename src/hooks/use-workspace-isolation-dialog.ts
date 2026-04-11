@@ -15,6 +15,10 @@ import {
 } from "@/lib/workspace-isolation-dialog-draft";
 import { validateWorkspaceIsolationDraft } from "@/lib/workspace-isolation-dialog-validation";
 import { normalizeRelativeServicePath } from "@/lib/workspace-isolation-helpers";
+import {
+  getWorkspaceIsolationDialogOpeningState,
+  type WorkspaceIsolationDialogStep,
+} from "@/lib/workspace-isolation-dialog-step";
 import { applyDerivedWorkspaceIsolationServiceFields } from "@/lib/workspace-isolation-routing";
 import {
   createMonorepoDraftServices,
@@ -53,6 +57,7 @@ export const useWorkspaceIsolationDialog = ({
   const {
     deleteWorkspaceIsolationStack,
     saveWorkspaceIsolationStack,
+    shellHookStatus,
     workspaceIsolationStacks,
   } = useWorkspaceIsolationManager();
   const [draftStackId, setDraftStackId] = useState(
@@ -70,30 +75,53 @@ export const useWorkspaceIsolationDialog = ({
     () => getWorkspaceIsolationName(projectName, workspaceRootLabel),
     [projectName, workspaceRootLabel],
   );
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<WorkspaceIsolationDialogStep>(1);
+  const [requiresAutoEnvSetup, setRequiresAutoEnvSetup] = useState(false);
+  const [isOpenInitialized, setIsOpenInitialized] = useState(false);
 
   useEffect(() => {
     if (!open) {
+      setRequiresAutoEnvSetup(false);
+      setIsOpenInitialized(false);
+      return;
+    }
+    if (isOpenInitialized) {
       return;
     }
     if (stack) {
+      const openingState = getWorkspaceIsolationDialogOpeningState(
+        stack,
+        shellHookStatus,
+      );
       setDraftStackId(stack.id);
       setDraftWorkspaceMode(getWorkspaceIsolationMode(stack));
       setDraftServices(getDraftServices(stack.services.map((service) => ({ ...service }))));
       setSavedMonorepoServices(stack.services.map((service) => ({ ...service })));
-      setStep(1);
+      setStep(openingState.step);
+      setRequiresAutoEnvSetup(openingState.requiresAutoEnvSetup);
+      setIsOpenInitialized(true);
       return;
     }
+    const openingState = getWorkspaceIsolationDialogOpeningState(
+      null,
+      shellHookStatus,
+    );
     setDraftStackId(createWorkspaceIsolationId());
     setDraftWorkspaceMode("monorepo");
     setDraftServices(
       getDraftServices([createEmptyService([], workspaceIsolationStacks)]),
     );
     setSavedMonorepoServices([]);
-    setStep(1);
-  }, [open, stack, workspaceIsolationStacks]);
+    setStep(openingState.step);
+    setRequiresAutoEnvSetup(openingState.requiresAutoEnvSetup);
+    setIsOpenInitialized(true);
+  }, [open, stack, workspaceIsolationStacks, isOpenInitialized, shellHookStatus]);
 
   const handleNextStep = () => {
+    if (step === 1) {
+      setStep(2);
+      return;
+    }
     for (const service of draftServices) {
       if (!service.name.trim()) {
         error({ title: "Name Required", description: "Service name cannot be empty." });
@@ -110,9 +138,10 @@ export const useWorkspaceIsolationDialog = ({
         return;
       }
     }
-    setStep(2);
+    setStep(3);
   };
-  const handlePrevStep = () => setStep(1);
+  const handleContinueToConfiguration = () => setStep(2);
+  const handlePrevStep = () => setStep((currentStep) => (currentStep === 3 ? 2 : 1));
   const handleAddService = () =>
     setDraftServices((current) =>
       addDraftService(current, workspaceIsolationStacks),
@@ -202,10 +231,12 @@ export const useWorkspaceIsolationDialog = ({
   };
   return {
     step,
+    requiresAutoEnvSetup,
     draftServices,
     draftStackId,
     draftWorkspaceMode,
     workspaceIsolationStacks,
+    handleContinueToConfiguration,
     handleNextStep,
     handlePrevStep,
     handleAddService,

@@ -1,4 +1,4 @@
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Terminal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -60,7 +60,24 @@ export const WorkspaceIsolationServices = ({
           </CollapsibleTrigger>
         </div>
         <CollapsibleContent>
-          <div className="border-t border-border/40 bg-background/30 p-3 pt-3">
+          <div className="border-t border-border/40 bg-background/30 p-3 pt-3 flex flex-col gap-4">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Terminal className="h-4 w-4 text-muted-foreground" />
+                <h4 className="text-sm font-medium">How to use this</h4>
+              </div>
+              <div className="rounded-md bg-muted/60 p-3 font-mono text-[11px] text-muted-foreground leading-relaxed">
+                <p className="text-foreground/80 mb-1"># Just run your service normally:</p>
+                <div className="flex flex-col gap-1.5 opacity-80">
+                  {stack.services.map((service, index) => (
+                    <span key={service.id}>
+                      cd {service.relativePath === "." ? stack.workspaceRootPath : service.relativePath} && npm run dev
+                    </span>
+                  ))}
+                </div>
+                <p className="text-foreground/80 mt-3 mb-1"># Galactic will auto-inject the correct PORT and dependencies into your zsh variables invisibly.</p>
+              </div>
+            </div>
             <WorkspaceIsolationAdvancedRouting stack={stack} />
           </div>
         </CollapsibleContent>

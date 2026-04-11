@@ -5,6 +5,8 @@ import type {
   WorkspaceIsolationStack,
 } from "@/types/workspace-isolation";
 
+import type { WorkspaceIsolationShellHookStatus } from "@/types/electron";
+
 export interface SaveWorkspaceIsolationInput {
   id: string;
   name: string;
@@ -18,6 +20,7 @@ export interface SaveWorkspaceIsolationInput {
 
 export interface WorkspaceIsolationManagerValue {
   workspaceIsolationStacks: WorkspaceIsolationStack[];
+  shellHookStatus: WorkspaceIsolationShellHookStatus | null;
   workspaceIsolationForWorkspace: (
     workspaceRootPath: string,
   ) => WorkspaceIsolationStack | null;
@@ -28,6 +31,7 @@ export interface WorkspaceIsolationManagerValue {
     stackId: string,
   ) => Promise<{ success: boolean; error?: string }>;
   deleteWorkspaceIsolationForWorkspace: (workspaceRootPath: string) => Promise<void>;
+  setShellHooksEnabled: (enabled: boolean) => Promise<{ success: boolean; enabled: boolean; error?: string }>;
 }
 
 export const WorkspaceIsolationManagerContext =

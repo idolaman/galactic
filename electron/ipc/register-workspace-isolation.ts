@@ -28,6 +28,9 @@ export const registerWorkspaceIsolationIpc = ({
   ipcMain.on("workspace-isolation/get-sync", (event) => {
     event.returnValue = getStacks();
   });
+  ipcMain.on("workspace-isolation/get-shell-hooks-sync", (event) => {
+    event.returnValue = getShellHookStatus();
+  });
 
   ipcMain.handle("workspace-isolation/list", () => getStacks());
   ipcMain.handle("workspace-isolation/save", async (_event, input: SaveWorkspaceIsolationInput) => saveStack(input));

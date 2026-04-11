@@ -3,6 +3,9 @@ import { contextBridge, ipcRenderer } from "electron";
 const initialSessionCache = ipcRenderer.sendSync("session/get-cache-sync");
 const initialDismissedSessions = ipcRenderer.sendSync("session/get-dismissed-sync");
 const initialWorkspaceIsolationStacks = ipcRenderer.sendSync("workspace-isolation/get-sync");
+const initialWorkspaceIsolationShellHookStatus = ipcRenderer.sendSync(
+  "workspace-isolation/get-shell-hooks-sync",
+);
 
 interface SessionCacheSnapshot {
   sessions: unknown[];
@@ -43,6 +46,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
   initialWorkspaceIsolationStacks: Array.isArray(initialWorkspaceIsolationStacks)
     ? initialWorkspaceIsolationStacks
     : [],
+  initialWorkspaceIsolationShellHookStatus:
+    initialWorkspaceIsolationShellHookStatus &&
+    typeof initialWorkspaceIsolationShellHookStatus === "object"
+      ? initialWorkspaceIsolationShellHookStatus
+      : null,
   getWorkspaceIsolationStacks: () => ipcRenderer.invoke("workspace-isolation/list"),
   saveWorkspaceIsolationStack: (input: unknown) =>
     ipcRenderer.invoke("workspace-isolation/save", input),

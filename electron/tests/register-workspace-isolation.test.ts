@@ -61,6 +61,7 @@ test("registerWorkspaceIsolationIpc registers handlers and sync bootstrap", asyn
   });
 
   assert.equal(onHandlers.has("workspace-isolation/get-sync"), true);
+  assert.equal(onHandlers.has("workspace-isolation/get-shell-hooks-sync"), true);
   assert.equal(handleHandlers.has("workspace-isolation/list"), true);
   assert.equal(handleHandlers.has("workspace-isolation/save"), true);
   assert.equal(handleHandlers.has("workspace-isolation/delete"), true);
@@ -71,6 +72,17 @@ test("registerWorkspaceIsolationIpc registers handlers and sync bootstrap", asyn
   const syncEvent = { returnValue: null } as unknown as IpcMainEvent & { returnValue: unknown };
   onHandlers.get("workspace-isolation/get-sync")?.(syncEvent);
   assert.deepEqual(syncEvent.returnValue, stacks);
+
+  const shellHookSyncEvent = { returnValue: null } as unknown as IpcMainEvent & { returnValue: unknown };
+  onHandlers.get("workspace-isolation/get-shell-hooks-sync")?.(shellHookSyncEvent);
+  assert.deepEqual(shellHookSyncEvent.returnValue, {
+    enabled: true,
+    supported: true,
+    installed: true,
+    hookPath: "/hook.zsh",
+    zshrcPath: "/.zshrc",
+    message: "ready",
+  });
 
   const saveResult = await handleHandlers.get("workspace-isolation/save")?.(
     {} as IpcMainInvokeEvent,

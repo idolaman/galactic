@@ -7,11 +7,15 @@ import {
 import { normalizeWorkspaceRootPath } from "@/lib/workspace-isolation-helpers";
 import {
   deleteWorkspaceIsolationStack,
+  getInitialWorkspaceIsolationShellHookStatus,
   getInitialWorkspaceIsolationStacks,
   getWorkspaceIsolationStacks,
   saveWorkspaceIsolationStack,
+  getWorkspaceIsolationShellHookStatus,
+  setWorkspaceIsolationShellHooksEnabled,
 } from "@/services/workspace-isolation";
 import type { WorkspaceIsolationStack } from "@/types/workspace-isolation";
+import type { WorkspaceIsolationShellHookStatus } from "@/types/electron";
 
 export const WorkspaceIsolationManagerProvider = ({
   children,
@@ -20,9 +24,14 @@ export const WorkspaceIsolationManagerProvider = ({
 }) => {
   const [workspaceIsolationStacks, setWorkspaceIsolationStacks] =
     useState<WorkspaceIsolationStack[]>(getInitialWorkspaceIsolationStacks);
+  const [shellHookStatus, setShellHookStatus] =
+    useState<WorkspaceIsolationShellHookStatus | null>(
+      getInitialWorkspaceIsolationShellHookStatus,
+    );
 
   useEffect(() => {
     void getWorkspaceIsolationStacks().then(setWorkspaceIsolationStacks);
+    void getWorkspaceIsolationShellHookStatus().then(setShellHookStatus);
   }, []);
 
   const workspaceIsolationForWorkspace = (workspaceRootPath: string) => {
@@ -73,12 +82,22 @@ export const WorkspaceIsolationManagerProvider = ({
     await handleDeleteWorkspaceIsolationStack(stack.id);
   };
 
+  const handleSetShellHooksEnabled = async (enabled: boolean) => {
+    const result = await setWorkspaceIsolationShellHooksEnabled(enabled);
+    if (result.success) {
+      void getWorkspaceIsolationShellHookStatus().then(setShellHookStatus);
+    }
+    return result;
+  };
+
   const value: WorkspaceIsolationManagerValue = {
     workspaceIsolationStacks,
+    shellHookStatus,
     workspaceIsolationForWorkspace,
     saveWorkspaceIsolationStack: handleSaveWorkspaceIsolationStack,
     deleteWorkspaceIsolationStack: handleDeleteWorkspaceIsolationStack,
     deleteWorkspaceIsolationForWorkspace,
+    setShellHooksEnabled: handleSetShellHooksEnabled,
   };
 
   return (

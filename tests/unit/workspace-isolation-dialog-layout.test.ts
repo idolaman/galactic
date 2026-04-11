@@ -10,8 +10,8 @@ test("workspace isolation dialog uses the reduced bounded height", () => {
   assert.match(WORKSPACE_ISOLATION_DIALOG_CONTENT_CLASS_NAME, /max-h-\[42rem\]/);
 });
 
-test("isSingleAppOverviewStep only stretches the single-app first step", () => {
-  assert.equal(isSingleAppOverviewStep(1, "single-app"), true);
-  assert.equal(isSingleAppOverviewStep(2, "single-app"), false);
-  assert.equal(isSingleAppOverviewStep(1, "monorepo"), false);
+test("isSingleAppOverviewStep only stretches the single-app service step", () => {
+  assert.equal(isSingleAppOverviewStep(1, "single-app"), false);
+  assert.equal(isSingleAppOverviewStep(2, "single-app"), true);
+  assert.equal(isSingleAppOverviewStep(2, "monorepo"), false);
 });
