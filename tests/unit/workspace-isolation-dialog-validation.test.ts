@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { validateServiceStackDraft } from "../../src/lib/service-stack-dialog-validation.js";
+import { validateWorkspaceIsolationDraft } from "../../src/lib/workspace-isolation-dialog-validation.js";
 
-test("validateServiceStackDraft accepts an app service in single-app mode", () => {
-  const result = validateServiceStackDraft("shop", "stack-1", "single-app", [
+test("validateWorkspaceIsolationDraft accepts an app service in single-app mode", () => {
+  const result = validateWorkspaceIsolationDraft("shop", "stack-1", "single-app", [
     {
       id: "service-1",
       name: "",
@@ -25,8 +25,8 @@ test("validateServiceStackDraft accepts an app service in single-app mode", () =
   assert.equal(result.services[0]?.relativePath, ".");
 });
 
-test("validateServiceStackDraft rejects duplicate normalized service paths", () => {
-  const result = validateServiceStackDraft("shop", "stack-1", "monorepo", [
+test("validateWorkspaceIsolationDraft rejects duplicate normalized service paths", () => {
+  const result = validateWorkspaceIsolationDraft("shop", "stack-1", "monorepo", [
     {
       id: "service-1",
       name: "",
@@ -53,8 +53,8 @@ test("validateServiceStackDraft rejects duplicate normalized service paths", () 
   }
 });
 
-test("validateServiceStackDraft requires explicit folder paths in monorepo mode", () => {
-  const result = validateServiceStackDraft("shop", "stack-1", "monorepo", [
+test("validateWorkspaceIsolationDraft requires explicit folder paths in monorepo mode", () => {
+  const result = validateWorkspaceIsolationDraft("shop", "stack-1", "monorepo", [
     {
       id: "service-1",
       name: "",
@@ -72,8 +72,8 @@ test("validateServiceStackDraft requires explicit folder paths in monorepo mode"
   }
 });
 
-test("validateServiceStackDraft rejects / in monorepo mode", () => {
-  const result = validateServiceStackDraft("shop", "stack-1", "monorepo", [
+test("validateWorkspaceIsolationDraft rejects / in monorepo mode", () => {
+  const result = validateWorkspaceIsolationDraft("shop", "stack-1", "monorepo", [
     {
       id: "service-1",
       name: "",
@@ -91,8 +91,8 @@ test("validateServiceStackDraft rejects / in monorepo mode", () => {
   }
 });
 
-test("validateServiceStackDraft sanitizes folder paths before saving", () => {
-  const result = validateServiceStackDraft("shop", "stack-1", "monorepo", [
+test("validateWorkspaceIsolationDraft sanitizes folder paths before saving", () => {
+  const result = validateWorkspaceIsolationDraft("shop", "stack-1", "monorepo", [
     {
       id: "service-1",
       name: "",

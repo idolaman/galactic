@@ -1,27 +1,30 @@
 import {
   createEmptyConnection,
   createEmptyService,
-} from "@/lib/service-stack-dialog";
-import { sanitizeRelativeServicePathInput } from "@/lib/service-stack-mock";
-import { applyDerivedServiceFields } from "@/lib/service-stack-routing";
+} from "@/lib/workspace-isolation-dialog";
+import { sanitizeRelativeServicePathInput } from "@/lib/workspace-isolation-helpers";
+import { applyDerivedWorkspaceIsolationServiceFields } from "@/lib/workspace-isolation-routing";
 import type {
-  ServiceStackConnection,
-  ServiceStackEnvironment,
-  ServiceStackService,
-} from "@/types/service-stack";
+  WorkspaceIsolationConnection,
+  WorkspaceIsolationService,
+  WorkspaceIsolationStack,
+} from "@/types/workspace-isolation";
 
-const getDraftServices = (services: ServiceStackService[]) =>
-  applyDerivedServiceFields(services);
+const getDraftServices = (services: WorkspaceIsolationService[]) =>
+  applyDerivedWorkspaceIsolationServiceFields(services);
 
 export const addDraftService = (
-  current: ServiceStackService[],
-  serviceStacks: ServiceStackEnvironment[],
-) => getDraftServices([...current, createEmptyService(current, serviceStacks)]);
+  current: WorkspaceIsolationService[],
+  workspaceIsolationStacks: WorkspaceIsolationStack[],
+) => getDraftServices([
+  ...current,
+  createEmptyService(current, workspaceIsolationStacks),
+]);
 
 export const changeDraftService = (
-  current: ServiceStackService[],
+  current: WorkspaceIsolationService[],
   serviceId: string,
-  updates: Partial<ServiceStackService>,
+  updates: Partial<WorkspaceIsolationService>,
 ) => getDraftServices(
   current.map((service) => {
     if (service.id !== serviceId) {
@@ -39,7 +42,7 @@ export const changeDraftService = (
 );
 
 export const removeDraftService = (
-  current: ServiceStackService[],
+  current: WorkspaceIsolationService[],
   serviceId: string,
   stackId: string,
 ) => getDraftServices(
@@ -54,7 +57,7 @@ export const removeDraftService = (
 );
 
 export const addDraftConnection = (
-  current: ServiceStackService[],
+  current: WorkspaceIsolationService[],
   serviceId: string,
 ) => current.map((service) =>
   service.id === serviceId
@@ -63,10 +66,10 @@ export const addDraftConnection = (
 );
 
 export const changeDraftConnection = (
-  current: ServiceStackService[],
+  current: WorkspaceIsolationService[],
   serviceId: string,
   linkId: string,
-  updates: Partial<ServiceStackConnection>,
+  updates: Partial<WorkspaceIsolationConnection>,
 ) => current.map((service) =>
   service.id === serviceId
     ? {
@@ -79,7 +82,7 @@ export const changeDraftConnection = (
 );
 
 export const removeDraftConnection = (
-  current: ServiceStackService[],
+  current: WorkspaceIsolationService[],
   serviceId: string,
   linkId: string,
 ) => current.map((service) =>

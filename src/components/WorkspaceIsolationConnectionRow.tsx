@@ -1,7 +1,6 @@
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -11,37 +10,40 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { buildServiceConnectionValue } from "@/lib/service-stack-connection-targets";
-import type { ServiceConnectionTarget, ServiceStackConnection } from "@/types/service-stack";
+import { buildWorkspaceIsolationConnectionValue } from "@/lib/workspace-isolation-connection-targets";
+import type {
+  WorkspaceIsolationConnection,
+  WorkspaceIsolationConnectionTarget,
+} from "@/types/workspace-isolation";
 
-interface ServiceStackConnectionRowProps {
+interface WorkspaceIsolationConnectionRowProps {
   serviceId: string;
-  connection: ServiceStackConnection;
-  localTargets: ServiceConnectionTarget[];
-  externalTargets: ServiceConnectionTarget[];
+  connection: WorkspaceIsolationConnection;
+  localTargets: WorkspaceIsolationConnectionTarget[];
+  externalTargets: WorkspaceIsolationConnectionTarget[];
   onChangeConnection: (
     serviceId: string,
     connectionId: string,
-    updates: Partial<ServiceStackConnection>,
+    updates: Partial<WorkspaceIsolationConnection>,
   ) => void;
   onRemoveConnection: (serviceId: string, connectionId: string) => void;
 }
 
 
 const missingValue = (connectionId: string) => `__missing__:${connectionId}`;
-const getTargetLabel = (target: ServiceConnectionTarget): string =>
+const getTargetLabel = (target: WorkspaceIsolationConnectionTarget): string =>
   target.source === "local"
     ? target.serviceName || "Untitled Service"
     : `${target.projectName} / ${target.workspaceRootLabel} / ${target.serviceName}`;
 
-export const ServiceStackConnectionRow = ({
+export const WorkspaceIsolationConnectionRow = ({
   serviceId,
   connection,
   localTargets,
   externalTargets,
   onChangeConnection,
   onRemoveConnection,
-}: ServiceStackConnectionRowProps) => {
+}: WorkspaceIsolationConnectionRowProps) => {
   const allTargets = [...localTargets, ...externalTargets];
   const selectedTarget = allTargets.find(
     (target) =>
@@ -63,7 +65,10 @@ export const ServiceStackConnectionRow = ({
         <Select
           value={
             selectedTarget
-              ? buildServiceConnectionValue(selectedTarget.stackId, selectedTarget.serviceId)
+              ? buildWorkspaceIsolationConnectionValue(
+                  selectedTarget.stackId,
+                  selectedTarget.serviceId,
+                )
               : connection.targetStackId && connection.targetServiceId
                 ? missingValue(connection.id)
                 : undefined

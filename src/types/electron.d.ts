@@ -53,6 +53,15 @@ export interface EventNotificationStatus {
   supported: boolean;
 }
 
+export interface WorkspaceIsolationShellHookStatus {
+  enabled: boolean;
+  supported: boolean;
+  installed: boolean;
+  hookPath: string | null;
+  zshrcPath: string | null;
+  message?: string;
+}
+
 export interface OpenProjectInEditorResult {
   success: boolean;
   error?: string;
@@ -87,6 +96,14 @@ export interface ElectronAPI {
     worktreePath: string,
     targets: SyncTarget[]
   ) => Promise<CopySyncTargetsResult>;
+  initialWorkspaceIsolationStacks?: unknown[];
+  getWorkspaceIsolationStacks: () => Promise<unknown[]>;
+  saveWorkspaceIsolationStack: (
+    input: unknown
+  ) => Promise<{ success: boolean; error?: string; stack?: unknown }>;
+  deleteWorkspaceIsolationStack: (
+    stackId: string
+  ) => Promise<{ success: boolean; error?: string }>;
   configureEnvironmentInterface: (
     action: "add" | "remove",
     address: string
@@ -105,6 +122,8 @@ export interface ElectronAPI {
   hideQuickSidebar: () => Promise<{ hidden: boolean }>;
   getQuickSidebarHotkeyEnabled: () => Promise<boolean>;
   setQuickSidebarHotkeyEnabled: (enabled: boolean) => Promise<ToggleSettingResult>;
+  getWorkspaceIsolationShellHookStatus: () => Promise<WorkspaceIsolationShellHookStatus>;
+  setWorkspaceIsolationShellHooksEnabled: (enabled: boolean) => Promise<ToggleSettingResult>;
   getEventNotificationStatus: () => Promise<EventNotificationStatus>;
   setEventNotificationsEnabled: (enabled: boolean) => Promise<ToggleSettingResult>;
   checkForUpdates: () => Promise<{ supported: boolean; updateAvailable?: boolean; version?: string | null; message?: string; error?: string }>;

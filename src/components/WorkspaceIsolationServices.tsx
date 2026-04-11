@@ -7,12 +7,12 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { WorkspaceIsolationAdvancedRouting } from "@/components/WorkspaceIsolationAdvancedRouting";
-import { getWorkspaceIsolationHostnames } from "@/lib/workspace-isolation";
+import { getWorkspaceIsolationPreviewRoutes } from "@/lib/workspace-isolation";
 import { cn } from "@/lib/utils";
-import type { ServiceStackEnvironment } from "@/types/service-stack";
+import type { WorkspaceIsolationStack } from "@/types/workspace-isolation";
 
 interface WorkspaceIsolationServicesProps {
-  stack: ServiceStackEnvironment;
+  stack: WorkspaceIsolationStack;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -22,7 +22,7 @@ export const WorkspaceIsolationServices = ({
   open,
   onOpenChange,
 }: WorkspaceIsolationServicesProps) => {
-  const previewHostnames = getWorkspaceIsolationHostnames(stack);
+  const previewRoutes = getWorkspaceIsolationPreviewRoutes(stack);
 
   return (
     <Collapsible open={open} onOpenChange={onOpenChange}>
@@ -39,11 +39,11 @@ export const WorkspaceIsolationServices = ({
                     <span className="text-sm font-medium">Routed Services</span>
                     <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{stack.services.length}</Badge>
                   </div>
-                  {previewHostnames.length > 0 ? (
+                  {previewRoutes.length > 0 ? (
                     <div className="flex flex-wrap gap-1.5 font-mono text-[10px] text-muted-foreground/80">
-                      {previewHostnames.map((hostname) => (
-                        <span key={hostname} className="truncate max-w-[180px] sm:max-w-[250px]">
-                          {hostname}
+                      {previewRoutes.map((route) => (
+                        <span key={route} className="truncate max-w-[180px] sm:max-w-[250px]">
+                          {route}
                         </span>
                       ))}
                     </div>

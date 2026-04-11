@@ -1,36 +1,41 @@
-import { applyDerivedServiceFields } from "./service-stack-routing.js";
-import { normalizeRelativeServicePath } from "./service-stack-mock.js";
+import { applyDerivedWorkspaceIsolationServiceFields } from "./workspace-isolation-routing.js";
+import { normalizeRelativeServicePath } from "./workspace-isolation-helpers.js";
 import type {
-  ServiceStackService,
-  ServiceStackWorkspaceMode,
-} from "../types/service-stack.js";
+  WorkspaceIsolationMode,
+  WorkspaceIsolationService,
+} from "../types/workspace-isolation.js";
 
-export interface ServiceStackDraftError {
+export interface WorkspaceIsolationDraftError {
   title: string;
   description: string;
 }
 
-export const validateServiceStackDraft = (
+export const validateWorkspaceIsolationDraft = (
   draftName: string,
   draftStackId: string,
-  workspaceMode: ServiceStackWorkspaceMode,
-  draftServices: ServiceStackService[],
-): { name: string; services: ServiceStackService[] } | { error: ServiceStackDraftError } => {
+  workspaceMode: WorkspaceIsolationMode,
+  draftServices: WorkspaceIsolationService[],
+): { name: string; services: WorkspaceIsolationService[] } | { error: WorkspaceIsolationDraftError } => {
   const stackName = draftName.trim();
   if (!stackName) {
-    return { error: { title: "Name required", description: "Service Stack name cannot be empty." } };
+    return {
+      error: {
+        title: "Name required",
+        description: "Workspace Isolation name cannot be empty.",
+      },
+    };
   }
 
   if (draftServices.length === 0) {
     return {
       error: {
         title: "Add a service",
-        description: "Workspace Isolation needs at least one service in this mock.",
+        description: "Workspace Isolation needs at least one service.",
       },
     };
   }
 
-  const services = applyDerivedServiceFields(
+  const services = applyDerivedWorkspaceIsolationServiceFields(
     draftServices.map((service) =>
       workspaceMode === "single-app"
         ? { ...service, relativePath: "." }

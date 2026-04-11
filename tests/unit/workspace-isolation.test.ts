@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  getWorkspaceIsolationHostnames,
   getWorkspaceIsolationName,
+  getWorkspaceIsolationPreviewRoutes,
   getWorkspaceIsolationRouteSummary,
   getWorkspaceIsolationServicePathLabel,
 } from "../../src/lib/workspace-isolation.js";
@@ -15,10 +15,10 @@ test("getWorkspaceIsolationName uses the workspace label for worktrees", () => {
   assert.equal(getWorkspaceIsolationName("shop", "feature/auth"), "feature/auth");
 });
 
-test("getWorkspaceIsolationHostnames returns the first preview hostnames", () => {
+test("getWorkspaceIsolationPreviewRoutes returns the first preview routes with the proxy port", () => {
   const stack = {
     id: "stack-1",
-    kind: "service-stack" as const,
+    kind: "workspace-isolation" as const,
     name: "shop",
     slug: "shop",
     projectId: "project-shop",
@@ -58,9 +58,9 @@ test("getWorkspaceIsolationHostnames returns the first preview hostnames", () =>
     ],
   };
 
-  assert.deepEqual(getWorkspaceIsolationHostnames(stack), [
-    "web.root.shop.localhost",
-    "api.root.shop.localhost",
+  assert.deepEqual(getWorkspaceIsolationPreviewRoutes(stack), [
+    "web.root.shop.localhost:1355",
+    "api.root.shop.localhost:1355",
   ]);
 });
 
@@ -70,7 +70,7 @@ test("getWorkspaceIsolationRouteSummary maps the public domain to the internal t
       { projectName: "shop", workspaceRootLabel: "feature/auth" },
       { slug: "api", port: 4310 },
     ),
-    "api.feature-auth.shop.localhost -> localhost:4310",
+    "api.feature-auth.shop.localhost:1355 -> localhost:4310",
   );
 });
 

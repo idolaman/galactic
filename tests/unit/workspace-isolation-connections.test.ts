@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getConnectedServiceTargets } from "../../src/lib/service-stack-connection-targets.js";
-import { resolveServiceStackConnections } from "../../src/lib/service-stack-connection-resolution.js";
+import { getWorkspaceIsolationConnectionTargets } from "../../src/lib/workspace-isolation-connection-targets.js";
+import { resolveWorkspaceIsolationConnections } from "../../src/lib/workspace-isolation-connection-resolution.js";
 
-test("getConnectedServiceTargets returns local services and other-project targets only", () => {
+test("getWorkspaceIsolationConnectionTargets returns local services and other-project targets only", () => {
   const currentServices = [
     {
       id: "api",
@@ -25,10 +25,10 @@ test("getConnectedServiceTargets returns local services and other-project target
     },
   ];
 
-  const serviceStacks = [
+  const workspaceIsolationStacks = [
     {
       id: "ui-stack",
-      kind: "service-stack" as const,
+      kind: "workspace-isolation" as const,
       name: "ui",
       slug: "ui",
       projectId: "project-ui",
@@ -51,7 +51,7 @@ test("getConnectedServiceTargets returns local services and other-project target
     },
     {
       id: "same-project-stack",
-      kind: "service-stack" as const,
+      kind: "workspace-isolation" as const,
       name: "same-project",
       slug: "same-project",
       projectId: "project-backend",
@@ -74,7 +74,7 @@ test("getConnectedServiceTargets returns local services and other-project target
     },
   ];
 
-  const targets = getConnectedServiceTargets({
+  const targets = getWorkspaceIsolationConnectionTargets({
     currentProjectId: "project-backend",
     currentProjectName: "backend",
     currentServiceId: "api",
@@ -82,18 +82,18 @@ test("getConnectedServiceTargets returns local services and other-project target
     currentStackId: "backend-stack",
     currentWorkspaceLabel: "feature/backend",
     currentWorkspaceRootPath: "/backend",
-    serviceStacks,
+    workspaceIsolationStacks,
   });
 
   assert.deepEqual(targets.localTargets.map((target) => target.serviceName), ["worker"]);
   assert.deepEqual(targets.externalTargets.map((target) => target.serviceName), ["web"]);
 });
 
-test("resolveServiceStackConnections keeps missing targets visible", () => {
-  const serviceStacks = [
+test("resolveWorkspaceIsolationConnections keeps missing targets visible", () => {
+  const workspaceIsolationStacks = [
     {
       id: "ui-stack",
-      kind: "service-stack" as const,
+      kind: "workspace-isolation" as const,
       name: "ui",
       slug: "ui",
       projectId: "project-ui",
@@ -139,7 +139,10 @@ test("resolveServiceStackConnections keeps missing targets visible", () => {
     ],
   };
 
-  const [resolved, missing] = resolveServiceStackConnections(serviceStacks, service);
+  const [resolved, missing] = resolveWorkspaceIsolationConnections(
+    workspaceIsolationStacks,
+    service,
+  );
 
   assert.equal(resolved?.targetName, "web");
   assert.equal(resolved?.targetUrl, "http://web.feature-ui.ui.localhost:1355");

@@ -1,30 +1,35 @@
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ServiceStackConnectionRow } from "@/components/ServiceStackConnectionRow";
-import { getConnectedServiceTargets } from "@/lib/service-stack-connection-targets";
-import type { ServiceConnectionTarget, ServiceStackConnection, ServiceStackEnvironment, ServiceStackService } from "@/types/service-stack";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { WorkspaceIsolationConnectionRow } from "@/components/WorkspaceIsolationConnectionRow";
+import { getWorkspaceIsolationConnectionTargets } from "@/lib/workspace-isolation-connection-targets";
+import type {
+  WorkspaceIsolationConnection,
+  WorkspaceIsolationConnectionTarget,
+  WorkspaceIsolationService,
+  WorkspaceIsolationStack,
+} from "@/types/workspace-isolation";
 
-interface ServiceStackConnectionsFieldProps {
+interface WorkspaceIsolationConnectionsFieldProps {
   serviceId: string;
   projectId: string;
   projectName: string;
   workspaceRootPath: string;
   workspaceLabel: string;
   stackId: string;
-  connections: ServiceStackConnection[];
-  services: ServiceStackService[];
-  serviceStacks: ServiceStackEnvironment[];
+  connections: WorkspaceIsolationConnection[];
+  services: WorkspaceIsolationService[];
+  workspaceIsolationStacks: WorkspaceIsolationStack[];
   onAddConnection: (serviceId: string) => void;
   onChangeConnection: (
     serviceId: string,
     connectionId: string,
-    updates: Partial<ServiceStackConnection>,
+    updates: Partial<WorkspaceIsolationConnection>,
   ) => void;
   onRemoveConnection: (serviceId: string, connectionId: string) => void;
 }
 
-export const ServiceStackConnectionsField = ({
+export const WorkspaceIsolationConnectionsField = ({
   serviceId,
   projectId,
   projectName,
@@ -33,12 +38,12 @@ export const ServiceStackConnectionsField = ({
   stackId,
   connections,
   services,
-  serviceStacks,
+  workspaceIsolationStacks,
   onAddConnection,
   onChangeConnection,
   onRemoveConnection,
-}: ServiceStackConnectionsFieldProps) => {
-  const targetGroups = getConnectedServiceTargets({
+}: WorkspaceIsolationConnectionsFieldProps) => {
+  const targetGroups = getWorkspaceIsolationConnectionTargets({
     currentProjectId: projectId,
     currentProjectName: projectName,
     currentServiceId: serviceId,
@@ -46,10 +51,12 @@ export const ServiceStackConnectionsField = ({
     currentStackId: stackId,
     currentWorkspaceLabel: workspaceLabel,
     currentWorkspaceRootPath: workspaceRootPath,
-    serviceStacks,
+    workspaceIsolationStacks,
   });
-  const localTargets: ServiceConnectionTarget[] = targetGroups.localTargets;
-  const externalTargets: ServiceConnectionTarget[] = targetGroups.externalTargets;
+  const localTargets: WorkspaceIsolationConnectionTarget[] =
+    targetGroups.localTargets;
+  const externalTargets: WorkspaceIsolationConnectionTarget[] =
+    targetGroups.externalTargets;
 
   const isConnectDisabled = localTargets.length + externalTargets.length === 0;
 
@@ -101,7 +108,7 @@ export const ServiceStackConnectionsField = ({
               <span className="flex-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Target Service</span>
             </div>
             {connections.map((connection) => (
-              <ServiceStackConnectionRow
+              <WorkspaceIsolationConnectionRow
                 key={connection.id}
                 serviceId={serviceId}
                 connection={connection}
@@ -116,4 +123,3 @@ export const ServiceStackConnectionsField = ({
       </div>
     );
   };
-

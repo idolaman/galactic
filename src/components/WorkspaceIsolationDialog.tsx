@@ -3,27 +3,27 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ServiceStackDialogServiceCard } from "@/components/ServiceStackDialogServiceCard";
-import { ServiceStackDialogSingleAppState } from "@/components/ServiceStackDialogSingleAppState";
+import { WorkspaceIsolationDialogServiceCard } from "@/components/WorkspaceIsolationDialogServiceCard";
+import { WorkspaceIsolationDialogSingleAppState } from "@/components/WorkspaceIsolationDialogSingleAppState";
 import { WorkspaceIsolationModeField } from "@/components/WorkspaceIsolationModeField";
-import { useServiceStackDialog } from "@/hooks/use-service-stack-dialog";
+import { useWorkspaceIsolationDialog } from "@/hooks/use-workspace-isolation-dialog";
 import {
-  SERVICE_STACK_DIALOG_CONTENT_CLASS_NAME,
+  WORKSPACE_ISOLATION_DIALOG_CONTENT_CLASS_NAME,
   isSingleAppOverviewStep,
-} from "@/lib/service-stack-dialog-layout";
-import type { ServiceStackEnvironment } from "@/types/service-stack";
+} from "@/lib/workspace-isolation-dialog-layout";
+import type { WorkspaceIsolationStack } from "@/types/workspace-isolation";
 
-interface ServiceStackDialogProps {
+interface WorkspaceIsolationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectId: string;
   workspaceRootPath: string;
   workspaceRootLabel: string;
   projectName: string;
-  stack?: ServiceStackEnvironment | null;
+  stack?: WorkspaceIsolationStack | null;
 }
 
-export const ServiceStackDialog = ({
+export const WorkspaceIsolationDialog = ({
   open,
   onOpenChange,
   projectId,
@@ -31,8 +31,8 @@ export const ServiceStackDialog = ({
   workspaceRootLabel,
   projectName,
   stack,
-}: ServiceStackDialogProps) => {
-  const state = useServiceStackDialog({
+}: WorkspaceIsolationDialogProps) => {
+  const state = useWorkspaceIsolationDialog({
     open,
     onOpenChange,
     projectId,
@@ -68,7 +68,7 @@ export const ServiceStackDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={SERVICE_STACK_DIALOG_CONTENT_CLASS_NAME}>
+      <DialogContent className={WORKSPACE_ISOLATION_DIALOG_CONTENT_CLASS_NAME}>
         <DialogHeader className="shrink-0">
           <DialogTitle>
             {state.step === 1 
@@ -85,7 +85,7 @@ export const ServiceStackDialog = ({
         {isSingleAppStep ? (
           <div className="flex flex-1 min-h-0 flex-col gap-6">
             {dialogLead}
-            <ServiceStackDialogSingleAppState className="flex-1" />
+            <WorkspaceIsolationDialogSingleAppState className="flex-1" />
           </div>
         ) : (
           <ScrollArea className="flex-1 -mr-4 pr-4">
@@ -111,7 +111,7 @@ export const ServiceStackDialog = ({
 
                 <div className="grid gap-4">
                   {state.draftServices.map((service) => (
-                    <ServiceStackDialogServiceCard
+                    <WorkspaceIsolationDialogServiceCard
                       key={service.id}
                       projectId={projectId}
                       projectName={projectName}
@@ -121,7 +121,7 @@ export const ServiceStackDialog = ({
                       service={service}
                       workspaceMode={state.draftWorkspaceMode}
                       services={state.draftServices}
-                      serviceStacks={state.serviceStacks}
+                      workspaceIsolationStacks={state.workspaceIsolationStacks}
                       step={state.step}
                       onChangeService={state.handleChangeService}
                       onRemoveService={state.handleRemoveService}

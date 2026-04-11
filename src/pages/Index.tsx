@@ -4,6 +4,7 @@ import { ProjectList } from "@/components/ProjectList";
 import { ProjectDetail } from "@/components/ProjectDetail";
 import { useAppToast } from "@/hooks/use-app-toast";
 import { useBranchLoader } from "@/hooks/use-branch-loader";
+import { useWorkspaceIsolationManager } from "@/hooks/use-workspace-isolation-manager";
 import { chooseProjectDirectory } from "@/services/os";
 import {
   createWorktree,
@@ -82,6 +83,8 @@ const Index = () => {
   const [isSearchingSyncTargets, setIsSearchingSyncTargets] = useState(false);
   const { environments, assignTarget, unassignTarget, environmentForTarget } =
     useEnvironmentManager();
+  const { deleteWorkspaceIsolationForWorkspace } =
+    useWorkspaceIsolationManager();
   const { loadProjectBranches } = useBranchLoader({
     setIsLoadingBranches,
     setProjectBranches,
@@ -251,6 +254,7 @@ const Index = () => {
     });
 
     // Clean up the repository root workspace file
+    void deleteWorkspaceIsolationForWorkspace(projectToDelete.path);
     unassignTarget(projectToDelete.path);
     deleteCodeWorkspace(projectToDelete.path).catch((err) =>
       console.error("Failed to delete project workspace file:", err),
@@ -261,6 +265,7 @@ const Index = () => {
     const workspacesToDelete =
       projectWorkspaces[projectId] ?? projectToDelete.workspaces ?? [];
     workspacesToDelete.forEach((ws) => {
+      void deleteWorkspaceIsolationForWorkspace(ws.workspace);
       unassignTarget(ws.workspace);
       deleteCodeWorkspace(ws.workspace).catch((err) =>
         console.error(`Failed to delete workspace file for ${ws.name}:`, err),
@@ -393,6 +398,7 @@ const Index = () => {
     }
 
     // Delete associated .code-workspace file
+    await deleteWorkspaceIsolationForWorkspace(workspacePath);
     unassignTarget(workspacePath);
     await deleteCodeWorkspace(workspacePath);
     clearWorkspaceRelaunchFlag(workspacePath);

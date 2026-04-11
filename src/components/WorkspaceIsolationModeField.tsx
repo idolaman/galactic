@@ -1,10 +1,10 @@
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { ServiceStackWorkspaceMode } from "@/types/service-stack";
+import type { WorkspaceIsolationMode } from "@/types/workspace-isolation";
 
 interface WorkspaceIsolationModeFieldProps {
-  value: ServiceStackWorkspaceMode;
-  onChange: (value: ServiceStackWorkspaceMode) => void;
+  value: WorkspaceIsolationMode;
+  onChange: (value: WorkspaceIsolationMode) => void;
 }
 
 export const WorkspaceIsolationModeField = ({
@@ -22,7 +22,7 @@ export const WorkspaceIsolationModeField = ({
 
       <Tabs
         value={value}
-        onValueChange={(nextValue) => onChange(nextValue as ServiceStackWorkspaceMode)}
+        onValueChange={(nextValue) => onChange(nextValue as WorkspaceIsolationMode)}
         className="w-full sm:w-[300px]"
       >
         <TabsList className="grid w-full grid-cols-2">

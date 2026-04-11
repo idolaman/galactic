@@ -1,11 +1,13 @@
-import { buildServiceStackHostname } from "./service-stack-routing.js";
+import { buildWorkspaceIsolationHostname } from "./workspace-isolation-routing.js";
 import type {
-  ServiceConnectionTarget,
-  ServiceStackEnvironment,
-  ServiceStackService,
-} from "../types/service-stack.js";
+  WorkspaceIsolationConnectionTarget,
+  WorkspaceIsolationService,
+  WorkspaceIsolationStack,
+} from "../types/workspace-isolation.js";
 
-const sortTargets = (targets: ServiceConnectionTarget[]): ServiceConnectionTarget[] =>
+const sortTargets = (
+  targets: WorkspaceIsolationConnectionTarget[],
+): WorkspaceIsolationConnectionTarget[] =>
   [...targets].sort((left, right) =>
     `${left.projectName}/${left.workspaceRootLabel}/${left.serviceName}`.localeCompare(
       `${right.projectName}/${right.workspaceRootLabel}/${right.serviceName}`,
@@ -15,11 +17,11 @@ const sortTargets = (targets: ServiceConnectionTarget[]): ServiceConnectionTarge
 const toTarget = (
   source: "local" | "external",
   stack: Pick<
-    ServiceStackEnvironment,
+    WorkspaceIsolationStack,
     "id" | "projectId" | "projectName" | "workspaceRootPath" | "workspaceRootLabel"
   >,
-  service: Pick<ServiceStackService, "id" | "name" | "slug">,
-): ServiceConnectionTarget => ({
+  service: Pick<WorkspaceIsolationService, "id" | "name" | "slug">,
+): WorkspaceIsolationConnectionTarget => ({
   value: `${stack.id}:${service.id}`,
   source,
   stackId: stack.id,
@@ -29,15 +31,15 @@ const toTarget = (
   workspaceRootPath: stack.workspaceRootPath,
   workspaceRootLabel: stack.workspaceRootLabel,
   serviceName: service.name,
-  hostname: buildServiceStackHostname(stack, service),
+  hostname: buildWorkspaceIsolationHostname(stack, service),
 });
 
-export const buildServiceConnectionValue = (
+export const buildWorkspaceIsolationConnectionValue = (
   stackId: string,
   serviceId: string,
 ): string => `${stackId}:${serviceId}`;
 
-export const getConnectedServiceTargets = ({
+export const getWorkspaceIsolationConnectionTargets = ({
   currentProjectId,
   currentStackId,
   currentProjectName,
@@ -45,7 +47,7 @@ export const getConnectedServiceTargets = ({
   currentWorkspaceLabel,
   currentServiceId,
   currentServices,
-  serviceStacks,
+  workspaceIsolationStacks,
 }: {
   currentProjectId: string;
   currentStackId: string;
@@ -53,11 +55,11 @@ export const getConnectedServiceTargets = ({
   currentWorkspaceRootPath: string;
   currentWorkspaceLabel: string;
   currentServiceId: string;
-  currentServices: ServiceStackService[];
-  serviceStacks: ServiceStackEnvironment[];
+  currentServices: WorkspaceIsolationService[];
+  workspaceIsolationStacks: WorkspaceIsolationStack[];
 }): {
-  localTargets: ServiceConnectionTarget[];
-  externalTargets: ServiceConnectionTarget[];
+  localTargets: WorkspaceIsolationConnectionTarget[];
+  externalTargets: WorkspaceIsolationConnectionTarget[];
 } => {
   const localStack = {
     id: currentStackId,
@@ -74,7 +76,7 @@ export const getConnectedServiceTargets = ({
         .map((service) => toTarget("local", localStack, service)),
     ),
     externalTargets: sortTargets(
-      serviceStacks
+      workspaceIsolationStacks
         .filter((stack) => stack.projectId !== currentProjectId)
         .flatMap((stack) =>
           stack.services.map((service) => toTarget("external", stack, service)),

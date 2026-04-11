@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ServiceStackDialog } from "@/components/ServiceStackDialog";
+import { WorkspaceIsolationDialog } from "@/components/WorkspaceIsolationDialog";
 import { WorkspaceLegacyEnvironmentCard } from "@/components/WorkspaceLegacyEnvironmentCard";
 import { WorkspaceIsolationServices } from "@/components/WorkspaceIsolationServices";
-import { useServiceStackManager } from "@/hooks/use-service-stack-manager";
+import { useWorkspaceIsolationManager } from "@/hooks/use-workspace-isolation-manager";
 import { cn } from "@/lib/utils";
 import type { Environment } from "@/types/environment";
 
@@ -28,11 +28,12 @@ export const WorkspaceNetworkingPanel = ({
   localEnvironmentId,
   onLocalEnvironmentChange,
 }: WorkspaceNetworkingPanelProps) => {
-  const { serviceStackForWorkspace } = useServiceStackManager();
-  const [isServiceStackDialogOpen, setIsServiceStackDialogOpen] = useState(false);
+  const { workspaceIsolationForWorkspace } = useWorkspaceIsolationManager();
+  const [isWorkspaceIsolationDialogOpen, setIsWorkspaceIsolationDialogOpen] =
+    useState(false);
   const [isServicesOpen, setIsServicesOpen] = useState(false);
 
-  const stack = serviceStackForWorkspace(workspacePath);
+  const stack = workspaceIsolationForWorkspace(workspacePath);
   const previousStackIdRef = useRef<string | null>(stack?.id ?? null);
 
   useEffect(() => {
@@ -69,7 +70,7 @@ export const WorkspaceNetworkingPanel = ({
             <Button
               size="sm"
               variant={stack ? "outline" : "secondary"}
-              onClick={() => setIsServiceStackDialogOpen(true)}
+              onClick={() => setIsWorkspaceIsolationDialogOpen(true)}
               className={cn("shrink-0", stack && "border-primary/20 hover:bg-primary/10")}
             >
               {stack ? "Edit Isolation" : "Isolate Workspace"}
@@ -95,9 +96,9 @@ export const WorkspaceNetworkingPanel = ({
         />
       </div>
 
-      <ServiceStackDialog
-        open={isServiceStackDialogOpen}
-        onOpenChange={setIsServiceStackDialogOpen}
+      <WorkspaceIsolationDialog
+        open={isWorkspaceIsolationDialogOpen}
+        onOpenChange={setIsWorkspaceIsolationDialogOpen}
         projectId={projectId}
         workspaceRootPath={workspacePath}
         workspaceRootLabel={workspaceLabel}

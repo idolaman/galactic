@@ -1,10 +1,10 @@
-import { buildServiceStackUrl } from "./service-stack-routing.js";
+import { buildWorkspaceIsolationUrl } from "./workspace-isolation-routing.js";
 import type {
-  ResolvedServiceStackConnection,
-  ServiceStackConnection,
-  ServiceStackEnvironment,
-  ServiceStackService,
-} from "../types/service-stack.js";
+  ResolvedWorkspaceIsolationConnection,
+  WorkspaceIsolationConnection,
+  WorkspaceIsolationService,
+  WorkspaceIsolationStack,
+} from "../types/workspace-isolation.js";
 
 const MISSING_TARGET = {
   projectName: "Missing project",
@@ -13,16 +13,18 @@ const MISSING_TARGET = {
 };
 
 const findTarget = (
-  serviceStacks: ServiceStackEnvironment[],
-  connection: ServiceStackConnection,
+  workspaceIsolationStacks: WorkspaceIsolationStack[],
+  connection: WorkspaceIsolationConnection,
 ): {
-  stack: Pick<ServiceStackEnvironment, "projectName" | "workspaceRootLabel">;
-  service: Pick<ServiceStackService, "name" | "slug">;
+  stack: Pick<WorkspaceIsolationStack, "projectName" | "workspaceRootLabel">;
+  service: Pick<WorkspaceIsolationService, "name" | "slug">;
   targetProjectName: string;
   targetName: string;
   targetWorkspaceLabel: string;
 } | null => {
-  const targetStack = serviceStacks.find((stack) => stack.id === connection.targetStackId);
+  const targetStack = workspaceIsolationStacks.find(
+    (stack) => stack.id === connection.targetStackId,
+  );
   const targetService = targetStack?.services.find(
     (service) => service.id === connection.targetServiceId,
   );
@@ -40,17 +42,17 @@ const findTarget = (
   };
 };
 
-export const resolveServiceStackConnections = (
-  serviceStacks: ServiceStackEnvironment[],
-  service: ServiceStackService,
-): ResolvedServiceStackConnection[] =>
-  service.connections.flatMap<ResolvedServiceStackConnection>((connection) => {
+export const resolveWorkspaceIsolationConnections = (
+  workspaceIsolationStacks: WorkspaceIsolationStack[],
+  service: WorkspaceIsolationService,
+): ResolvedWorkspaceIsolationConnection[] =>
+  service.connections.flatMap<ResolvedWorkspaceIsolationConnection>((connection) => {
     const envKey = connection.envKey.trim();
     if (!envKey) {
       return [];
     }
 
-    const target = findTarget(serviceStacks, connection);
+    const target = findTarget(workspaceIsolationStacks, connection);
     if (!target) {
       return [{
         ...connection,
@@ -69,7 +71,7 @@ export const resolveServiceStackConnections = (
       targetName: target.targetName,
       targetProjectName: target.targetProjectName,
       targetWorkspaceLabel: target.targetWorkspaceLabel,
-      targetUrl: buildServiceStackUrl(target.stack, target.service),
+      targetUrl: buildWorkspaceIsolationUrl(target.stack, target.service),
       isMissing: false,
     }];
   });

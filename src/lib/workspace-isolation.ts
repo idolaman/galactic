@@ -1,11 +1,12 @@
 import {
   REPOSITORY_ROOT_LABEL,
-  buildServiceStackHostname,
-} from "./service-stack-routing.js";
+  buildWorkspaceIsolationHostname,
+} from "./workspace-isolation-routing.js";
+import { WORKSPACE_ISOLATION_PROXY_PORT } from "./workspace-isolation-helpers.js";
 import type {
-  ServiceStackEnvironment,
-  ServiceStackService,
-} from "../types/service-stack.js";
+  WorkspaceIsolationService,
+  WorkspaceIsolationStack,
+} from "../types/workspace-isolation.js";
 
 export const getWorkspaceIsolationName = (
   projectName: string,
@@ -15,22 +16,25 @@ export const getWorkspaceIsolationName = (
     ? projectName
     : workspaceRootLabel;
 
-export const getWorkspaceIsolationHostnames = (
-  stack: ServiceStackEnvironment,
+export const getWorkspaceIsolationPreviewRoutes = (
+  stack: WorkspaceIsolationStack,
   limit = 2,
 ): string[] =>
   stack.services
     .slice(0, limit)
-    .map((service) => buildServiceStackHostname(stack, service));
+    .map(
+      (service) =>
+        `${buildWorkspaceIsolationHostname(stack, service)}:${WORKSPACE_ISOLATION_PROXY_PORT}`,
+    );
 
 export const getWorkspaceIsolationRouteSummary = (
-  stack: Pick<ServiceStackEnvironment, "projectName" | "workspaceRootLabel">,
-  service: Pick<ServiceStackService, "slug" | "port">,
+  stack: Pick<WorkspaceIsolationStack, "projectName" | "workspaceRootLabel">,
+  service: Pick<WorkspaceIsolationService, "slug" | "port">,
 ): string =>
-  `${buildServiceStackHostname(stack, service)} -> localhost:${service.port}`;
+  `${buildWorkspaceIsolationHostname(stack, service)}:${WORKSPACE_ISOLATION_PROXY_PORT} -> localhost:${service.port}`;
 
 export const getWorkspaceIsolationServicePathLabel = (
-  service: Pick<ServiceStackService, "relativePath">,
+  service: Pick<WorkspaceIsolationService, "relativePath">,
 ): string => {
   if (service.relativePath === ".") {
     return "Workspace root";

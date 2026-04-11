@@ -2,37 +2,40 @@ import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ServiceStackConnectionsField } from "@/components/ServiceStackConnectionsField";
+import { WorkspaceIsolationConnectionsField } from "@/components/WorkspaceIsolationConnectionsField";
 import type {
-  ServiceStackConnection,
-  ServiceStackEnvironment,
-  ServiceStackService,
-  ServiceStackWorkspaceMode,
-} from "@/types/service-stack";
+  WorkspaceIsolationConnection,
+  WorkspaceIsolationMode,
+  WorkspaceIsolationService,
+  WorkspaceIsolationStack,
+} from "@/types/workspace-isolation";
 
-interface ServiceStackDialogServiceCardProps {
+interface WorkspaceIsolationDialogServiceCardProps {
   projectId: string;
   projectName: string;
   workspaceRootPath: string;
   workspaceLabel: string;
   stackId: string;
-  service: ServiceStackService;
-  workspaceMode: ServiceStackWorkspaceMode;
-  services: ServiceStackService[];
-  serviceStacks: ServiceStackEnvironment[];
+  service: WorkspaceIsolationService;
+  workspaceMode: WorkspaceIsolationMode;
+  services: WorkspaceIsolationService[];
+  workspaceIsolationStacks: WorkspaceIsolationStack[];
   step: 1 | 2;
-  onChangeService: (serviceId: string, updates: Partial<ServiceStackService>) => void;
+  onChangeService: (
+    serviceId: string,
+    updates: Partial<WorkspaceIsolationService>,
+  ) => void;
   onRemoveService: (serviceId: string) => void;
   onAddConnection: (serviceId: string) => void;
   onChangeConnection: (
     serviceId: string,
     linkId: string,
-    updates: Partial<ServiceStackConnection>,
+    updates: Partial<WorkspaceIsolationConnection>,
   ) => void;
   onRemoveConnection: (serviceId: string, linkId: string) => void;
 }
 
-export const ServiceStackDialogServiceCard = ({
+export const WorkspaceIsolationDialogServiceCard = ({
   projectId,
   projectName,
   workspaceRootPath,
@@ -41,14 +44,14 @@ export const ServiceStackDialogServiceCard = ({
   service,
   workspaceMode,
   services,
-  serviceStacks,
+  workspaceIsolationStacks,
   step,
   onChangeService,
   onRemoveService,
   onAddConnection,
   onChangeConnection,
   onRemoveConnection,
-}: ServiceStackDialogServiceCardProps) => {
+}: WorkspaceIsolationDialogServiceCardProps) => {
   const pathValue = service.relativePath;
   const title =
     workspaceMode === "monorepo" && !pathValue ? "New Service" : service.name;
@@ -88,7 +91,7 @@ export const ServiceStackDialogServiceCard = ({
         ) : null}
 
         {step === 2 ? (
-          <ServiceStackConnectionsField
+          <WorkspaceIsolationConnectionsField
             serviceId={service.id}
             projectId={projectId}
             projectName={projectName}
@@ -97,7 +100,7 @@ export const ServiceStackDialogServiceCard = ({
             stackId={stackId}
             connections={service.connections}
             services={services}
-            serviceStacks={serviceStacks}
+            workspaceIsolationStacks={workspaceIsolationStacks}
             onAddConnection={onAddConnection}
             onChangeConnection={onChangeConnection}
             onRemoveConnection={onRemoveConnection}

@@ -1,37 +1,37 @@
-export type ServiceStackWorkspaceMode = "single-app" | "monorepo";
+export type WorkspaceIsolationMode = "single-app" | "monorepo";
 
-export interface ServiceStackConnection {
+export interface WorkspaceIsolationConnection {
   id: string;
   envKey: string;
   targetStackId: string;
   targetServiceId: string;
 }
 
-export interface ServiceStackService {
+export interface WorkspaceIsolationService {
   id: string;
   name: string;
   slug: string;
   relativePath: string;
   port: number;
   createdAt: number;
-  connections: ServiceStackConnection[];
+  connections: WorkspaceIsolationConnection[];
 }
 
-export interface ServiceStackEnvironment {
+export interface WorkspaceIsolationStack {
   id: string;
-  kind: "service-stack";
+  kind: "workspace-isolation";
   name: string;
   slug: string;
   projectId: string;
   workspaceRootPath: string;
   workspaceRootLabel: string;
   projectName: string;
-  workspaceMode: ServiceStackWorkspaceMode;
+  workspaceMode: WorkspaceIsolationMode;
   createdAt: number;
-  services: ServiceStackService[];
+  services: WorkspaceIsolationService[];
 }
 
-export interface ServiceConnectionTarget {
+export interface WorkspaceIsolationConnectionTarget {
   value: string;
   source: "local" | "external";
   stackId: string;
@@ -44,7 +44,8 @@ export interface ServiceConnectionTarget {
   hostname: string;
 }
 
-export interface ResolvedServiceStackConnection extends ServiceStackConnection {
+export interface ResolvedWorkspaceIsolationConnection
+  extends WorkspaceIsolationConnection {
   targetName: string;
   targetProjectName: string;
   targetWorkspaceLabel: string;

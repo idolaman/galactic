@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from "electron";
 
 const initialSessionCache = ipcRenderer.sendSync("session/get-cache-sync");
 const initialDismissedSessions = ipcRenderer.sendSync("session/get-dismissed-sync");
+const initialWorkspaceIsolationStacks = ipcRenderer.sendSync("workspace-isolation/get-sync");
 
 interface SessionCacheSnapshot {
   sessions: unknown[];
@@ -39,6 +40,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
   ) => ipcRenderer.invoke("project/copy-sync-targets-to-worktree", projectPath, worktreePath, targets),
   configureEnvironmentInterface: (action: "add" | "remove", address: string) =>
     ipcRenderer.invoke("network/configure-environment-interface", action, address),
+  initialWorkspaceIsolationStacks: Array.isArray(initialWorkspaceIsolationStacks)
+    ? initialWorkspaceIsolationStacks
+    : [],
+  getWorkspaceIsolationStacks: () => ipcRenderer.invoke("workspace-isolation/list"),
+  saveWorkspaceIsolationStack: (input: unknown) =>
+    ipcRenderer.invoke("workspace-isolation/save", input),
+  deleteWorkspaceIsolationStack: (stackId: string) =>
+    ipcRenderer.invoke("workspace-isolation/delete", stackId),
   writeCodeWorkspace: (
     targetPath: string,
     envConfig: { address?: string; envVars?: Record<string, string> } | null,
@@ -56,6 +65,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getQuickSidebarHotkeyEnabled: () => ipcRenderer.invoke("settings/get-quick-sidebar-hotkey"),
   setQuickSidebarHotkeyEnabled: (enabled: boolean) =>
     ipcRenderer.invoke("settings/set-quick-sidebar-hotkey", enabled),
+  getWorkspaceIsolationShellHookStatus: () =>
+    ipcRenderer.invoke("settings/get-workspace-isolation-shell-hooks"),
+  setWorkspaceIsolationShellHooksEnabled: (enabled: boolean) =>
+    ipcRenderer.invoke("settings/set-workspace-isolation-shell-hooks", enabled),
   getEventNotificationStatus: () => ipcRenderer.invoke("settings/get-event-notification-status"),
   setEventNotificationsEnabled: (enabled: boolean) =>
     ipcRenderer.invoke("settings/set-event-notifications", enabled),

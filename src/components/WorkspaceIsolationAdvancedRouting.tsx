@@ -2,10 +2,10 @@ import {
   getWorkspaceIsolationRouteSummary,
   getWorkspaceIsolationServicePathLabel,
 } from "@/lib/workspace-isolation";
-import type { ServiceStackEnvironment } from "@/types/service-stack";
+import type { WorkspaceIsolationStack } from "@/types/workspace-isolation";
 
 interface WorkspaceIsolationAdvancedRoutingProps {
-  stack: ServiceStackEnvironment;
+  stack: WorkspaceIsolationStack;
 }
 
 export const WorkspaceIsolationAdvancedRouting = ({

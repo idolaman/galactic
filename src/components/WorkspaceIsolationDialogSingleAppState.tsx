@@ -1,13 +1,13 @@
 import { AppWindow } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface ServiceStackDialogSingleAppStateProps {
+interface WorkspaceIsolationDialogSingleAppStateProps {
   className?: string;
 }
 
-export const ServiceStackDialogSingleAppState = ({
+export const WorkspaceIsolationDialogSingleAppState = ({
   className,
-}: ServiceStackDialogSingleAppStateProps) => (
+}: WorkspaceIsolationDialogSingleAppStateProps) => (
   <div
     className={cn(
       "flex min-h-[16rem] flex-col items-center justify-center rounded-lg border border-dashed bg-muted/10 px-6 py-12 text-center",

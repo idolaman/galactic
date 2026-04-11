@@ -3,12 +3,15 @@ import test from "node:test";
 import {
   createMonorepoDraftServices,
   createSingleAppDraftServices,
-  getServiceStackWorkspaceMode,
-} from "../../src/lib/service-stack-workspace-mode.js";
+  getWorkspaceIsolationMode,
+} from "../../src/lib/workspace-isolation-mode.js";
 
-test("getServiceStackWorkspaceMode defaults to monorepo", () => {
-  assert.equal(getServiceStackWorkspaceMode(), "monorepo");
-  assert.equal(getServiceStackWorkspaceMode({ workspaceMode: "single-app" }), "single-app");
+test("getWorkspaceIsolationMode defaults to monorepo", () => {
+  assert.equal(getWorkspaceIsolationMode(), "monorepo");
+  assert.equal(
+    getWorkspaceIsolationMode({ workspaceMode: "single-app" }),
+    "single-app",
+  );
 });
 
 test("createSingleAppDraftServices forces one root service", () => {

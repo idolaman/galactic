@@ -1,10 +1,13 @@
-import type { ServiceStackEnvironment, ServiceStackService } from "../types/service-stack.js";
+import type {
+  WorkspaceIsolationService,
+  WorkspaceIsolationStack,
+} from "../types/workspace-isolation.js";
 import {
-  SERVICE_STACK_PROXY_PORT,
+  WORKSPACE_ISOLATION_PROXY_PORT,
   normalizeRelativeServicePath,
   sanitizeRelativeServicePathInput,
-  toServiceStackSlug,
-} from "./service-stack-mock.js";
+  toWorkspaceIsolationSlug,
+} from "./workspace-isolation-helpers.js";
 
 export const REPOSITORY_ROOT_LABEL = "Repository Root";
 export const HOSTNAME_SEGMENT_MAX_LENGTH = 24;
@@ -25,7 +28,7 @@ const getStableHash = (value: string): string => {
 };
 
 const limitHostnameSegment = (value: string, fallback: string, source: string): string => {
-  const slug = toServiceStackSlug(value, fallback);
+  const slug = toWorkspaceIsolationSlug(value, fallback);
   if (slug.length <= HOSTNAME_SEGMENT_MAX_LENGTH) {
     return slug;
   }
@@ -74,7 +77,9 @@ export const getServiceDisplayName = (relativePath: string): string => {
   return segments.at(-1) ?? APP_DISPLAY_NAME;
 };
 
-export const applyDerivedServiceFields = (services: ServiceStackService[]): ServiceStackService[] => {
+export const applyDerivedWorkspaceIsolationServiceFields = (
+  services: WorkspaceIsolationService[],
+): WorkspaceIsolationService[] => {
   const usedNames = new Set<string>();
   const usedSlugs = new Set<string>();
   return services.map((service) => {
@@ -115,7 +120,9 @@ export const applyDerivedServiceFields = (services: ServiceStackService[]): Serv
   });
 };
 
-const getBranchSegment = (stack: Pick<ServiceStackEnvironment, "projectName" | "workspaceRootLabel">): string => {
+const getBranchSegment = (
+  stack: Pick<WorkspaceIsolationStack, "projectName" | "workspaceRootLabel">,
+): string => {
   const branchLabel = stack.workspaceRootLabel === REPOSITORY_ROOT_LABEL
     ? ROOT_BRANCH_SEGMENT
     : stack.workspaceRootLabel;
@@ -126,11 +133,19 @@ const getBranchSegment = (stack: Pick<ServiceStackEnvironment, "projectName" | "
   );
 };
 
-const getProjectSegment = (stack: Pick<ServiceStackEnvironment, "projectName">): string =>
+const getProjectSegment = (
+  stack: Pick<WorkspaceIsolationStack, "projectName">,
+): string =>
   limitHostnameSegment(stack.projectName, "project", stack.projectName);
 
-export const buildServiceStackHostname = (stack: Pick<ServiceStackEnvironment, "projectName" | "workspaceRootLabel">, service: Pick<ServiceStackService, "slug">): string =>
+export const buildWorkspaceIsolationHostname = (
+  stack: Pick<WorkspaceIsolationStack, "projectName" | "workspaceRootLabel">,
+  service: Pick<WorkspaceIsolationService, "slug">,
+): string =>
   `${service.slug}.${getBranchSegment(stack)}.${getProjectSegment(stack)}.localhost`;
 
-export const buildServiceStackUrl = (stack: Pick<ServiceStackEnvironment, "projectName" | "workspaceRootLabel">, service: Pick<ServiceStackService, "slug">): string =>
-  `http://${buildServiceStackHostname(stack, service)}:${SERVICE_STACK_PROXY_PORT}`;
+export const buildWorkspaceIsolationUrl = (
+  stack: Pick<WorkspaceIsolationStack, "projectName" | "workspaceRootLabel">,
+  service: Pick<WorkspaceIsolationService, "slug">,
+): string =>
+  `http://${buildWorkspaceIsolationHostname(stack, service)}:${WORKSPACE_ISOLATION_PROXY_PORT}`;

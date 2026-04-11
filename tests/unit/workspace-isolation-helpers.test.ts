@@ -1,15 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  getNextMockServicePort,
+  getNextAvailableServicePort,
   normalizeRelativeServicePath,
   sanitizeRelativeServicePathInput,
-  toServiceStackSlug,
-} from "../../src/lib/service-stack-mock.js";
+  toWorkspaceIsolationSlug,
+} from "../../src/lib/workspace-isolation-helpers.js";
 
-test("toServiceStackSlug normalizes names into stable slugs", () => {
-  assert.equal(toServiceStackSlug("Checkout API Stack"), "checkout-api-stack");
-  assert.equal(toServiceStackSlug("   ", "service"), "service");
+test("toWorkspaceIsolationSlug normalizes names into stable slugs", () => {
+  assert.equal(
+    toWorkspaceIsolationSlug("Checkout API Stack"),
+    "checkout-api-stack",
+  );
+  assert.equal(toWorkspaceIsolationSlug("   ", "service"), "service");
 });
 
 test("sanitizeRelativeServicePathInput keeps only lowercase letters and slashes", () => {
@@ -27,11 +30,11 @@ test("normalizeRelativeServicePath trims leading current-directory prefixes", ()
   assert.equal(normalizeRelativeServicePath(""), ".");
 });
 
-test("getNextMockServicePort skips used and reserved ports", () => {
+test("getNextAvailableServicePort skips used and reserved ports", () => {
   const stacks = [
     {
       id: "stack-1",
-      kind: "service-stack" as const,
+      kind: "workspace-isolation" as const,
       name: "Checkout",
       slug: "checkout",
       projectId: "project-1",
@@ -54,5 +57,5 @@ test("getNextMockServicePort skips used and reserved ports", () => {
     },
   ];
 
-  assert.equal(getNextMockServicePort(stacks, [4311]), 4312);
+  assert.equal(getNextAvailableServicePort(stacks, [4311]), 4312);
 });

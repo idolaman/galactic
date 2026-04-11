@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  SERVICE_STACK_DIALOG_CONTENT_CLASS_NAME,
+  WORKSPACE_ISOLATION_DIALOG_CONTENT_CLASS_NAME,
   isSingleAppOverviewStep,
-} from "../../src/lib/service-stack-dialog-layout.js";
+} from "../../src/lib/workspace-isolation-dialog-layout.js";
 
-test("service stack dialog uses the reduced bounded height", () => {
-  assert.match(SERVICE_STACK_DIALOG_CONTENT_CLASS_NAME, /h-\[78vh\]/);
-  assert.match(SERVICE_STACK_DIALOG_CONTENT_CLASS_NAME, /max-h-\[42rem\]/);
+test("workspace isolation dialog uses the reduced bounded height", () => {
+  assert.match(WORKSPACE_ISOLATION_DIALOG_CONTENT_CLASS_NAME, /h-\[78vh\]/);
+  assert.match(WORKSPACE_ISOLATION_DIALOG_CONTENT_CLASS_NAME, /max-h-\[42rem\]/);
 });
 
 test("isSingleAppOverviewStep only stretches the single-app first step", () => {

@@ -1,9 +1,9 @@
 import type {
-  ServiceStackEnvironment,
-} from "../types/service-stack.js";
+  WorkspaceIsolationStack,
+} from "../types/workspace-isolation.js";
 
-export const SERVICE_STACK_PROXY_PORT = 1355;
-export const MOCK_SERVICE_PORT_START = 4310;
+export const WORKSPACE_ISOLATION_PROXY_PORT = 1355;
+export const WORKSPACE_ISOLATION_SERVICE_PORT_START = 4310;
 
 export const normalizeWorkspaceRootPath = (value: string): string =>
   value.replace(/[\\/]+$/, "");
@@ -21,7 +21,7 @@ export const normalizeRelativeServicePath = (value: string): string =>
     .replace(/^\/+/, "")
     .replace(/\/+$/, "") || ".";
 
-export const toServiceStackSlug = (
+export const toWorkspaceIsolationSlug = (
   value: string,
   fallback = "stack",
 ): string => {
@@ -35,13 +35,13 @@ export const toServiceStackSlug = (
 };
 
 export const getUsedServicePorts = (
-  stacks: ServiceStackEnvironment[],
+  stacks: WorkspaceIsolationStack[],
 ): number[] => {
   return stacks.flatMap((stack) => stack.services.map((service) => service.port));
 };
 
-export const getNextMockServicePort = (
-  stacks: ServiceStackEnvironment[],
+export const getNextAvailableServicePort = (
+  stacks: WorkspaceIsolationStack[],
   reservedPorts: number[] = [],
 ): number => {
   const usedPorts = new Set<number>([
@@ -49,7 +49,7 @@ export const getNextMockServicePort = (
     ...reservedPorts,
   ]);
 
-  let port = MOCK_SERVICE_PORT_START;
+  let port = WORKSPACE_ISOLATION_SERVICE_PORT_START;
   while (usedPorts.has(port)) {
     port += 1;
   }
