@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ShieldCheck, Terminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WorkspaceIsolationDialog } from "@/components/WorkspaceIsolationDialog";
 import { WorkspaceLegacyEnvironmentCard } from "@/components/WorkspaceLegacyEnvironmentCard";
@@ -115,6 +115,28 @@ export const WorkspaceNetworkingPanel = ({
             >
               Set up Auto-Env
             </Button>
+          </div>
+        ) : stack && shellHookStatus?.enabled ? (
+          <div className="flex flex-col gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3 shadow-sm">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-primary">
+                <Terminal className="h-4 w-4" />
+                <p className="text-sm font-medium">Terminal Auto-Env is active</p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Galactic will intelligently inject PORT variables directly into your terminal.
+              </p>
+            </div>
+            <div className="rounded-md bg-muted/60 p-3 font-mono text-[11px] text-muted-foreground leading-relaxed text-left">
+              <p className="text-foreground/80 mb-1"># Just run your service normally:</p>
+              <div className="flex flex-col gap-1.5 opacity-80">
+                {stack.services.map((service) => (
+                  <span key={service.id}>
+                    cd {service.relativePath === "." ? stack.workspaceRootPath : service.relativePath} && npm run dev
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
         ) : null}
 
