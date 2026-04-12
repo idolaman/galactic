@@ -6,12 +6,14 @@ export interface AppSettings {
   eventNotificationsEnabled: boolean;
   quickSidebarHotkeyEnabled: boolean;
   workspaceIsolationShellHooksEnabled: boolean;
+  workspaceIsolationIntroSeen: boolean;
 }
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
   eventNotificationsEnabled: true,
   quickSidebarHotkeyEnabled: false,
   workspaceIsolationShellHooksEnabled: false,
+  workspaceIsolationIntroSeen: false,
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -34,6 +36,10 @@ export const normalizeAppSettings = (value: unknown): AppSettings => {
     workspaceIsolationShellHooksEnabled: getBoolean(
       parsed.workspaceIsolationShellHooksEnabled,
       DEFAULT_APP_SETTINGS.workspaceIsolationShellHooksEnabled,
+    ),
+    workspaceIsolationIntroSeen: getBoolean(
+      parsed.workspaceIsolationIntroSeen,
+      DEFAULT_APP_SETTINGS.workspaceIsolationIntroSeen,
     ),
   };
 };

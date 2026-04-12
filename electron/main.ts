@@ -923,10 +923,19 @@ registerMcpIpc({
 registerWorkspaceIsolationIpc({
   ipcMain,
   getStacks: () => workspaceIsolationManager.getStacks(),
+  getIntroSeen: () => appSettings.workspaceIsolationIntroSeen,
   saveStack: (input) => workspaceIsolationManager.saveStack(input),
   deleteStack: (stackId) => workspaceIsolationManager.deleteStack(stackId),
   getShellHookStatus: () => workspaceIsolationManager.getShellHookStatus(),
   getProxyStatus: () => workspaceIsolationManager.getProxyStatus(),
+  markIntroSeen: async () => {
+    appSettings = {
+      ...appSettings,
+      workspaceIsolationIntroSeen: true,
+    };
+    await persistAppSettings();
+    return true;
+  },
   setShellHooksEnabled: async (enabled) => {
     const status = await workspaceIsolationManager.setShellHooksEnabled(enabled);
     appSettings = {

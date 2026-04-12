@@ -117,25 +117,31 @@ export const WorkspaceNetworkingPanel = ({
             </Button>
           </div>
         ) : stack && shellHookStatus?.enabled ? (
-          <div className="flex flex-col gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3 shadow-sm">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-primary">
-                <Terminal className="h-4 w-4" />
-                <p className="text-sm font-medium">Terminal Auto-Env is active</p>
+          <div className="flex flex-col gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4 shadow-sm transition-all duration-200">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/20 text-primary">
+                    <Terminal className="h-3.5 w-3.5" />
+                  </div>
+                  <p className="text-sm font-medium text-foreground">Terminal Auto-Env is active</p>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Galactic intelligently injects <code className="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">PORT</code> and <code className="rounded bg-black/5 px-1 py-0.5 dark:bg-white/10">GALACTIC_</code> variables directly into your zsh terminal. There's no need to manually set ports. Simply run your dev script as usual:
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Galactic will intelligently inject PORT variables directly into your terminal.
-              </p>
             </div>
-            <div className="rounded-md bg-muted/60 p-3 font-mono text-[11px] text-muted-foreground leading-relaxed text-left">
-              <p className="text-foreground/80 mb-1"># Just run your service normally:</p>
-              <div className="flex flex-col gap-1.5 opacity-80">
-                {stack.services.map((service) => (
-                  <span key={service.id}>
-                    cd {service.relativePath === "." ? stack.workspaceRootPath : service.relativePath} && npm run dev
+            <div className="mt-1 grid gap-2">
+              {stack.services.map((service) => (
+                <div key={service.id} className="group flex flex-col gap-1 rounded-md border border-black/5 bg-background/60 p-2.5 transition-colors hover:bg-background/80 dark:border-white/5">
+                  <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/70">
+                    {service.id === "default" ? stack.workspaceRootLabel : service.id}
                   </span>
-                ))}
-              </div>
+                  <span className="font-mono text-[11px] text-foreground/90">
+                    {service.relativePath === "." ? "" : `cd ${service.relativePath} && `}npm run dev
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         ) : null}

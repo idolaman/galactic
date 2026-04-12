@@ -42,6 +42,10 @@ interface UseWorkspaceIsolationDialogParams {
   stack?: WorkspaceIsolationStack | null;
   onOpenChange: (open: boolean) => void;
 }
+
+const getDraftServices = (services: WorkspaceIsolationService[]) =>
+  applyDerivedWorkspaceIsolationServiceFields(services);
+
 export const useWorkspaceIsolationDialog = ({
   open,
   projectId,
@@ -51,13 +55,13 @@ export const useWorkspaceIsolationDialog = ({
   stack,
   onOpenChange,
 }: UseWorkspaceIsolationDialogParams) => {
-  const getDraftServices = (services: WorkspaceIsolationService[]) =>
-    applyDerivedWorkspaceIsolationServiceFields(services);
   const { error } = useAppToast();
   const {
     deleteWorkspaceIsolationStack,
+    markWorkspaceIsolationIntroSeen,
     saveWorkspaceIsolationStack,
     shellHookStatus,
+    workspaceIsolationIntroSeen,
     workspaceIsolationStacks,
   } = useWorkspaceIsolationManager();
   const [draftStackId, setDraftStackId] = useState(
@@ -71,60 +75,67 @@ export const useWorkspaceIsolationDialog = ({
   const [savedMonorepoServices, setSavedMonorepoServices] = useState<
     WorkspaceIsolationService[]
   >([]);
+  const [step, setStep] = useState<WorkspaceIsolationDialogStep>(3);
+  const [showFeatureIntroStep, setShowFeatureIntroStep] = useState(false);
+  const [isOpenInitialized, setIsOpenInitialized] = useState(false);
   const draftName = useMemo(
     () => getWorkspaceIsolationName(projectName, workspaceRootLabel),
     [projectName, workspaceRootLabel],
   );
-  const [step, setStep] = useState<WorkspaceIsolationDialogStep>(1);
-  const [requiresAutoEnvSetup, setRequiresAutoEnvSetup] = useState(false);
-  const [isOpenInitialized, setIsOpenInitialized] = useState(false);
 
   useEffect(() => {
     if (!open) {
-      setRequiresAutoEnvSetup(false);
       setIsOpenInitialized(false);
+      setShowFeatureIntroStep(false);
       return;
     }
     if (isOpenInitialized) {
       return;
     }
+
+    const openingState = getWorkspaceIsolationDialogOpeningState(
+      shellHookStatus,
+      workspaceIsolationIntroSeen,
+    );
     if (stack) {
-      const openingState = getWorkspaceIsolationDialogOpeningState(
-        stack,
-        shellHookStatus,
-      );
       setDraftStackId(stack.id);
       setDraftWorkspaceMode(getWorkspaceIsolationMode(stack));
       setDraftServices(getDraftServices(stack.services.map((service) => ({ ...service }))));
       setSavedMonorepoServices(stack.services.map((service) => ({ ...service })));
-      setStep(openingState.step);
-      setRequiresAutoEnvSetup(openingState.requiresAutoEnvSetup);
-      setIsOpenInitialized(true);
-      return;
+    } else {
+      setDraftStackId(createWorkspaceIsolationId());
+      setDraftWorkspaceMode("monorepo");
+      setDraftServices(
+        getDraftServices([createEmptyService([], workspaceIsolationStacks)]),
+      );
+      setSavedMonorepoServices([]);
     }
-    const openingState = getWorkspaceIsolationDialogOpeningState(
-      null,
-      shellHookStatus,
-    );
-    setDraftStackId(createWorkspaceIsolationId());
-    setDraftWorkspaceMode("monorepo");
-    setDraftServices(
-      getDraftServices([createEmptyService([], workspaceIsolationStacks)]),
-    );
-    setSavedMonorepoServices([]);
     setStep(openingState.step);
-    setRequiresAutoEnvSetup(openingState.requiresAutoEnvSetup);
+    setShowFeatureIntroStep(openingState.showFeatureIntroStep);
     setIsOpenInitialized(true);
-  }, [open, stack, workspaceIsolationStacks, isOpenInitialized, shellHookStatus]);
+  }, [
+    open,
+    stack,
+    isOpenInitialized,
+    shellHookStatus,
+    workspaceIsolationIntroSeen,
+    workspaceIsolationStacks,
+  ]);
 
-  const handleNextStep = () => {
-    if (step === 1) {
-      setStep(2);
-      return;
-    }
+  const handleFeatureIntroContinue = () => {
+    setStep(2);
+    void markWorkspaceIsolationIntroSeen();
+  };
+
+  const handleContinueToConfiguration = () => setStep(3);
+
+  const handleContinueToConnections = () => {
     for (const service of draftServices) {
       if (!service.name.trim()) {
-        error({ title: "Name Required", description: "Service name cannot be empty." });
+        error({
+          title: "Name Required",
+          description: "Service name cannot be empty.",
+        });
         return;
       }
       if (
@@ -138,31 +149,45 @@ export const useWorkspaceIsolationDialog = ({
         return;
       }
     }
-    setStep(3);
+    setStep(4);
   };
-  const handleContinueToConfiguration = () => setStep(2);
-  const handlePrevStep = () => setStep((currentStep) => (currentStep === 3 ? 2 : 1));
+
+  const handleBackToFeatureIntro = () => setStep(1);
+  const handlePrevStep = () => setStep(3);
+
   const handleAddService = () =>
     setDraftServices((current) =>
       addDraftService(current, workspaceIsolationStacks),
     );
+
   const handleChangeService = (
     serviceId: string,
     updates: Partial<WorkspaceIsolationService>,
   ) =>
     setDraftServices((current) => changeDraftService(current, serviceId, updates));
+
   const handleRemoveService = (serviceId: string) =>
-    setDraftServices((current) => removeDraftService(current, serviceId, draftStackId));
+    setDraftServices((current) =>
+      removeDraftService(current, serviceId, draftStackId),
+    );
+
   const handleAddConnection = (serviceId: string) =>
     setDraftServices((current) => addDraftConnection(current, serviceId));
+
   const handleChangeConnection = (
     serviceId: string,
     linkId: string,
     updates: Partial<WorkspaceIsolationConnection>,
   ) =>
-    setDraftServices((current) => changeDraftConnection(current, serviceId, linkId, updates));
+    setDraftServices((current) =>
+      changeDraftConnection(current, serviceId, linkId, updates),
+    );
+
   const handleRemoveConnection = (serviceId: string, linkId: string) =>
-    setDraftServices((current) => removeDraftConnection(current, serviceId, linkId));
+    setDraftServices((current) =>
+      removeDraftConnection(current, serviceId, linkId),
+    );
+
   const handleWorkspaceModeChange = (workspaceMode: WorkspaceIsolationMode) => {
     if (workspaceMode === draftWorkspaceMode) {
       return;
@@ -187,6 +212,7 @@ export const useWorkspaceIsolationDialog = ({
       ),
     );
   };
+
   const handleSave = async () => {
     const result = validateWorkspaceIsolationDraft(
       draftName,
@@ -217,8 +243,11 @@ export const useWorkspaceIsolationDialog = ({
     }
     onOpenChange(false);
   };
+
   const handleDelete = async () => {
-    if (!stack) return;
+    if (!stack) {
+      return;
+    }
     const deleteResult = await deleteWorkspaceIsolationStack(stack.id);
     if (!deleteResult.success) {
       error({
@@ -229,15 +258,18 @@ export const useWorkspaceIsolationDialog = ({
     }
     onOpenChange(false);
   };
+
   return {
     step,
-    requiresAutoEnvSetup,
+    showFeatureIntroStep,
     draftServices,
     draftStackId,
     draftWorkspaceMode,
     workspaceIsolationStacks,
+    handleFeatureIntroContinue,
     handleContinueToConfiguration,
-    handleNextStep,
+    handleContinueToConnections,
+    handleBackToFeatureIntro,
     handlePrevStep,
     handleAddService,
     handleChangeService,

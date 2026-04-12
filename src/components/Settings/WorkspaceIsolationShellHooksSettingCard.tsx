@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { WorkspaceIsolationFeatureIntroDialog } from "@/components/settings/WorkspaceIsolationFeatureIntroDialog";
 import { useAppToast } from "@/hooks/use-app-toast";
 import { useWorkspaceIsolationManager } from "@/hooks/use-workspace-isolation-manager";
 import { getWorkspaceIsolationProxyStatus } from "@/services/workspace-isolation";
@@ -61,7 +62,10 @@ export function WorkspaceIsolationShellHooksSettingCard() {
   return (
     <Card className="border-border bg-card" id="workspace-isolation-shell-hooks">
       <CardHeader className="pb-4">
-        <CardTitle>Workspace Isolation</CardTitle>
+        <div className="flex items-center justify-between gap-3">
+          <CardTitle>Workspace Isolation</CardTitle>
+          <WorkspaceIsolationFeatureIntroDialog />
+        </div>
         <CardDescription>
           Run multiple branches of your stack safely using clean local domains, powered by a shared proxy and Terminal Auto-Env.
         </CardDescription>

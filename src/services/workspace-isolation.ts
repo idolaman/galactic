@@ -40,6 +40,11 @@ export const getInitialWorkspaceIsolationStacks = (): WorkspaceIsolationStack[] 
         window.electronAPI?.initialWorkspaceIsolationStacks ?? [],
       );
 
+export const getInitialWorkspaceIsolationIntroSeen = (): boolean =>
+  typeof window === "undefined"
+    ? false
+    : window.electronAPI?.initialWorkspaceIsolationIntroSeen === true;
+
 export const getInitialWorkspaceIsolationShellHookStatus =
   (): WorkspaceIsolationShellHookStatus | null =>
     typeof window === "undefined"
@@ -80,6 +85,23 @@ export const deleteWorkspaceIsolationStack = async (
     success: false,
     error: "Workspace Isolation IPC bridge is unavailable.",
   };
+
+export const markWorkspaceIsolationIntroSeen = async (): Promise<{
+  success: boolean;
+  seen: boolean;
+  error?: string;
+}> =>
+  typeof window === "undefined"
+    ? {
+      success: false,
+      seen: false,
+      error: "Workspace Isolation is only available in the desktop app.",
+    }
+    : await window.electronAPI?.markWorkspaceIsolationIntroSeen?.() ?? {
+      success: false,
+      seen: false,
+      error: "Workspace Isolation onboarding settings are unavailable.",
+    };
 
 export const getWorkspaceIsolationProxyStatus = async (): Promise<WorkspaceIsolationProxyStatus> => {
   if (typeof window === "undefined") {

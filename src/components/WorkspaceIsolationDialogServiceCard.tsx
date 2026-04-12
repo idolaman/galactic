@@ -20,7 +20,7 @@ interface WorkspaceIsolationDialogServiceCardProps {
   workspaceMode: WorkspaceIsolationMode;
   services: WorkspaceIsolationService[];
   workspaceIsolationStacks: WorkspaceIsolationStack[];
-  step: 1 | 2 | 3;
+  step: 1 | 2 | 3 | 4;
   onChangeService: (
     serviceId: string,
     updates: Partial<WorkspaceIsolationService>,
@@ -55,7 +55,8 @@ export const WorkspaceIsolationDialogServiceCard = ({
   const pathValue = service.relativePath;
   const title =
     workspaceMode === "monorepo" && !pathValue ? "New Service" : service.name;
-  const canRemoveService = step === 2 && (workspaceMode === "monorepo" || services.length > 1);
+  const canRemoveService =
+    step === 3 && (workspaceMode === "monorepo" || services.length > 1);
 
   return (
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
@@ -76,7 +77,7 @@ export const WorkspaceIsolationDialogServiceCard = ({
       </div>
 
       <div className="grid gap-5 p-4">
-        {step === 2 && workspaceMode === "monorepo" ? (
+        {step === 3 && workspaceMode === "monorepo" ? (
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <Label className="sm:w-32 shrink-0">Relative Folder</Label>
             <Input
@@ -90,7 +91,7 @@ export const WorkspaceIsolationDialogServiceCard = ({
           </div>
         ) : null}
 
-        {step === 3 ? (
+        {step === 4 ? (
           <WorkspaceIsolationConnectionsField
             serviceId={service.id}
             projectId={projectId}

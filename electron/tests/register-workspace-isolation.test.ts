@@ -35,6 +35,7 @@ test("registerWorkspaceIsolationIpc registers handlers and sync bootstrap", asyn
       },
     },
     getStacks: () => stacks,
+    getIntroSeen: () => true,
     saveStack: async (input) => ({ success: true, stack: { ...stacks[0], id: input.id } }),
     deleteStack: async () => ({ success: true }),
     getShellHookStatus: () => ({
@@ -50,6 +51,7 @@ test("registerWorkspaceIsolationIpc registers handlers and sync bootstrap", asyn
       port: 1355,
       message: "Proxy running on localhost:1355.",
     }),
+    markIntroSeen: async () => true,
     setShellHooksEnabled: async (enabled) => ({
       enabled,
       supported: true,
@@ -61,6 +63,7 @@ test("registerWorkspaceIsolationIpc registers handlers and sync bootstrap", asyn
   });
 
   assert.equal(onHandlers.has("workspace-isolation/get-sync"), true);
+  assert.equal(onHandlers.has("workspace-isolation/get-intro-seen-sync"), true);
   assert.equal(onHandlers.has("workspace-isolation/get-shell-hooks-sync"), true);
   assert.equal(handleHandlers.has("workspace-isolation/list"), true);
   assert.equal(handleHandlers.has("workspace-isolation/save"), true);
@@ -83,6 +86,10 @@ test("registerWorkspaceIsolationIpc registers handlers and sync bootstrap", asyn
     zshrcPath: "/.zshrc",
     message: "ready",
   });
+
+  const introSeenSyncEvent = { returnValue: null } as unknown as IpcMainEvent & { returnValue: unknown };
+  onHandlers.get("workspace-isolation/get-intro-seen-sync")?.(introSeenSyncEvent);
+  assert.equal(introSeenSyncEvent.returnValue, true);
 
   const saveResult = await handleHandlers.get("workspace-isolation/save")?.(
     {} as IpcMainInvokeEvent,
@@ -107,6 +114,11 @@ test("registerWorkspaceIsolationIpc registers handlers and sync bootstrap", asyn
     port: 1355,
     message: "Proxy running on localhost:1355.",
   });
+
+  const markIntroSeenResult = await handleHandlers.get("workspace-isolation/mark-intro-seen")?.(
+    {} as IpcMainInvokeEvent,
+  );
+  assert.deepEqual(markIntroSeenResult, { success: true, seen: true });
 
   const toggleResult = await handleHandlers.get("settings/set-workspace-isolation-shell-hooks")?.(
     {} as IpcMainInvokeEvent,

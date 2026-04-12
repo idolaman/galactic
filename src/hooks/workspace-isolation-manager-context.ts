@@ -20,6 +20,7 @@ export interface SaveWorkspaceIsolationInput {
 
 export interface WorkspaceIsolationManagerValue {
   workspaceIsolationStacks: WorkspaceIsolationStack[];
+  workspaceIsolationIntroSeen: boolean;
   shellHookStatus: WorkspaceIsolationShellHookStatus | null;
   workspaceIsolationForWorkspace: (
     workspaceRootPath: string,
@@ -31,6 +32,7 @@ export interface WorkspaceIsolationManagerValue {
     stackId: string,
   ) => Promise<{ success: boolean; error?: string }>;
   deleteWorkspaceIsolationForWorkspace: (workspaceRootPath: string) => Promise<void>;
+  markWorkspaceIsolationIntroSeen: () => Promise<{ success: boolean; seen: boolean; error?: string }>;
   setShellHooksEnabled: (enabled: boolean) => Promise<{ success: boolean; enabled: boolean; error?: string }>;
 }
 

@@ -7,9 +7,11 @@ import {
 import { normalizeWorkspaceRootPath } from "@/lib/workspace-isolation-helpers";
 import {
   deleteWorkspaceIsolationStack,
+  getInitialWorkspaceIsolationIntroSeen,
   getInitialWorkspaceIsolationShellHookStatus,
   getInitialWorkspaceIsolationStacks,
   getWorkspaceIsolationStacks,
+  markWorkspaceIsolationIntroSeen,
   saveWorkspaceIsolationStack,
   getWorkspaceIsolationShellHookStatus,
   setWorkspaceIsolationShellHooksEnabled,
@@ -24,6 +26,8 @@ export const WorkspaceIsolationManagerProvider = ({
 }) => {
   const [workspaceIsolationStacks, setWorkspaceIsolationStacks] =
     useState<WorkspaceIsolationStack[]>(getInitialWorkspaceIsolationStacks);
+  const [workspaceIsolationIntroSeen, setWorkspaceIsolationIntroSeen] =
+    useState<boolean>(getInitialWorkspaceIsolationIntroSeen);
   const [shellHookStatus, setShellHookStatus] =
     useState<WorkspaceIsolationShellHookStatus | null>(
       getInitialWorkspaceIsolationShellHookStatus,
@@ -90,13 +94,23 @@ export const WorkspaceIsolationManagerProvider = ({
     return result;
   };
 
+  const handleMarkWorkspaceIsolationIntroSeen = async () => {
+    const result = await markWorkspaceIsolationIntroSeen();
+    if (result.success && result.seen) {
+      setWorkspaceIsolationIntroSeen(true);
+    }
+    return result;
+  };
+
   const value: WorkspaceIsolationManagerValue = {
     workspaceIsolationStacks,
+    workspaceIsolationIntroSeen,
     shellHookStatus,
     workspaceIsolationForWorkspace,
     saveWorkspaceIsolationStack: handleSaveWorkspaceIsolationStack,
     deleteWorkspaceIsolationStack: handleDeleteWorkspaceIsolationStack,
     deleteWorkspaceIsolationForWorkspace,
+    markWorkspaceIsolationIntroSeen: handleMarkWorkspaceIsolationIntroSeen,
     setShellHooksEnabled: handleSetShellHooksEnabled,
   };
 

@@ -1,11 +1,10 @@
 import type { WorkspaceIsolationShellHookStatus } from "../types/electron.js";
-import type { WorkspaceIsolationStack } from "../types/workspace-isolation.js";
 
-export type WorkspaceIsolationDialogStep = 1 | 2 | 3;
-export type WorkspaceIsolationIntroAction = "continue" | "enable-and-continue";
+export type WorkspaceIsolationDialogStep = 1 | 2 | 3 | 4;
 
 export interface WorkspaceIsolationDialogOpeningState {
-  step: 1 | 2;
+  step: 1 | 2 | 3;
+  showFeatureIntroStep: boolean;
   requiresAutoEnvSetup: boolean;
 }
 
@@ -13,28 +12,18 @@ export const requiresWorkspaceIsolationShellHooks = (
   shellHookStatus: WorkspaceIsolationShellHookStatus | null,
 ): boolean => Boolean(shellHookStatus?.supported && !shellHookStatus.enabled);
 
-export const getWorkspaceIsolationIntroAction = (
-  shellHookStatus: WorkspaceIsolationShellHookStatus | null,
-): WorkspaceIsolationIntroAction =>
-  requiresWorkspaceIsolationShellHooks(shellHookStatus)
-    ? "enable-and-continue"
-    : "continue";
-
-export const getWorkspaceIsolationDialogInitialStep = (
-  stack: WorkspaceIsolationStack | null | undefined,
-  shellHookStatus: WorkspaceIsolationShellHookStatus | null,
-): 1 | 2 => (stack || !requiresWorkspaceIsolationShellHooks(shellHookStatus) ? 2 : 1);
-
 export const getWorkspaceIsolationDialogOpeningState = (
-  stack: WorkspaceIsolationStack | null | undefined,
   shellHookStatus: WorkspaceIsolationShellHookStatus | null,
+  workspaceIsolationIntroSeen: boolean,
 ): WorkspaceIsolationDialogOpeningState => {
-  const requiresAutoEnvSetup = Boolean(
-    !stack && requiresWorkspaceIsolationShellHooks(shellHookStatus),
+  const requiresAutoEnvSetup = requiresWorkspaceIsolationShellHooks(
+    shellHookStatus,
   );
+  const showFeatureIntroStep = requiresAutoEnvSetup && !workspaceIsolationIntroSeen;
 
   return {
-    step: requiresAutoEnvSetup ? 1 : 2,
+    step: showFeatureIntroStep ? 1 : requiresAutoEnvSetup ? 2 : 3,
+    showFeatureIntroStep,
     requiresAutoEnvSetup,
   };
 };

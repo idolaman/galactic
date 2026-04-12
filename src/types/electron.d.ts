@@ -103,6 +103,7 @@ export interface ElectronAPI {
     targets: SyncTarget[]
   ) => Promise<CopySyncTargetsResult>;
   initialWorkspaceIsolationStacks?: unknown[];
+  initialWorkspaceIsolationIntroSeen?: boolean;
   initialWorkspaceIsolationShellHookStatus?: unknown;
   getWorkspaceIsolationStacks: () => Promise<unknown[]>;
   saveWorkspaceIsolationStack: (
@@ -111,6 +112,7 @@ export interface ElectronAPI {
   deleteWorkspaceIsolationStack: (
     stackId: string
   ) => Promise<{ success: boolean; error?: string }>;
+  markWorkspaceIsolationIntroSeen: () => Promise<{ success: boolean; seen: boolean; error?: string }>;
   getWorkspaceIsolationProxyStatus: () => Promise<WorkspaceIsolationProxyStatus>;
   configureEnvironmentInterface: (
     action: "add" | "remove",

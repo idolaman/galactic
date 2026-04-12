@@ -3,6 +3,9 @@ import { contextBridge, ipcRenderer } from "electron";
 const initialSessionCache = ipcRenderer.sendSync("session/get-cache-sync");
 const initialDismissedSessions = ipcRenderer.sendSync("session/get-dismissed-sync");
 const initialWorkspaceIsolationStacks = ipcRenderer.sendSync("workspace-isolation/get-sync");
+const initialWorkspaceIsolationIntroSeen = ipcRenderer.sendSync(
+  "workspace-isolation/get-intro-seen-sync",
+);
 const initialWorkspaceIsolationShellHookStatus = ipcRenderer.sendSync(
   "workspace-isolation/get-shell-hooks-sync",
 );
@@ -46,6 +49,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   initialWorkspaceIsolationStacks: Array.isArray(initialWorkspaceIsolationStacks)
     ? initialWorkspaceIsolationStacks
     : [],
+  initialWorkspaceIsolationIntroSeen:
+    typeof initialWorkspaceIsolationIntroSeen === "boolean"
+      ? initialWorkspaceIsolationIntroSeen
+      : false,
   initialWorkspaceIsolationShellHookStatus:
     initialWorkspaceIsolationShellHookStatus &&
     typeof initialWorkspaceIsolationShellHookStatus === "object"
@@ -56,6 +63,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("workspace-isolation/save", input),
   deleteWorkspaceIsolationStack: (stackId: string) =>
     ipcRenderer.invoke("workspace-isolation/delete", stackId),
+  markWorkspaceIsolationIntroSeen: () =>
+    ipcRenderer.invoke("workspace-isolation/mark-intro-seen"),
   getWorkspaceIsolationProxyStatus: () =>
     ipcRenderer.invoke("workspace-isolation/proxy-status"),
   writeCodeWorkspace: (
