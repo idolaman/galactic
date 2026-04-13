@@ -63,11 +63,11 @@ export const WorkspaceIsolationServices = ({
           </CollapsibleTrigger>
 
           {previewRoutes.length > 0 ? (
-            <div className="mt-1.5 grid gap-1.5 px-2 pb-1.5">
+            <div className="mt-1.5 flex min-w-0 flex-col gap-1.5 px-2 pb-1.5">
               {previewRoutes.map((route, index) => (
                 <div
                   key={route}
-                  className="group flex w-full items-center justify-between gap-3 rounded-lg border border-black/[0.04] bg-black/[0.02] px-2.5 py-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.01)] transition-all hover:border-black/10 hover:bg-background hover:shadow-sm dark:border-white/[0.04] dark:bg-white/[0.02] dark:hover:border-white/10 dark:hover:bg-background/80"
+                  className="group flex w-full min-w-0 items-center justify-between gap-3 rounded-lg border border-black/[0.04] bg-black/[0.02] px-2.5 py-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.01)] transition-all hover:border-black/10 hover:bg-background hover:shadow-sm dark:border-white/[0.04] dark:bg-white/[0.02] dark:hover:border-white/10 dark:hover:bg-background/80"
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-2.5">
                     <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[6px] bg-black/5 text-muted-foreground shadow-sm transition-colors group-hover:bg-primary/10 group-hover:text-primary dark:bg-white/10">

@@ -32,7 +32,7 @@ export const WorkspaceIsolationAdvancedRouting = ({
       return (
         <div
           key={service.id}
-          className="group flex flex-col gap-2 rounded-lg border border-black/[0.04] bg-background/50 px-3 py-2.5 transition-all hover:bg-background hover:shadow-sm dark:border-white/[0.04]"
+          className="group flex min-w-0 flex-col gap-2 rounded-lg border border-black/[0.04] bg-background/50 px-3 py-2.5 transition-all hover:bg-background hover:shadow-sm dark:border-white/[0.04]"
         >
           <div className="flex items-center justify-between gap-3 border-b border-border/40 pb-2">
             <div className="flex items-center gap-2">
@@ -48,7 +48,7 @@ export const WorkspaceIsolationAdvancedRouting = ({
             </p>
           </div>
           
-          <div className="flex items-center gap-2 overflow-hidden py-0.5">
+          <div className="flex w-full min-w-0 items-center gap-2 overflow-hidden py-0.5">
             <div className="flex min-w-0 flex-1 items-center gap-2 rounded-md bg-black/[0.02] px-2 py-1.5 dark:bg-white/[0.02] transition-colors group-hover:bg-black/5 dark:group-hover:bg-white/5">
               <span className="truncate font-mono text-[10px] text-muted-foreground transition-colors group-hover:text-foreground">
                 {publicDomain}

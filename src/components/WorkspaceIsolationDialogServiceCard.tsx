@@ -60,9 +60,9 @@ export const WorkspaceIsolationDialogServiceCard = ({
 
   return (
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-      <div className="flex items-center justify-between border-b border-border/50 bg-muted/20 px-4 py-3">
-        <div className="flex items-center gap-3">
-          <span className="font-semibold">{title}</span>
+      <div className="flex items-center justify-between gap-4 border-b border-border/50 bg-muted/20 px-4 py-3">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <span className="truncate font-semibold text-sm">{title}</span>
         </div>
         {canRemoveService ? (
           <Button

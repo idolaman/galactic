@@ -19,14 +19,16 @@ export const WorkspaceIsolationDialogLead = ({
   onWorkspaceModeChange,
 }: WorkspaceIsolationDialogLeadProps) => (
   <>
-    <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-3">
-      <div className="flex items-center gap-3">
-        <Badge variant="secondary">{workspaceRootLabel}</Badge>
-        <span className="font-mono text-xs text-muted-foreground">
+    <div className="flex w-full min-w-0 items-center justify-between gap-3 rounded-lg border bg-muted/30 px-3 py-3 sm:px-4">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <Badge variant="secondary" className="flex shrink-0 min-w-0 max-w-[140px] items-center sm:max-w-[240px]">
+          <span className="truncate">{workspaceRootLabel}</span>
+        </Badge>
+        <span className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">
           {workspaceRootPath}
         </span>
       </div>
-      <span className="text-xs text-muted-foreground">Workspace Root</span>
+      <span className="shrink-0 text-[11px] font-medium text-muted-foreground sm:text-xs">Workspace Root</span>
     </div>
 
     {step === 3 ? (
