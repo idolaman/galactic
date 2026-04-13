@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   getWorkspaceIsolationName,
+  getWorkspaceIsolationRouteDomain,
   getWorkspaceIsolationPreviewRoutes,
   getWorkspaceIsolationRouteSummary,
   getWorkspaceIsolationServicePathLabel,
@@ -71,6 +72,16 @@ test("getWorkspaceIsolationRouteSummary maps the public domain to the internal t
       { slug: "api", port: 4310 },
     ),
     "api.feature-auth.shop.localhost:1355 -> localhost:4310",
+  );
+});
+
+test("getWorkspaceIsolationRouteDomain returns the public routed domain with the proxy port", () => {
+  assert.equal(
+    getWorkspaceIsolationRouteDomain(
+      { projectName: "shop", workspaceRootLabel: "feature/auth" },
+      { slug: "api" },
+    ),
+    "api.feature-auth.shop.localhost:1355",
   );
 });
 

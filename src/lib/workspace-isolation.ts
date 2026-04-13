@@ -20,18 +20,21 @@ export const getWorkspaceIsolationPreviewRoutes = (
   stack: WorkspaceIsolationStack,
   limit = 2,
 ): string[] =>
-  stack.services
-    .slice(0, limit)
-    .map(
-      (service) =>
-        `${buildWorkspaceIsolationHostname(stack, service)}:${WORKSPACE_ISOLATION_PROXY_PORT}`,
-    );
+  stack.services.slice(0, limit).map((service) =>
+    getWorkspaceIsolationRouteDomain(stack, service),
+  );
+
+export const getWorkspaceIsolationRouteDomain = (
+  stack: Pick<WorkspaceIsolationStack, "projectName" | "workspaceRootLabel">,
+  service: Pick<WorkspaceIsolationService, "slug">,
+): string =>
+  `${buildWorkspaceIsolationHostname(stack, service)}:${WORKSPACE_ISOLATION_PROXY_PORT}`;
 
 export const getWorkspaceIsolationRouteSummary = (
   stack: Pick<WorkspaceIsolationStack, "projectName" | "workspaceRootLabel">,
   service: Pick<WorkspaceIsolationService, "slug" | "port">,
 ): string =>
-  `${buildWorkspaceIsolationHostname(stack, service)}:${WORKSPACE_ISOLATION_PROXY_PORT} -> localhost:${service.port}`;
+  `${getWorkspaceIsolationRouteDomain(stack, service)} -> localhost:${service.port}`;
 
 export const getWorkspaceIsolationServicePathLabel = (
   service: Pick<WorkspaceIsolationService, "relativePath">,
