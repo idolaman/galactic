@@ -4,6 +4,7 @@ import {
 } from "./workspace-isolation-routing.js";
 import { WORKSPACE_ISOLATION_PROXY_PORT } from "./workspace-isolation-helpers.js";
 import type {
+  ResolvedWorkspaceIsolationConnection,
   WorkspaceIsolationService,
   WorkspaceIsolationStack,
 } from "../types/workspace-isolation.js";
@@ -51,4 +52,24 @@ export const getWorkspaceIsolationServicePathLabel = (
   }
 
   return service.relativePath;
+};
+
+export const getWorkspaceIsolationConnectionLabel = (
+  stack: Pick<WorkspaceIsolationStack, "projectName" | "workspaceRootLabel">,
+  connection: Pick<
+    ResolvedWorkspaceIsolationConnection,
+    "isMissing" | "targetName" | "targetProjectName" | "targetWorkspaceLabel"
+  >,
+): string => {
+  if (connection.isMissing) {
+    return "Missing target";
+  }
+
+  const isCurrentWorkspace =
+    stack.projectName === connection.targetProjectName &&
+    stack.workspaceRootLabel === connection.targetWorkspaceLabel;
+
+  return isCurrentWorkspace
+    ? connection.targetName
+    : `${connection.targetProjectName} / ${connection.targetWorkspaceLabel} / ${connection.targetName}`;
 };
