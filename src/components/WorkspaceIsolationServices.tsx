@@ -16,14 +16,12 @@ import { cn } from "@/lib/utils";
 import type { WorkspaceIsolationStack } from "@/types/workspace-isolation";
 
 interface WorkspaceIsolationServicesProps {
-  autoEnvEnabled: boolean;
   stack: WorkspaceIsolationStack;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export const WorkspaceIsolationServices = ({
-  autoEnvEnabled,
   stack,
   open,
   onOpenChange,
@@ -85,14 +83,12 @@ export const WorkspaceIsolationServices = ({
                       >
                         {route}
                       </a>
-                      {autoEnvEnabled ? (
-                        <div className="mt-1 flex items-center gap-1.5 opacity-60 transition-opacity group-hover:opacity-100">
-                          <Terminal className="h-2.5 w-2.5 shrink-0 text-muted-foreground" />
-                          <span className="truncate text-[10px] text-muted-foreground">
-                            e.g. <code className="rounded-[4px] bg-black/5 px-1 py-0.5 font-mono text-[9px] dark:bg-white/10">{getWorkspaceIsolationRunHint(stack.services[index])}</code>
-                          </span>
-                        </div>
-                      ) : null}
+                      <div className="mt-1 flex items-center gap-1.5 opacity-60 transition-opacity group-hover:opacity-100">
+                        <Terminal className="h-2.5 w-2.5 shrink-0 text-muted-foreground" />
+                        <span className="truncate text-[10px] text-muted-foreground">
+                          e.g. <code className="rounded-[4px] bg-black/5 px-1 py-0.5 font-mono text-[9px] dark:bg-white/10">{getWorkspaceIsolationRunHint(stack.services[index])}</code>
+                        </span>
+                      </div>
                     </div>
                   </div>
                   <div className="shrink-0 -mr-0.5 opacity-100 transition-opacity sm:opacity-40 sm:focus-within:opacity-100 sm:group-hover:opacity-100">

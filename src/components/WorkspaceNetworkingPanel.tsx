@@ -97,7 +97,6 @@ export const WorkspaceNetworkingPanel = ({
           {stack ? (
             <div className="border-t border-primary/10 bg-background/50">
               <WorkspaceIsolationServices
-                autoEnvEnabled={shellHookStatus?.enabled === true}
                 stack={stack}
                 open={isServicesOpen}
                 onOpenChange={setIsServicesOpen}
