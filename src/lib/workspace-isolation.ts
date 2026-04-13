@@ -36,6 +36,13 @@ export const getWorkspaceIsolationRouteSummary = (
 ): string =>
   `${getWorkspaceIsolationRouteDomain(stack, service)} -> localhost:${service.port}`;
 
+export const getWorkspaceIsolationRunHint = (
+  service: Pick<WorkspaceIsolationService, "relativePath">,
+): string =>
+  service.relativePath === "."
+    ? "npm run dev"
+    : `cd ${service.relativePath} && npm run dev`;
+
 export const getWorkspaceIsolationServicePathLabel = (
   service: Pick<WorkspaceIsolationService, "relativePath">,
 ): string => {

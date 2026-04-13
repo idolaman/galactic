@@ -4,6 +4,7 @@ import {
   getWorkspaceIsolationName,
   getWorkspaceIsolationRouteDomain,
   getWorkspaceIsolationPreviewRoutes,
+  getWorkspaceIsolationRunHint,
   getWorkspaceIsolationRouteSummary,
   getWorkspaceIsolationServicePathLabel,
 } from "../../src/lib/workspace-isolation.js";
@@ -82,6 +83,20 @@ test("getWorkspaceIsolationRouteDomain returns the public routed domain with the
       { slug: "api" },
     ),
     "api.feature-auth.shop.localhost:1355",
+  );
+});
+
+test("getWorkspaceIsolationRunHint uses workspace root for root services", () => {
+  assert.equal(
+    getWorkspaceIsolationRunHint({ relativePath: "." }),
+    "npm run dev",
+  );
+});
+
+test("getWorkspaceIsolationRunHint uses the service folder for nested services", () => {
+  assert.equal(
+    getWorkspaceIsolationRunHint({ relativePath: "apps/api" }),
+    "cd apps/api && npm run dev",
   );
 });
 

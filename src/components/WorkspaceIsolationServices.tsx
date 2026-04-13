@@ -1,4 +1,4 @@
-import { ChevronDown, Globe, Waypoints } from "lucide-react";
+import { ChevronDown, Globe, Terminal, Waypoints } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,17 +8,22 @@ import {
 } from "@/components/ui/collapsible";
 import { WorkspaceIsolationCopyButton } from "@/components/WorkspaceIsolationCopyButton";
 import { WorkspaceIsolationAdvancedRouting } from "@/components/WorkspaceIsolationAdvancedRouting";
-import { getWorkspaceIsolationPreviewRoutes } from "@/lib/workspace-isolation";
+import {
+  getWorkspaceIsolationPreviewRoutes,
+  getWorkspaceIsolationRunHint,
+} from "@/lib/workspace-isolation";
 import { cn } from "@/lib/utils";
 import type { WorkspaceIsolationStack } from "@/types/workspace-isolation";
 
 interface WorkspaceIsolationServicesProps {
+  autoEnvEnabled: boolean;
   stack: WorkspaceIsolationStack;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export const WorkspaceIsolationServices = ({
+  autoEnvEnabled,
   stack,
   open,
   onOpenChange,
@@ -61,7 +66,7 @@ export const WorkspaceIsolationServices = ({
 
           {previewRoutes.length > 0 ? (
             <div className="mt-1.5 grid gap-1.5 px-2 pb-1.5">
-              {previewRoutes.map((route) => (
+              {previewRoutes.map((route, index) => (
                 <div
                   key={route}
                   className="group flex w-full items-center justify-between gap-3 rounded-lg border border-black/[0.04] bg-black/[0.02] px-2.5 py-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.01)] transition-all hover:border-black/10 hover:bg-background hover:shadow-sm dark:border-white/[0.04] dark:bg-white/[0.02] dark:hover:border-white/10 dark:hover:bg-background/80"
@@ -70,15 +75,25 @@ export const WorkspaceIsolationServices = ({
                     <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[6px] bg-black/5 text-muted-foreground shadow-sm transition-colors group-hover:bg-primary/10 group-hover:text-primary dark:bg-white/10">
                       <Globe className="h-3 w-3" />
                     </div>
-                    <a
-                      href={`http://${route}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="truncate font-mono text-[11px] font-medium tracking-tight text-muted-foreground transition-colors hover:text-primary hover:underline group-hover:text-foreground"
-                      title={route}
-                    >
-                      {route}
-                    </a>
+                    <div className="min-w-0 flex-1">
+                      <a
+                        href={`http://${route}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block truncate font-mono text-[11px] font-medium tracking-tight text-muted-foreground transition-colors hover:text-primary hover:underline group-hover:text-foreground"
+                        title={route}
+                      >
+                        {route}
+                      </a>
+                      {autoEnvEnabled ? (
+                        <div className="mt-1 flex items-center gap-1.5 opacity-60 transition-opacity group-hover:opacity-100">
+                          <Terminal className="h-2.5 w-2.5 shrink-0 text-muted-foreground" />
+                          <span className="truncate text-[10px] text-muted-foreground">
+                            e.g. <code className="rounded-[4px] bg-black/5 px-1 py-0.5 font-mono text-[9px] dark:bg-white/10">{getWorkspaceIsolationRunHint(stack.services[index])}</code>
+                          </span>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                   <div className="shrink-0 -mr-0.5 opacity-100 transition-opacity sm:opacity-40 sm:focus-within:opacity-100 sm:group-hover:opacity-100">
                     <WorkspaceIsolationCopyButton
