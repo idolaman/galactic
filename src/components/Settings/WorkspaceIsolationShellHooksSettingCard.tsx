@@ -9,22 +9,22 @@ import { Switch } from "@/components/ui/switch";
 import { WorkspaceIsolationFeatureIntroDialog } from "@/components/settings/WorkspaceIsolationFeatureIntroDialog";
 import { useAppToast } from "@/hooks/use-app-toast";
 import { useWorkspaceIsolationManager } from "@/hooks/use-workspace-isolation-manager";
+import {
+  trackWorkspaceIsolationAutoEnvEnableAttempted,
+  trackWorkspaceIsolationAutoEnvEnableCompleted,
+} from "@/services/workspace-isolation-analytics";
 import { getWorkspaceIsolationProxyStatus } from "@/services/workspace-isolation";
 import type { WorkspaceIsolationProxyStatus } from "@/types/electron";
 import { getWorkspaceIsolationProxySummary } from "@/lib/workspace-isolation-proxy-status";
 
-const defaultProxyStatus: WorkspaceIsolationProxyStatus = {
-  running: false,
-  port: 1355,
-};
+const defaultProxyStatus: WorkspaceIsolationProxyStatus = { running: false, port: 1355 };
 
 export function WorkspaceIsolationShellHooksSettingCard() {
   const { error: showError } = useAppToast();
   const { shellHookStatus, setShellHooksEnabled } = useWorkspaceIsolationManager();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [proxyStatus, setProxyStatus] =
-    useState<WorkspaceIsolationProxyStatus>(defaultProxyStatus);
+  const [proxyStatus, setProxyStatus] = useState<WorkspaceIsolationProxyStatus>(defaultProxyStatus);
 
   useEffect(() => {
     getWorkspaceIsolationProxyStatus()
@@ -39,9 +39,15 @@ export function WorkspaceIsolationShellHooksSettingCard() {
   }, [showError]);
 
   const handleCheckedChange = async (nextValue: boolean) => {
+    if (nextValue) {
+      trackWorkspaceIsolationAutoEnvEnableAttempted("settings-card");
+    }
     setSaving(true);
     try {
       const result = await setShellHooksEnabled(nextValue);
+      if (nextValue) {
+        trackWorkspaceIsolationAutoEnvEnableCompleted("settings-card", result.success);
+      }
       if (!result.success) {
         showError({
           title: "Setup failed",

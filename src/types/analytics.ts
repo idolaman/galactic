@@ -19,6 +19,14 @@ export type AnalyticsEvent =
   | "QuickLauncher.toggled"
   | "QuickLauncher.navigated"
   | "QuickLauncher.workspaceOpened"
+  | "WorkspaceIsolation.dialogOpened"
+  | "WorkspaceIsolation.infoDialogOpened"
+  | "WorkspaceIsolation.introContinued"
+  | "WorkspaceIsolation.autoEnvEnableAttempted"
+  | "WorkspaceIsolation.autoEnvEnableCompleted"
+  | "WorkspaceIsolation.configurationAdvanced"
+  | "WorkspaceIsolation.saved"
+  | "WorkspaceIsolation.deleted"
   | "Update.completed";
 
 export type AnalyticsPayload = Record<string, string | number | boolean | undefined>;

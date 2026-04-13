@@ -33,6 +33,14 @@ export const ANALYTICS_EVENTS = [
   "QuickLauncher.toggled",
   "QuickLauncher.navigated",
   "QuickLauncher.workspaceOpened",
+  "WorkspaceIsolation.dialogOpened",
+  "WorkspaceIsolation.infoDialogOpened",
+  "WorkspaceIsolation.introContinued",
+  "WorkspaceIsolation.autoEnvEnableAttempted",
+  "WorkspaceIsolation.autoEnvEnableCompleted",
+  "WorkspaceIsolation.configurationAdvanced",
+  "WorkspaceIsolation.saved",
+  "WorkspaceIsolation.deleted",
   "Update.completed",
 ] as const;
 

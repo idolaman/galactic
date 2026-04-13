@@ -16,6 +16,10 @@ import {
   getWorkspaceIsolationDialogTitle,
 } from "@/lib/workspace-isolation-dialog-copy";
 import { WORKSPACE_ISOLATION_DIALOG_CONTENT_CLASS_NAME } from "@/lib/workspace-isolation-dialog-layout";
+import {
+  trackWorkspaceIsolationAutoEnvEnableAttempted,
+  trackWorkspaceIsolationAutoEnvEnableCompleted,
+} from "@/services/workspace-isolation-analytics";
 import type { WorkspaceIsolationStack } from "@/types/workspace-isolation";
 
 interface WorkspaceIsolationDialogProps {
@@ -51,10 +55,15 @@ export const WorkspaceIsolationDialog = ({
   const [isEnablingLocalEnv, setIsEnablingLocalEnv] = useState(false);
 
   const handleEnableTerminalIntegration = async () => {
+    trackWorkspaceIsolationAutoEnvEnableAttempted("onboarding");
     state.handleContinueToConfiguration();
     setIsEnablingLocalEnv(true);
     try {
       const result = await setShellHooksEnabled(true);
+      trackWorkspaceIsolationAutoEnvEnableCompleted(
+        "onboarding",
+        result.success,
+      );
       if (result.success) {
         success("Terminal Auto-Env enabled");
         return;

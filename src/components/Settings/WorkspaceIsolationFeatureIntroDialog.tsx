@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { WorkspaceIsolationIntroStep } from "@/components/WorkspaceIsolationIntroStep";
+import { trackWorkspaceIsolationInfoDialogOpened } from "@/services/workspace-isolation-analytics";
 
 export function WorkspaceIsolationFeatureIntroDialog() {
   const [open, setOpen] = useState(false);
@@ -17,7 +18,10 @@ export function WorkspaceIsolationFeatureIntroDialog() {
       <Button
         variant="link"
         className="h-auto p-0 text-xs"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          trackWorkspaceIsolationInfoDialogOpened();
+          setOpen(true);
+        }}
       >
         What this feature does
       </Button>

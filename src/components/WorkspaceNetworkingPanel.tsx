@@ -7,6 +7,10 @@ import { WorkspaceIsolationServices } from "@/components/WorkspaceIsolationServi
 import { useWorkspaceIsolationManager } from "@/hooks/use-workspace-isolation-manager";
 import { getWorkspaceIsolationServicesOpenState } from "@/lib/workspace-networking-panel";
 import { cn } from "@/lib/utils";
+import {
+  trackWorkspaceIsolationAutoEnvEnableAttempted,
+  trackWorkspaceIsolationAutoEnvEnableCompleted,
+} from "@/services/workspace-isolation-analytics";
 import type { Environment } from "@/types/environment";
 
 interface WorkspaceNetworkingPanelProps {
@@ -35,8 +39,13 @@ export const WorkspaceNetworkingPanel = ({
   const [isEnablingLocalEnv, setIsEnablingLocalEnv] = useState(false);
 
   const handleEnableTerminalIntegration = async () => {
+    trackWorkspaceIsolationAutoEnvEnableAttempted("workspace-warning");
     setIsEnablingLocalEnv(true);
-    await setShellHooksEnabled(true);
+    const result = await setShellHooksEnabled(true);
+    trackWorkspaceIsolationAutoEnvEnableCompleted(
+      "workspace-warning",
+      result.success,
+    );
     setIsEnablingLocalEnv(false);
   };
 

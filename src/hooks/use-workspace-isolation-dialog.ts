@@ -2,6 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useAppToast } from "@/hooks/use-app-toast";
 import { useWorkspaceIsolationManager } from "@/hooks/use-workspace-isolation-manager";
 import {
+  getWorkspaceIsolationAnalyticsAutoEnvState,
+  getWorkspaceIsolationAnalyticsOpeningStep,
+  getWorkspaceIsolationAnalyticsSummary,
+} from "@/lib/workspace-isolation-analytics";
+import {
   createEmptyService,
   createWorkspaceIsolationId,
 } from "@/lib/workspace-isolation-dialog";
@@ -26,6 +31,13 @@ import {
   getWorkspaceIsolationMode,
 } from "@/lib/workspace-isolation-mode";
 import { getWorkspaceIsolationName } from "@/lib/workspace-isolation";
+import {
+  trackWorkspaceIsolationConfigurationAdvanced,
+  trackWorkspaceIsolationDialogOpened,
+  trackWorkspaceIsolationDeleted,
+  trackWorkspaceIsolationIntroContinued,
+  trackWorkspaceIsolationSaved,
+} from "@/services/workspace-isolation-analytics";
 import type {
   WorkspaceIsolationConnection,
   WorkspaceIsolationMode,
@@ -112,6 +124,11 @@ export const useWorkspaceIsolationDialog = ({
     }
     setStep(openingState.step);
     setShowFeatureIntroStep(openingState.showFeatureIntroStep);
+    trackWorkspaceIsolationDialogOpened(
+      Boolean(stack),
+      getWorkspaceIsolationAnalyticsOpeningStep(openingState.step),
+      getWorkspaceIsolationAnalyticsAutoEnvState(shellHookStatus),
+    );
     setIsOpenInitialized(true);
   }, [
     open,
@@ -123,6 +140,9 @@ export const useWorkspaceIsolationDialog = ({
   ]);
 
   const handleFeatureIntroContinue = () => {
+    trackWorkspaceIsolationIntroContinued(
+      getWorkspaceIsolationAnalyticsAutoEnvState(shellHookStatus),
+    );
     setStep(2);
     void markWorkspaceIsolationIntroSeen();
   };
@@ -149,6 +169,14 @@ export const useWorkspaceIsolationDialog = ({
         return;
       }
     }
+    trackWorkspaceIsolationConfigurationAdvanced(
+      Boolean(stack),
+      getWorkspaceIsolationAnalyticsSummary(
+        draftStackId,
+        draftWorkspaceMode,
+        draftServices,
+      ),
+    );
     setStep(4);
   };
 
@@ -241,6 +269,15 @@ export const useWorkspaceIsolationDialog = ({
       });
       return;
     }
+    trackWorkspaceIsolationSaved(
+      Boolean(stack),
+      getWorkspaceIsolationAnalyticsAutoEnvState(shellHookStatus),
+      getWorkspaceIsolationAnalyticsSummary(
+        draftStackId,
+        draftWorkspaceMode,
+        result.services,
+      ),
+    );
     onOpenChange(false);
   };
 
@@ -256,6 +293,13 @@ export const useWorkspaceIsolationDialog = ({
       });
       return;
     }
+    trackWorkspaceIsolationDeleted(
+      getWorkspaceIsolationAnalyticsSummary(
+        stack.id,
+        stack.workspaceMode,
+        stack.services,
+      ),
+    );
     onOpenChange(false);
   };
 

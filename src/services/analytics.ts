@@ -1,4 +1,4 @@
-import type { AnalyticsEvent, AnalyticsPayload } from "@/types/analytics";
+import type { AnalyticsEvent, AnalyticsPayload } from "../types/analytics.js";
 
 const cleanPayload = (
   payload?: AnalyticsPayload,
