@@ -20,7 +20,7 @@ import {
   trackWorkspaceIsolationAutoEnvEnableAttempted,
   trackWorkspaceIsolationAutoEnvEnableCompleted,
 } from "@/services/workspace-isolation-analytics";
-import type { WorkspaceIsolationStack } from "@/types/workspace-isolation";
+import type { WorkspaceIsolationProjectTopology } from "@/types/workspace-isolation";
 
 interface WorkspaceIsolationDialogProps {
   open: boolean;
@@ -29,7 +29,7 @@ interface WorkspaceIsolationDialogProps {
   workspaceRootPath: string;
   workspaceRootLabel: string;
   projectName: string;
-  stack?: WorkspaceIsolationStack | null;
+  stack?: WorkspaceIsolationProjectTopology | null;
 }
 
 export const WorkspaceIsolationDialog = ({
@@ -99,6 +99,9 @@ export const WorkspaceIsolationDialog = ({
           stackId={state.draftStackId}
           draftWorkspaceMode={state.draftWorkspaceMode}
           draftServices={state.draftServices}
+          workspaceIsolationProjectTopologies={
+            state.workspaceIsolationProjectTopologies
+          }
           workspaceIsolationStacks={state.workspaceIsolationStacks}
           onAddService={state.handleAddService}
           onChangeService={state.handleChangeService}

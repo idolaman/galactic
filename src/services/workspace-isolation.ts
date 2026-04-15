@@ -1,9 +1,12 @@
+import type { SaveWorkspaceIsolationInput } from "@/hooks/workspace-isolation-manager-context";
+import type {
+  WorkspaceIsolationProjectTopology,
+  WorkspaceIsolationStack,
+} from "@/types/workspace-isolation";
 import type {
   WorkspaceIsolationProxyStatus,
   WorkspaceIsolationShellHookStatus,
 } from "@/types/electron";
-import type { SaveWorkspaceIsolationInput } from "@/hooks/workspace-isolation-manager-context";
-import type { WorkspaceIsolationStack } from "@/types/workspace-isolation";
 
 const isWorkspaceIsolationStack = (
   value: unknown,
@@ -13,8 +16,20 @@ const isWorkspaceIsolationStack = (
   typeof (value as WorkspaceIsolationStack).id === "string" &&
   Array.isArray((value as WorkspaceIsolationStack).services);
 
+const isWorkspaceIsolationProjectTopology = (
+  value: unknown,
+): value is WorkspaceIsolationProjectTopology =>
+  isWorkspaceIsolationStack(value);
+
 const toWorkspaceIsolationStacks = (value: unknown): WorkspaceIsolationStack[] =>
   Array.isArray(value) ? value.filter(isWorkspaceIsolationStack) : [];
+
+const toWorkspaceIsolationProjectTopologies = (
+  value: unknown,
+): WorkspaceIsolationProjectTopology[] =>
+  Array.isArray(value)
+    ? value.filter(isWorkspaceIsolationProjectTopology)
+    : [];
 
 const isWorkspaceIsolationProxyStatus = (
   value: unknown,
@@ -40,6 +55,14 @@ export const getInitialWorkspaceIsolationStacks = (): WorkspaceIsolationStack[] 
         window.electronAPI?.initialWorkspaceIsolationStacks ?? [],
       );
 
+export const getInitialWorkspaceIsolationProjectTopologies =
+  (): WorkspaceIsolationProjectTopology[] =>
+    typeof window === "undefined"
+      ? []
+      : toWorkspaceIsolationProjectTopologies(
+          window.electronAPI?.initialWorkspaceIsolationProjectTopologies ?? [],
+        );
+
 export const getInitialWorkspaceIsolationIntroSeen = (): boolean =>
   typeof window === "undefined"
     ? false
@@ -50,41 +73,103 @@ export const getInitialWorkspaceIsolationShellHookStatus =
     typeof window === "undefined"
       ? null
       : isWorkspaceIsolationShellHookStatus(
-          window.electronAPI?.initialWorkspaceIsolationShellHookStatus,
-        )
+            window.electronAPI?.initialWorkspaceIsolationShellHookStatus,
+          )
         ? window.electronAPI.initialWorkspaceIsolationShellHookStatus
         : null;
 
-export const getWorkspaceIsolationStacks = async (): Promise<WorkspaceIsolationStack[]> =>
-  typeof window === "undefined"
-    ? []
-    : toWorkspaceIsolationStacks(
-        await window.electronAPI?.getWorkspaceIsolationStacks?.(),
-      );
+export const getWorkspaceIsolationStacks =
+  async (): Promise<WorkspaceIsolationStack[]> =>
+    typeof window === "undefined"
+      ? []
+      : toWorkspaceIsolationStacks(
+          await window.electronAPI?.getWorkspaceIsolationStacks?.(),
+        );
 
-export const saveWorkspaceIsolationStack = async (
+export const getWorkspaceIsolationProjectTopologies =
+  async (): Promise<WorkspaceIsolationProjectTopology[]> =>
+    typeof window === "undefined"
+      ? []
+      : toWorkspaceIsolationProjectTopologies(
+          await window.electronAPI?.getWorkspaceIsolationProjectTopologies?.(),
+        );
+
+export const saveWorkspaceIsolationProjectTopology = async (
   input: SaveWorkspaceIsolationInput,
-): Promise<{ success: boolean; error?: string; stack?: WorkspaceIsolationStack }> => {
+): Promise<{
+  success: boolean;
+  error?: string;
+  topology?: WorkspaceIsolationProjectTopology;
+}> => {
   if (typeof window === "undefined") {
-    return { success: false, error: "Workspace Isolation is only available in the desktop app." };
+    return {
+      success: false,
+      error: "Workspace Isolation is only available in the desktop app.",
+    };
   }
-  const result = await window.electronAPI?.saveWorkspaceIsolationStack?.(input);
+
+  const result =
+    await window.electronAPI?.saveWorkspaceIsolationProjectTopology?.(input);
   return {
     success: result?.success ?? false,
     error: result?.error,
-    stack: isWorkspaceIsolationStack(result?.stack) ? result?.stack : undefined,
+    topology: isWorkspaceIsolationProjectTopology(result?.topology)
+      ? result.topology
+      : undefined,
   };
 };
 
-export const deleteWorkspaceIsolationStack = async (
-  stackId: string,
+export const deleteWorkspaceIsolationProjectTopology = async (
+  topologyId: string,
 ): Promise<{ success: boolean; error?: string }> =>
   typeof window === "undefined"
-    ? { success: false, error: "Workspace Isolation is only available in the desktop app." }
-    : await window.electronAPI?.deleteWorkspaceIsolationStack?.(stackId) ?? {
-    success: false,
-    error: "Workspace Isolation IPC bridge is unavailable.",
+    ? {
+        success: false,
+        error: "Workspace Isolation is only available in the desktop app.",
+      }
+    : (await window.electronAPI?.deleteWorkspaceIsolationProjectTopology?.(
+        topologyId,
+      )) ?? {
+        success: false,
+        error: "Workspace Isolation IPC bridge is unavailable.",
+      };
+
+export const enableWorkspaceIsolationForWorkspace = async (input: {
+  projectId: string;
+  projectName: string;
+  workspaceRootPath: string;
+  workspaceRootLabel: string;
+}): Promise<{ success: boolean; error?: string; stack?: WorkspaceIsolationStack }> => {
+  if (typeof window === "undefined") {
+    return {
+      success: false,
+      error: "Workspace Isolation is only available in the desktop app.",
+    };
+  }
+
+  const result =
+    await window.electronAPI?.enableWorkspaceIsolationForWorkspace?.(input);
+  return {
+    success: result?.success ?? false,
+    error: result?.error,
+    stack: isWorkspaceIsolationStack(result?.stack) ? result.stack : undefined,
   };
+};
+
+export const disableWorkspaceIsolationForWorkspace = async (
+  workspaceRootPath: string,
+): Promise<{ success: boolean; error?: string }> =>
+  typeof window === "undefined"
+    ? {
+        success: false,
+        error: "Workspace Isolation is only available in the desktop app.",
+      }
+    : (await window.electronAPI?.disableWorkspaceIsolationForWorkspace?.(
+        workspaceRootPath,
+      )) ?? {
+        success: false,
+        error: "Workspace Isolation IPC bridge is unavailable.",
+      };
 
 export const markWorkspaceIsolationIntroSeen = async (): Promise<{
   success: boolean;
@@ -93,64 +178,69 @@ export const markWorkspaceIsolationIntroSeen = async (): Promise<{
 }> =>
   typeof window === "undefined"
     ? {
-      success: false,
-      seen: false,
-      error: "Workspace Isolation is only available in the desktop app.",
-    }
-    : await window.electronAPI?.markWorkspaceIsolationIntroSeen?.() ?? {
-      success: false,
-      seen: false,
-      error: "Workspace Isolation onboarding settings are unavailable.",
-    };
+        success: false,
+        seen: false,
+        error: "Workspace Isolation is only available in the desktop app.",
+      }
+    : (await window.electronAPI?.markWorkspaceIsolationIntroSeen?.()) ?? {
+        success: false,
+        seen: false,
+        error: "Workspace Isolation onboarding settings are unavailable.",
+      };
 
-export const getWorkspaceIsolationProxyStatus = async (): Promise<WorkspaceIsolationProxyStatus> => {
-  if (typeof window === "undefined") {
-    return {
-      running: false,
-      port: 1355,
-      message: "Workspace Isolation proxy status is unavailable.",
-    };
-  }
-  const result = await window.electronAPI?.getWorkspaceIsolationProxyStatus?.();
-  return isWorkspaceIsolationProxyStatus(result)
-    ? result
-    : {
+export const getWorkspaceIsolationProxyStatus =
+  async (): Promise<WorkspaceIsolationProxyStatus> => {
+    if (typeof window === "undefined") {
+      return {
         running: false,
         port: 1355,
         message: "Workspace Isolation proxy status is unavailable.",
       };
-};
-
-export const getWorkspaceIsolationShellHookStatus = async (): Promise<WorkspaceIsolationShellHookStatus> =>
-  typeof window === "undefined"
-    ? {
-      enabled: false,
-      supported: false,
-      installed: false,
-      hookPath: null,
-      zshrcPath: null,
-      message: "Workspace Isolation shell hook status is unavailable.",
     }
-    : await window.electronAPI?.getWorkspaceIsolationShellHookStatus?.() ?? {
-    enabled: false,
-    supported: false,
-    installed: false,
-    hookPath: null,
-    zshrcPath: null,
-    message: "Workspace Isolation shell hook status is unavailable.",
+
+    const result = await window.electronAPI?.getWorkspaceIsolationProxyStatus?.();
+    return isWorkspaceIsolationProxyStatus(result)
+      ? result
+      : {
+          running: false,
+          port: 1355,
+          message: "Workspace Isolation proxy status is unavailable.",
+        };
   };
+
+export const getWorkspaceIsolationShellHookStatus =
+  async (): Promise<WorkspaceIsolationShellHookStatus> =>
+    typeof window === "undefined"
+      ? {
+          enabled: false,
+          supported: false,
+          installed: false,
+          hookPath: null,
+          zshrcPath: null,
+          message: "Workspace Isolation shell hook status is unavailable.",
+        }
+      : (await window.electronAPI?.getWorkspaceIsolationShellHookStatus?.()) ?? {
+          enabled: false,
+          supported: false,
+          installed: false,
+          hookPath: null,
+          zshrcPath: null,
+          message: "Workspace Isolation shell hook status is unavailable.",
+        };
 
 export const setWorkspaceIsolationShellHooksEnabled = async (
   enabled: boolean,
 ): Promise<{ success: boolean; enabled: boolean; error?: string }> =>
   typeof window === "undefined"
     ? {
-      success: false,
-      enabled: false,
-      error: "Workspace Isolation is only available in the desktop app.",
-    }
-    : await window.electronAPI?.setWorkspaceIsolationShellHooksEnabled?.(enabled) ?? {
-    success: false,
-    enabled: false,
-    error: "Workspace Isolation shell hook settings are unavailable.",
-  };
+        success: false,
+        enabled: false,
+        error: "Workspace Isolation is only available in the desktop app.",
+      }
+    : (await window.electronAPI?.setWorkspaceIsolationShellHooksEnabled?.(
+        enabled,
+      )) ?? {
+        success: false,
+        enabled: false,
+        error: "Workspace Isolation shell hook settings are unavailable.",
+      };

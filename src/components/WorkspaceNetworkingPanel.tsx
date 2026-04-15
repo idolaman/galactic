@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { ShieldCheck } from "lucide-react";
+import { PlayCircle, ShieldCheck, StopCircle, Waypoints } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { WorkspaceIsolationAutoEnvWarning } from "@/components/WorkspaceIsolationAutoEnvWarning";
-import { WorkspaceIsolationDialog } from "@/components/WorkspaceIsolationDialog";
-import { WorkspaceLegacyEnvironmentCard } from "@/components/WorkspaceLegacyEnvironmentCard";
 import { WorkspaceIsolationServices } from "@/components/WorkspaceIsolationServices";
+import { WorkspaceLegacyEnvironmentCard } from "@/components/WorkspaceLegacyEnvironmentCard";
 import { useWorkspaceIsolationManager } from "@/hooks/use-workspace-isolation-manager";
 import { getWorkspaceIsolationServicesOpenState } from "@/lib/workspace-networking-panel";
-import { cn } from "@/lib/utils";
 import {
   trackWorkspaceIsolationAutoEnvEnableAttempted,
   trackWorkspaceIsolationAutoEnvEnableCompleted,
@@ -33,11 +32,33 @@ export const WorkspaceNetworkingPanel = ({
   localEnvironmentId,
   onLocalEnvironmentChange,
 }: WorkspaceNetworkingPanelProps) => {
-  const { workspaceIsolationForWorkspace, shellHookStatus, setShellHooksEnabled } = useWorkspaceIsolationManager();
-  const [isWorkspaceIsolationDialogOpen, setIsWorkspaceIsolationDialogOpen] =
-    useState(false);
+  const {
+    workspaceIsolationForWorkspace,
+    workspaceIsolationTopologyForProject,
+    shellHookStatus,
+    setShellHooksEnabled,
+    enableWorkspaceIsolationForWorkspace,
+    disableWorkspaceIsolationForWorkspace,
+  } = useWorkspaceIsolationManager();
   const [isServicesOpen, setIsServicesOpen] = useState(false);
   const [isEnablingLocalEnv, setIsEnablingLocalEnv] = useState(false);
+  const [isChangingWorkspaceIsolation, setIsChangingWorkspaceIsolation] =
+    useState(false);
+  const topology = workspaceIsolationTopologyForProject(projectId);
+  const realStack = workspaceIsolationForWorkspace(workspacePath);
+  const previousStackIdRef = useRef<string | null>(realStack?.id ?? null);
+
+  useEffect(() => {
+    const nextStackId = realStack?.id ?? null;
+    setIsServicesOpen((currentOpen) =>
+      getWorkspaceIsolationServicesOpenState(
+        previousStackIdRef.current,
+        nextStackId,
+        currentOpen,
+      ),
+    );
+    previousStackIdRef.current = nextStackId;
+  }, [realStack?.id]);
 
   const handleEnableTerminalIntegration = async () => {
     trackWorkspaceIsolationAutoEnvEnableAttempted("workspace-warning");
@@ -50,62 +71,99 @@ export const WorkspaceNetworkingPanel = ({
     setIsEnablingLocalEnv(false);
   };
 
-  const stack = workspaceIsolationForWorkspace(workspacePath);
-  const previousStackIdRef = useRef<string | null>(stack?.id ?? null);
+  const handleEnableWorkspaceIsolation = async () => {
+    setIsChangingWorkspaceIsolation(true);
+    await enableWorkspaceIsolationForWorkspace({
+      projectId,
+      projectName,
+      workspaceRootPath: workspacePath,
+      workspaceRootLabel: workspaceLabel,
+    });
+    setIsChangingWorkspaceIsolation(false);
+  };
 
-  useEffect(() => {
-    const nextStackId = stack?.id ?? null;
-    setIsServicesOpen((currentOpen) =>
-      getWorkspaceIsolationServicesOpenState(
-        previousStackIdRef.current,
-        nextStackId,
-        currentOpen,
-      ),
-    );
-    previousStackIdRef.current = nextStackId;
-  }, [stack?.id]);
+  const handleDisableWorkspaceIsolation = async () => {
+    setIsChangingWorkspaceIsolation(true);
+    await disableWorkspaceIsolationForWorkspace(workspacePath);
+    setIsChangingWorkspaceIsolation(false);
+  };
 
   return (
-    <div className="space-y-3 pt-1">
+    <div className="space-y-4 pt-1">
       <div className="flex flex-col gap-3">
-        <div className={cn(
-          "overflow-hidden rounded-lg border shadow-sm transition-all duration-200",
-          stack ? "border-primary/30 bg-primary/5" : "border-border bg-card"
-        )}>
-          <div className="flex items-center justify-between gap-4 p-3">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className={cn("h-4 w-4", stack ? "text-primary" : "text-muted-foreground")} />
-                <p className="text-sm font-medium">Workspace Isolation</p>
+        {topology && !realStack ? (
+          <div className="overflow-hidden rounded-lg border border-primary/20 bg-primary/5 shadow-sm transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
+            <div className="flex items-center justify-between p-3 py-2">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <Waypoints className="h-3.5 w-3.5" />
+                </div>
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  Project Services ready
+                  <Badge
+                    variant="secondary"
+                    className="h-4 border-primary/10 bg-primary/10 px-1.5 py-0 text-[10px] text-primary"
+                  >
+                    {topology.services.length} routes
+                  </Badge>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {stack
-                  ? "Services in this workspace run on isolated domains to prevent port collisions."
-                  : "Run multiple branches simultaneously without port collisions using secure local domains."}
-              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleEnableWorkspaceIsolation}
+                disabled={isChangingWorkspaceIsolation}
+                className="group h-7 shrink-0 border-primary/30 px-3 text-xs text-primary hover:bg-primary/10"
+              >
+                <PlayCircle className="mr-1.5 h-3 w-3 transition-transform group-hover:scale-110" />
+                Enable
+              </Button>
             </div>
-            <Button
-              size="sm"
-              variant={stack ? "outline" : "secondary"}
-              onClick={() => setIsWorkspaceIsolationDialogOpen(true)}
-              className={cn("shrink-0", stack && "border-primary/20 hover:bg-primary/10")}
-            >
-              {stack ? "Edit Isolation" : "Isolate Workspace"}
-            </Button>
           </div>
-          
-          {stack ? (
-            <div className="border-t border-primary/10 bg-background/50">
+        ) : null}
+
+        {topology && realStack ? (
+          <div className="overflow-hidden rounded-xl border border-primary/30 bg-primary/5 shadow-sm transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
+            <div className="flex flex-col justify-between gap-4 p-4 sm:flex-row sm:items-center">
+              <div className="flex items-center gap-2.5 text-primary">
+                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/15 text-primary">
+                  <ShieldCheck className="h-4 w-4" />
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-sm font-semibold tracking-tight">
+                    Project Isolation Active
+                  </p>
+                  <p className="text-[11px] font-medium opacity-80">
+                    Traffic routed via secure local proxy
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleDisableWorkspaceIsolation}
+                disabled={isChangingWorkspaceIsolation}
+                className="h-8 shrink-0 px-3 text-[11px] text-destructive shadow-none hover:bg-destructive/10"
+              >
+                <StopCircle className="mr-1.5 h-3.5 w-3.5" />
+                Stop Env
+              </Button>
+            </div>
+
+            <div className="border-t border-primary/10 bg-background/60 backdrop-blur-sm">
               <WorkspaceIsolationServices
-                stack={stack}
+                stack={realStack}
                 open={isServicesOpen}
                 onOpenChange={setIsServicesOpen}
               />
             </div>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
 
-        {stack && shellHookStatus && !shellHookStatus.enabled && shellHookStatus.supported ? (
+        {realStack &&
+        shellHookStatus &&
+        !shellHookStatus.enabled &&
+        shellHookStatus.supported ? (
           <WorkspaceIsolationAutoEnvWarning
             disabled={isEnablingLocalEnv}
             onEnable={handleEnableTerminalIntegration}
@@ -119,16 +177,6 @@ export const WorkspaceNetworkingPanel = ({
           onLocalEnvironmentChange={onLocalEnvironmentChange}
         />
       </div>
-
-      <WorkspaceIsolationDialog
-        open={isWorkspaceIsolationDialogOpen}
-        onOpenChange={setIsWorkspaceIsolationDialogOpen}
-        projectId={projectId}
-        workspaceRootPath={workspacePath}
-        workspaceRootLabel={workspaceLabel}
-        projectName={projectName}
-        stack={stack}
-      />
     </div>
   );
 };

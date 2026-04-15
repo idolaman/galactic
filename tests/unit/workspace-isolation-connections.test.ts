@@ -24,6 +24,54 @@ test("getWorkspaceIsolationConnectionTargets returns local services and other-pr
       connections: [],
     },
   ];
+  const workspaceIsolationProjectTopologies = [
+    {
+      id: "project-ui",
+      kind: "workspace-isolation" as const,
+      name: "ui",
+      slug: "ui",
+      projectId: "project-ui",
+      workspaceRootPath: "/ui",
+      workspaceRootLabel: "Repository Root",
+      projectName: "ui",
+      workspaceMode: "monorepo" as const,
+      createdAt: 1,
+      services: [
+        {
+          id: "web",
+          name: "web",
+          slug: "web",
+          relativePath: "apps/web",
+          port: 0,
+          createdAt: 1,
+          connections: [],
+        },
+      ],
+    },
+    {
+      id: "project-backend",
+      kind: "workspace-isolation" as const,
+      name: "backend",
+      slug: "backend",
+      projectId: "project-backend",
+      workspaceRootPath: "/backend",
+      workspaceRootLabel: "Repository Root",
+      projectName: "backend",
+      workspaceMode: "monorepo" as const,
+      createdAt: 1,
+      services: [
+        {
+          id: "other-api",
+          name: "other-api",
+          slug: "other-api",
+          relativePath: "apps/api",
+          port: 0,
+          createdAt: 1,
+          connections: [],
+        },
+      ],
+    },
+  ];
 
   const workspaceIsolationStacks = [
     {
@@ -82,11 +130,13 @@ test("getWorkspaceIsolationConnectionTargets returns local services and other-pr
     currentStackId: "backend-stack",
     currentWorkspaceLabel: "feature/backend",
     currentWorkspaceRootPath: "/backend",
+    workspaceIsolationProjectTopologies,
     workspaceIsolationStacks,
   });
 
   assert.deepEqual(targets.localTargets.map((target) => target.serviceName), ["worker"]);
   assert.deepEqual(targets.externalTargets.map((target) => target.serviceName), ["web"]);
+  assert.equal(targets.externalTargets[0]?.enabled, true);
 });
 
 test("resolveWorkspaceIsolationConnections keeps missing targets visible", () => {

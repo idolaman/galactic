@@ -6,10 +6,7 @@ import {
   getWorkspaceIsolationAnalyticsOpeningStep,
   getWorkspaceIsolationAnalyticsSummary,
 } from "@/lib/workspace-isolation-analytics";
-import {
-  createEmptyService,
-  createWorkspaceIsolationId,
-} from "@/lib/workspace-isolation-dialog";
+import { createEmptyService } from "@/lib/workspace-isolation-dialog";
 import {
   addDraftConnection,
   addDraftService,
@@ -19,7 +16,10 @@ import {
   removeDraftService,
 } from "@/lib/workspace-isolation-dialog-draft";
 import { validateWorkspaceIsolationDraft } from "@/lib/workspace-isolation-dialog-validation";
-import { normalizeRelativeServicePath } from "@/lib/workspace-isolation-helpers";
+import {
+  getWorkspaceIsolationTopologyId,
+  normalizeRelativeServicePath,
+} from "@/lib/workspace-isolation-helpers";
 import {
   getWorkspaceIsolationDialogOpeningState,
   type WorkspaceIsolationDialogStep,
@@ -41,8 +41,8 @@ import {
 import type {
   WorkspaceIsolationConnection,
   WorkspaceIsolationMode,
+  WorkspaceIsolationProjectTopology,
   WorkspaceIsolationService,
-  WorkspaceIsolationStack,
 } from "@/types/workspace-isolation";
 
 interface UseWorkspaceIsolationDialogParams {
@@ -51,7 +51,7 @@ interface UseWorkspaceIsolationDialogParams {
   workspaceRootPath: string;
   workspaceRootLabel: string;
   projectName: string;
-  stack?: WorkspaceIsolationStack | null;
+  stack?: WorkspaceIsolationProjectTopology | null;
   onOpenChange: (open: boolean) => void;
 }
 
@@ -69,16 +69,16 @@ export const useWorkspaceIsolationDialog = ({
 }: UseWorkspaceIsolationDialogParams) => {
   const { error } = useAppToast();
   const {
-    deleteWorkspaceIsolationStack,
+    deleteWorkspaceIsolationProjectTopology,
     markWorkspaceIsolationIntroSeen,
-    saveWorkspaceIsolationStack,
+    saveWorkspaceIsolationProjectTopology,
     shellHookStatus,
     workspaceIsolationIntroSeen,
+    workspaceIsolationProjectTopologies,
     workspaceIsolationStacks,
   } = useWorkspaceIsolationManager();
-  const [draftStackId, setDraftStackId] = useState(
-    stack?.id ?? createWorkspaceIsolationId(),
-  );
+  const topologyId = getWorkspaceIsolationTopologyId(projectId);
+  const draftStackId = stack?.id ?? topologyId;
   const [draftServices, setDraftServices] = useState<WorkspaceIsolationService[]>(
     [],
   );
@@ -110,12 +110,10 @@ export const useWorkspaceIsolationDialog = ({
       workspaceIsolationIntroSeen,
     );
     if (stack) {
-      setDraftStackId(stack.id);
       setDraftWorkspaceMode(getWorkspaceIsolationMode(stack));
       setDraftServices(getDraftServices(stack.services.map((service) => ({ ...service }))));
       setSavedMonorepoServices(stack.services.map((service) => ({ ...service })));
     } else {
-      setDraftStackId(createWorkspaceIsolationId());
       setDraftWorkspaceMode("monorepo");
       setDraftServices(
         getDraftServices([createEmptyService([], workspaceIsolationStacks)]),
@@ -137,6 +135,7 @@ export const useWorkspaceIsolationDialog = ({
     shellHookStatus,
     workspaceIsolationIntroSeen,
     workspaceIsolationStacks,
+    topologyId,
   ]);
 
   const handleFeatureIntroContinue = () => {
@@ -252,8 +251,7 @@ export const useWorkspaceIsolationDialog = ({
       error(result.error);
       return;
     }
-    const saveResult = await saveWorkspaceIsolationStack({
-      id: draftStackId,
+    const saveResult = await saveWorkspaceIsolationProjectTopology({
       name: result.name,
       projectId,
       workspaceRootPath,
@@ -265,7 +263,9 @@ export const useWorkspaceIsolationDialog = ({
     if (!saveResult.success) {
       error({
         title: "Save failed",
-        description: saveResult.error ?? "Failed to save Workspace Isolation.",
+        description:
+          saveResult.error ??
+          "Failed to save Workspace Isolation project services.",
       });
       return;
     }
@@ -285,11 +285,13 @@ export const useWorkspaceIsolationDialog = ({
     if (!stack) {
       return;
     }
-    const deleteResult = await deleteWorkspaceIsolationStack(stack.id);
+    const deleteResult = await deleteWorkspaceIsolationProjectTopology(stack.id);
     if (!deleteResult.success) {
       error({
         title: "Delete failed",
-        description: deleteResult.error ?? "Failed to remove Workspace Isolation.",
+        description:
+          deleteResult.error ??
+          "Failed to remove Workspace Isolation project services.",
       });
       return;
     }
@@ -309,6 +311,7 @@ export const useWorkspaceIsolationDialog = ({
     draftServices,
     draftStackId,
     draftWorkspaceMode,
+    workspaceIsolationProjectTopologies,
     workspaceIsolationStacks,
     handleFeatureIntroContinue,
     handleContinueToConfiguration,

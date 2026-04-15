@@ -6,6 +6,7 @@ import { WorkspaceIsolationConnectionsField } from "@/components/WorkspaceIsolat
 import type {
   WorkspaceIsolationConnection,
   WorkspaceIsolationMode,
+  WorkspaceIsolationProjectTopology,
   WorkspaceIsolationService,
   WorkspaceIsolationStack,
 } from "@/types/workspace-isolation";
@@ -19,6 +20,7 @@ interface WorkspaceIsolationDialogServiceCardProps {
   service: WorkspaceIsolationService;
   workspaceMode: WorkspaceIsolationMode;
   services: WorkspaceIsolationService[];
+  workspaceIsolationProjectTopologies: WorkspaceIsolationProjectTopology[];
   workspaceIsolationStacks: WorkspaceIsolationStack[];
   step: 1 | 2 | 3 | 4;
   onChangeService: (
@@ -44,6 +46,7 @@ export const WorkspaceIsolationDialogServiceCard = ({
   service,
   workspaceMode,
   services,
+  workspaceIsolationProjectTopologies,
   workspaceIsolationStacks,
   step,
   onChangeService,
@@ -101,6 +104,7 @@ export const WorkspaceIsolationDialogServiceCard = ({
             stackId={stackId}
             connections={service.connections}
             services={services}
+            workspaceIsolationProjectTopologies={workspaceIsolationProjectTopologies}
             workspaceIsolationStacks={workspaceIsolationStacks}
             onAddConnection={onAddConnection}
             onChangeConnection={onChangeConnection}

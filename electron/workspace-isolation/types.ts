@@ -31,8 +31,20 @@ export interface WorkspaceIsolationStack {
   services: WorkspaceIsolationService[];
 }
 
-export interface SaveWorkspaceIsolationInput {
+export type WorkspaceIsolationProjectTopology = WorkspaceIsolationStack;
+
+export interface WorkspaceIsolationEnabledWorkspace {
   id: string;
+  topologyId: string;
+  projectId: string;
+  projectName: string;
+  workspaceRootPath: string;
+  workspaceRootLabel: string;
+  createdAt: number;
+  servicePorts: Record<string, number>;
+}
+
+export interface SaveWorkspaceIsolationInput {
   name: string;
   projectId: string;
   workspaceRootPath: string;
@@ -42,10 +54,23 @@ export interface SaveWorkspaceIsolationInput {
   services: WorkspaceIsolationService[];
 }
 
+export interface EnableWorkspaceIsolationInput {
+  projectId: string;
+  projectName: string;
+  workspaceRootPath: string;
+  workspaceRootLabel: string;
+}
+
 export interface WorkspaceIsolationMutationResult {
   success: boolean;
   error?: string;
   stack?: WorkspaceIsolationStack;
+}
+
+export interface WorkspaceIsolationTopologyMutationResult {
+  success: boolean;
+  error?: string;
+  topology?: WorkspaceIsolationProjectTopology;
 }
 
 export interface WorkspaceIsolationShellHookStatus {

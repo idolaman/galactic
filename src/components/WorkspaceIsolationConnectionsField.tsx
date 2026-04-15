@@ -5,6 +5,7 @@ import { WorkspaceIsolationConnectionRow } from "@/components/WorkspaceIsolation
 import { getWorkspaceIsolationConnectionTargets } from "@/lib/workspace-isolation-connection-targets";
 import type {
   WorkspaceIsolationConnection,
+  WorkspaceIsolationProjectTopology,
   WorkspaceIsolationConnectionTarget,
   WorkspaceIsolationService,
   WorkspaceIsolationStack,
@@ -19,6 +20,7 @@ interface WorkspaceIsolationConnectionsFieldProps {
   stackId: string;
   connections: WorkspaceIsolationConnection[];
   services: WorkspaceIsolationService[];
+  workspaceIsolationProjectTopologies: WorkspaceIsolationProjectTopology[];
   workspaceIsolationStacks: WorkspaceIsolationStack[];
   onAddConnection: (serviceId: string) => void;
   onChangeConnection: (
@@ -38,6 +40,7 @@ export const WorkspaceIsolationConnectionsField = ({
   stackId,
   connections,
   services,
+  workspaceIsolationProjectTopologies,
   workspaceIsolationStacks,
   onAddConnection,
   onChangeConnection,
@@ -51,6 +54,7 @@ export const WorkspaceIsolationConnectionsField = ({
     currentStackId: stackId,
     currentWorkspaceLabel: workspaceLabel,
     currentWorkspaceRootPath: workspaceRootPath,
+    workspaceIsolationProjectTopologies,
     workspaceIsolationStacks,
   });
   const localTargets: WorkspaceIsolationConnectionTarget[] =
@@ -66,7 +70,7 @@ export const WorkspaceIsolationConnectionsField = ({
           <div className="space-y-0.5">
             <h4 className="text-sm font-medium">Connected Services</h4>
             <p className="text-[11px] text-muted-foreground">
-              Map environment variables to other services in this workspace or across Galactic projects.
+              Map environment variables to other services in this project or across Galactic.
             </p>
           </div>
           
@@ -80,7 +84,7 @@ export const WorkspaceIsolationConnectionsField = ({
                     </div>
                   </TooltipTrigger>
                   <TooltipContent side="left" className="max-w-xs text-center">
-                    No other active services available. Add another service to this workspace or activate isolation in another project.
+                    No other services are available yet. Add another project service or configure isolation in another project.
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>

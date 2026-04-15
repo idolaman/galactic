@@ -103,14 +103,22 @@ export interface ElectronAPI {
     targets: SyncTarget[]
   ) => Promise<CopySyncTargetsResult>;
   initialWorkspaceIsolationStacks?: unknown[];
+  initialWorkspaceIsolationProjectTopologies?: unknown[];
   initialWorkspaceIsolationIntroSeen?: boolean;
   initialWorkspaceIsolationShellHookStatus?: unknown;
   getWorkspaceIsolationStacks: () => Promise<unknown[]>;
-  saveWorkspaceIsolationStack: (
+  getWorkspaceIsolationProjectTopologies: () => Promise<unknown[]>;
+  saveWorkspaceIsolationProjectTopology: (
+    input: unknown
+  ) => Promise<{ success: boolean; error?: string; topology?: unknown }>;
+  deleteWorkspaceIsolationProjectTopology: (
+    topologyId: string
+  ) => Promise<{ success: boolean; error?: string }>;
+  enableWorkspaceIsolationForWorkspace: (
     input: unknown
   ) => Promise<{ success: boolean; error?: string; stack?: unknown }>;
-  deleteWorkspaceIsolationStack: (
-    stackId: string
+  disableWorkspaceIsolationForWorkspace: (
+    workspaceRootPath: string
   ) => Promise<{ success: boolean; error?: string }>;
   markWorkspaceIsolationIntroSeen: () => Promise<{ success: boolean; seen: boolean; error?: string }>;
   getWorkspaceIsolationProxyStatus: () => Promise<WorkspaceIsolationProxyStatus>;

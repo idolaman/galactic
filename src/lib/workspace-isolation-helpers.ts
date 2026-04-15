@@ -21,6 +21,17 @@ export const normalizeRelativeServicePath = (value: string): string =>
     .replace(/^\/+/, "")
     .replace(/\/+$/, "") || ".";
 
+const getStableHash = (value: string): string => {
+  let hash = 7;
+  for (const char of value) {
+    hash = (hash * 31 + char.charCodeAt(0)) | 0;
+  }
+  return Math.abs(hash).toString(36).slice(0, 6).padStart(6, "0");
+};
+
+export const getWorkspaceIsolationTopologyId = (projectId: string): string =>
+  `project-${getStableHash(projectId)}`;
+
 export const toWorkspaceIsolationSlug = (
   value: string,
   fallback = "stack",

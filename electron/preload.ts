@@ -3,6 +3,9 @@ import { contextBridge, ipcRenderer } from "electron";
 const initialSessionCache = ipcRenderer.sendSync("session/get-cache-sync");
 const initialDismissedSessions = ipcRenderer.sendSync("session/get-dismissed-sync");
 const initialWorkspaceIsolationStacks = ipcRenderer.sendSync("workspace-isolation/get-sync");
+const initialWorkspaceIsolationProjectTopologies = ipcRenderer.sendSync(
+  "workspace-isolation/get-topologies-sync",
+);
 const initialWorkspaceIsolationIntroSeen = ipcRenderer.sendSync(
   "workspace-isolation/get-intro-seen-sync",
 );
@@ -49,6 +52,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
   initialWorkspaceIsolationStacks: Array.isArray(initialWorkspaceIsolationStacks)
     ? initialWorkspaceIsolationStacks
     : [],
+  initialWorkspaceIsolationProjectTopologies: Array.isArray(
+    initialWorkspaceIsolationProjectTopologies,
+  )
+    ? initialWorkspaceIsolationProjectTopologies
+    : [],
   initialWorkspaceIsolationIntroSeen:
     typeof initialWorkspaceIsolationIntroSeen === "boolean"
       ? initialWorkspaceIsolationIntroSeen
@@ -59,10 +67,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ? initialWorkspaceIsolationShellHookStatus
       : null,
   getWorkspaceIsolationStacks: () => ipcRenderer.invoke("workspace-isolation/list"),
-  saveWorkspaceIsolationStack: (input: unknown) =>
-    ipcRenderer.invoke("workspace-isolation/save", input),
-  deleteWorkspaceIsolationStack: (stackId: string) =>
-    ipcRenderer.invoke("workspace-isolation/delete", stackId),
+  getWorkspaceIsolationProjectTopologies: () =>
+    ipcRenderer.invoke("workspace-isolation/topologies"),
+  saveWorkspaceIsolationProjectTopology: (input: unknown) =>
+    ipcRenderer.invoke("workspace-isolation/save-topology", input),
+  deleteWorkspaceIsolationProjectTopology: (topologyId: string) =>
+    ipcRenderer.invoke("workspace-isolation/delete-topology", topologyId),
+  enableWorkspaceIsolationForWorkspace: (input: unknown) =>
+    ipcRenderer.invoke("workspace-isolation/enable-workspace", input),
+  disableWorkspaceIsolationForWorkspace: (workspaceRootPath: string) =>
+    ipcRenderer.invoke("workspace-isolation/disable-workspace", workspaceRootPath),
   markWorkspaceIsolationIntroSeen: () =>
     ipcRenderer.invoke("workspace-isolation/mark-intro-seen"),
   getWorkspaceIsolationProxyStatus: () =>

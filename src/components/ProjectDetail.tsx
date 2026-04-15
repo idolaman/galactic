@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   ArrowLeft,
   GitMerge,
@@ -7,11 +8,14 @@ import {
   FileCode,
   HardDrive,
   Info,
+  Settings2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CreateWorkspaceDialog } from "@/components/CreateWorkspaceDialog";
+import { useWorkspaceIsolationManager } from "@/hooks/use-workspace-isolation-manager";
+import { WorkspaceIsolationDialog } from "@/components/WorkspaceIsolationDialog";
 import { LaunchButton } from "@/components/LaunchButton";
 import { ProjectSyncTargets } from "@/components/ProjectSyncTargets";
 import { WorkspaceNetworkingPanel } from "@/components/WorkspaceNetworkingPanel";
@@ -71,6 +75,11 @@ export const ProjectDetail = ({
   getEnvironmentIdForTarget,
   onEnvironmentChange,
 }: ProjectDetailProps) => {
+  const [isProjectIsolationDialogOpen, setIsProjectIsolationDialogOpen] = useState(false);
+  const { workspaceIsolationTopologyForProject } =
+    useWorkspaceIsolationManager();
+  const projectTopology = workspaceIsolationTopologyForProject(project.id);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -93,19 +102,41 @@ export const ProjectDetail = ({
             Workspaces
           </h2>
 
-          {project.isGitRepo && (
-            <CreateWorkspaceDialog
-              projectPath={project.path}
-              gitBranches={gitBranches}
-              isLoadingBranches={isLoadingBranches}
-              isCreatingWorkspace={isCreatingWorkspace}
-              onCreateWorkspace={onCreateWorkspace}
-              onLoadBranches={onLoadBranches}
-            />
-          )}
+          <div className="flex items-center gap-2">
+            {project.isGitRepo && (
+                <Button
+                  variant="outline"
+                  onClick={() => setIsProjectIsolationDialogOpen(true)}
+                  className="gap-2"
+                >
+                  <Settings2 className="h-4 w-4" />
+                  {projectTopology ? "Edit Project Services" : "Project Services"}
+                </Button>
+            )}
+            {project.isGitRepo && (
+              <CreateWorkspaceDialog
+                projectPath={project.path}
+                gitBranches={gitBranches}
+                isLoadingBranches={isLoadingBranches}
+                isCreatingWorkspace={isCreatingWorkspace}
+                onCreateWorkspace={onCreateWorkspace}
+                onLoadBranches={onLoadBranches}
+              />
+            )}
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <WorkspaceIsolationDialog
+          open={isProjectIsolationDialogOpen}
+          onOpenChange={setIsProjectIsolationDialogOpen}
+          projectId={project.id}
+          workspaceRootPath={project.path}
+          workspaceRootLabel="Repository Root"
+          projectName={project.name}
+          stack={projectTopology}
+        />
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
           {/* Repository Root Card */}
           <Card className="p-4 bg-gradient-card border-primary/20 shadow-sm group">
             <div className="flex flex-col gap-4">
@@ -165,79 +196,80 @@ export const ProjectDetail = ({
               </div>
             </div>
           </Card>
+
           {workspaces.map((branch) => (
-            <Card
-              key={branch.workspace}
-              className="p-4 bg-card/50 border-primary/20 hover:border-primary/40 transition-colors group"
-            >
-              <div className="flex flex-col gap-4">
-                {/* Header: Branch Name + Delete */}
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-1 min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant="outline"
-                        className="bg-primary/10 text-primary border-primary/20 font-mono text-sm py-1 px-2.5 rounded-md max-w-full truncate"
-                        title={branch.name}
-                      >
-                        {branch.name}
-                      </Badge>
+                <Card
+                  key={branch.workspace}
+                  className="p-4 bg-card/50 border-primary/20 hover:border-primary/40 transition-colors group"
+                >
+                  <div className="flex flex-col gap-4">
+                    {/* Header: Branch Name + Delete */}
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant="outline"
+                            className="bg-primary/10 text-primary border-primary/20 font-mono text-sm py-1 px-2.5 rounded-md max-w-full truncate"
+                            title={branch.name}
+                          >
+                            {branch.name}
+                          </Badge>
+                        </div>
+                        <div
+                          className="text-[10px] text-muted-foreground font-mono truncate select-all px-0.5"
+                          title={branch.workspace}
+                        >
+                          {branch.workspace}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all duration-200"
+                          onClick={() =>
+                            onDeleteWorkspace(branch.workspace, branch.name)
+                          }
+                          title="Delete Workspace"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <LaunchButton
+                          path={branch.workspace}
+                          environmentId={getEnvironmentIdForTarget(branch.workspace)}
+                          onLaunch={onOpenInEditor}
+                          className="h-9 px-5 text-sm font-medium shadow-sm shrink-0"
+                        >
+                          <FolderOpen className="mr-2 h-4 w-4" />
+                          Open
+                        </LaunchButton>
+                      </div>
                     </div>
-                    <div
-                      className="text-[10px] text-muted-foreground font-mono truncate select-all px-0.5"
-                      title={branch.workspace}
-                    >
-                      {branch.workspace}
+
+                    {/* Networking */}
+                    <div className="pt-1">
+                      <WorkspaceNetworkingPanel
+                        projectId={project.id}
+                        projectName={project.name}
+                        workspacePath={branch.workspace}
+                        workspaceLabel={branch.name}
+                        environments={environments}
+                        localEnvironmentId={getEnvironmentIdForTarget(branch.workspace)}
+                        onLocalEnvironmentChange={(environmentId) =>
+                          onEnvironmentChange(environmentId, {
+                            projectId: project.id,
+                            projectName: project.name,
+                            targetPath: branch.workspace,
+                            targetLabel: branch.name,
+                            kind: "workspace",
+                          })
+                        }
+                      />
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all duration-200"
-                      onClick={() =>
-                        onDeleteWorkspace(branch.workspace, branch.name)
-                      }
-                      title="Delete Workspace"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                    <LaunchButton
-                      path={branch.workspace}
-                      environmentId={getEnvironmentIdForTarget(branch.workspace)}
-                      onLaunch={onOpenInEditor}
-                      className="h-9 px-5 text-sm font-medium shadow-sm shrink-0"
-                    >
-                      <FolderOpen className="mr-2 h-4 w-4" />
-                      Open
-                    </LaunchButton>
-                  </div>
-                </div>
-
-                {/* Networking */}
-                <div className="pt-1">
-                  <WorkspaceNetworkingPanel
-                    projectId={project.id}
-                    projectName={project.name}
-                    workspacePath={branch.workspace}
-                    workspaceLabel={branch.name}
-                    environments={environments}
-                    localEnvironmentId={getEnvironmentIdForTarget(branch.workspace)}
-                    onLocalEnvironmentChange={(environmentId) =>
-                      onEnvironmentChange(environmentId, {
-                        projectId: project.id,
-                        projectName: project.name,
-                        targetPath: branch.workspace,
-                        targetLabel: branch.name,
-                        kind: "workspace",
-                      })
-                    }
-                  />
-                </div>
-              </div>
-            </Card>
-          ))}
+                </Card>
+              ))}
         </div>
       </div>
 

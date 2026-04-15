@@ -11,6 +11,7 @@ import type { WorkspaceIsolationDialogStep } from "@/lib/workspace-isolation-dia
 import type {
   WorkspaceIsolationConnection,
   WorkspaceIsolationMode,
+  WorkspaceIsolationProjectTopology,
   WorkspaceIsolationService,
   WorkspaceIsolationStack,
 } from "@/types/workspace-isolation";
@@ -24,6 +25,7 @@ interface WorkspaceIsolationDialogBodyProps {
   stackId: string;
   draftWorkspaceMode: WorkspaceIsolationMode;
   draftServices: WorkspaceIsolationService[];
+  workspaceIsolationProjectTopologies: WorkspaceIsolationProjectTopology[];
   workspaceIsolationStacks: WorkspaceIsolationStack[];
   onAddService: () => void;
   onChangeService: (
@@ -50,6 +52,7 @@ export const WorkspaceIsolationDialogBody = ({
   stackId,
   draftWorkspaceMode,
   draftServices,
+  workspaceIsolationProjectTopologies,
   workspaceIsolationStacks,
   onAddService,
   onChangeService,
@@ -119,6 +122,7 @@ export const WorkspaceIsolationDialogBody = ({
                 service={service}
                 workspaceMode={draftWorkspaceMode}
                 services={draftServices}
+                workspaceIsolationProjectTopologies={workspaceIsolationProjectTopologies}
                 workspaceIsolationStacks={workspaceIsolationStacks}
                 step={step}
                 onChangeService={onChangeService}

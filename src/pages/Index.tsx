@@ -83,7 +83,10 @@ const Index = () => {
   const [isSearchingSyncTargets, setIsSearchingSyncTargets] = useState(false);
   const { environments, assignTarget, unassignTarget, environmentForTarget } =
     useEnvironmentManager();
-  const { deleteWorkspaceIsolationForWorkspace } =
+  const {
+    deleteWorkspaceIsolationForProject,
+    disableWorkspaceIsolationForWorkspace,
+  } =
     useWorkspaceIsolationManager();
   const { loadProjectBranches } = useBranchLoader({
     setIsLoadingBranches,
@@ -253,8 +256,8 @@ const Index = () => {
       return next;
     });
 
-    // Clean up the repository root workspace file
-    void deleteWorkspaceIsolationForWorkspace(projectToDelete.path);
+    // Clean up project-scoped isolation once for the whole project.
+    void deleteWorkspaceIsolationForProject(projectId);
     unassignTarget(projectToDelete.path);
     deleteCodeWorkspace(projectToDelete.path).catch((err) =>
       console.error("Failed to delete project workspace file:", err),
@@ -265,7 +268,6 @@ const Index = () => {
     const workspacesToDelete =
       projectWorkspaces[projectId] ?? projectToDelete.workspaces ?? [];
     workspacesToDelete.forEach((ws) => {
-      void deleteWorkspaceIsolationForWorkspace(ws.workspace);
       unassignTarget(ws.workspace);
       deleteCodeWorkspace(ws.workspace).catch((err) =>
         console.error(`Failed to delete workspace file for ${ws.name}:`, err),
@@ -398,7 +400,7 @@ const Index = () => {
     }
 
     // Delete associated .code-workspace file
-    await deleteWorkspaceIsolationForWorkspace(workspacePath);
+    await disableWorkspaceIsolationForWorkspace(workspacePath);
     unassignTarget(workspacePath);
     await deleteCodeWorkspace(workspacePath);
     clearWorkspaceRelaunchFlag(workspacePath);

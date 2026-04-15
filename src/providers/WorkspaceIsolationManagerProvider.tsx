@@ -6,17 +6,24 @@ import {
 } from "@/hooks/workspace-isolation-manager-context";
 import { normalizeWorkspaceRootPath } from "@/lib/workspace-isolation-helpers";
 import {
-  deleteWorkspaceIsolationStack,
+  deleteWorkspaceIsolationProjectTopology,
+  disableWorkspaceIsolationForWorkspace,
+  enableWorkspaceIsolationForWorkspace,
   getInitialWorkspaceIsolationIntroSeen,
+  getInitialWorkspaceIsolationProjectTopologies,
   getInitialWorkspaceIsolationShellHookStatus,
   getInitialWorkspaceIsolationStacks,
+  getWorkspaceIsolationProjectTopologies,
   getWorkspaceIsolationStacks,
   markWorkspaceIsolationIntroSeen,
-  saveWorkspaceIsolationStack,
+  saveWorkspaceIsolationProjectTopology,
   getWorkspaceIsolationShellHookStatus,
   setWorkspaceIsolationShellHooksEnabled,
 } from "@/services/workspace-isolation";
-import type { WorkspaceIsolationStack } from "@/types/workspace-isolation";
+import type {
+  WorkspaceIsolationProjectTopology,
+  WorkspaceIsolationStack,
+} from "@/types/workspace-isolation";
 import type { WorkspaceIsolationShellHookStatus } from "@/types/electron";
 
 export const WorkspaceIsolationManagerProvider = ({
@@ -26,6 +33,10 @@ export const WorkspaceIsolationManagerProvider = ({
 }) => {
   const [workspaceIsolationStacks, setWorkspaceIsolationStacks] =
     useState<WorkspaceIsolationStack[]>(getInitialWorkspaceIsolationStacks);
+  const [workspaceIsolationProjectTopologies, setWorkspaceIsolationProjectTopologies] =
+    useState<WorkspaceIsolationProjectTopology[]>(
+      getInitialWorkspaceIsolationProjectTopologies,
+    );
   const [workspaceIsolationIntroSeen, setWorkspaceIsolationIntroSeen] =
     useState<boolean>(getInitialWorkspaceIsolationIntroSeen);
   const [shellHookStatus, setShellHookStatus] =
@@ -33,10 +44,25 @@ export const WorkspaceIsolationManagerProvider = ({
       getInitialWorkspaceIsolationShellHookStatus,
     );
 
+  const refreshWorkspaceIsolationState = async () => {
+    const [stacks, topologies, hookStatus] = await Promise.all([
+      getWorkspaceIsolationStacks(),
+      getWorkspaceIsolationProjectTopologies(),
+      getWorkspaceIsolationShellHookStatus(),
+    ]);
+    setWorkspaceIsolationStacks(stacks);
+    setWorkspaceIsolationProjectTopologies(topologies);
+    setShellHookStatus(hookStatus);
+  };
+
   useEffect(() => {
-    void getWorkspaceIsolationStacks().then(setWorkspaceIsolationStacks);
-    void getWorkspaceIsolationShellHookStatus().then(setShellHookStatus);
+    void refreshWorkspaceIsolationState();
   }, []);
+
+  const workspaceIsolationTopologyForProject = (projectId: string) =>
+    workspaceIsolationProjectTopologies.find(
+      (topology) => topology.projectId === projectId,
+    ) ?? null;
 
   const workspaceIsolationForWorkspace = (workspaceRootPath: string) => {
     const normalizedPath = normalizeWorkspaceRootPath(workspaceRootPath);
@@ -47,43 +73,56 @@ export const WorkspaceIsolationManagerProvider = ({
     );
   };
 
-  const handleSaveWorkspaceIsolationStack = async (
+  const handleSaveWorkspaceIsolationProjectTopology = async (
     input: SaveWorkspaceIsolationInput,
   ) => {
-    const result = await saveWorkspaceIsolationStack(input);
-    if (!result.success || !result.stack) {
+    const result = await saveWorkspaceIsolationProjectTopology(input);
+    if (!result.success) {
       return result;
     }
-    const normalizedWorkspaceRootPath = normalizeWorkspaceRootPath(input.workspaceRootPath);
-    setWorkspaceIsolationStacks((currentStacks) => [
-      result.stack!,
-      ...currentStacks.filter(
-        (stack) =>
-          stack.id !== result.stack!.id &&
-          stack.workspaceRootPath !== normalizedWorkspaceRootPath,
-      ),
-    ]);
+    await refreshWorkspaceIsolationState();
     return result;
   };
 
-  const handleDeleteWorkspaceIsolationStack = async (stackId: string) => {
-    const result = await deleteWorkspaceIsolationStack(stackId);
+  const handleDeleteWorkspaceIsolationProjectTopology = async (
+    topologyId: string,
+  ) => {
+    const result = await deleteWorkspaceIsolationProjectTopology(topologyId);
     if (result.success) {
-      setWorkspaceIsolationStacks((currentStacks) =>
-        currentStacks.filter((stack) => stack.id !== stackId),
-      );
+      await refreshWorkspaceIsolationState();
     }
     return result;
   };
 
-  const deleteWorkspaceIsolationForWorkspace = async (
+  const handleEnableWorkspaceIsolationForWorkspace = async (input: {
+    projectId: string;
+    projectName: string;
+    workspaceRootPath: string;
+    workspaceRootLabel: string;
+  }) => {
+    const result = await enableWorkspaceIsolationForWorkspace(input);
+    if (result.success) {
+      await refreshWorkspaceIsolationState();
+    }
+    return result;
+  };
+
+  const handleDisableWorkspaceIsolationForWorkspace = async (
     workspaceRootPath: string,
   ) => {
-    const stack = workspaceIsolationForWorkspace(workspaceRootPath);
-    if (!stack) {
+    const result = await disableWorkspaceIsolationForWorkspace(workspaceRootPath);
+    if (result.success) {
+      await refreshWorkspaceIsolationState();
+    }
+    return result;
+  };
+
+  const deleteWorkspaceIsolationForProject = async (projectId: string) => {
+    const topology = workspaceIsolationTopologyForProject(projectId);
+    if (!topology) {
       return;
     }
-    await handleDeleteWorkspaceIsolationStack(stack.id);
+    await handleDeleteWorkspaceIsolationProjectTopology(topology.id);
   };
 
   const handleSetShellHooksEnabled = async (enabled: boolean) => {
@@ -104,12 +143,20 @@ export const WorkspaceIsolationManagerProvider = ({
 
   const value: WorkspaceIsolationManagerValue = {
     workspaceIsolationStacks,
+    workspaceIsolationProjectTopologies,
     workspaceIsolationIntroSeen,
     shellHookStatus,
+    workspaceIsolationTopologyForProject,
     workspaceIsolationForWorkspace,
-    saveWorkspaceIsolationStack: handleSaveWorkspaceIsolationStack,
-    deleteWorkspaceIsolationStack: handleDeleteWorkspaceIsolationStack,
-    deleteWorkspaceIsolationForWorkspace,
+    saveWorkspaceIsolationProjectTopology:
+      handleSaveWorkspaceIsolationProjectTopology,
+    deleteWorkspaceIsolationProjectTopology:
+      handleDeleteWorkspaceIsolationProjectTopology,
+    enableWorkspaceIsolationForWorkspace:
+      handleEnableWorkspaceIsolationForWorkspace,
+    disableWorkspaceIsolationForWorkspace:
+      handleDisableWorkspaceIsolationForWorkspace,
+    deleteWorkspaceIsolationForProject,
     markWorkspaceIsolationIntroSeen: handleMarkWorkspaceIsolationIntroSeen,
     setShellHooksEnabled: handleSetShellHooksEnabled,
   };

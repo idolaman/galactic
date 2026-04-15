@@ -34,7 +34,7 @@ export const WorkspaceIsolationDialogFooter = ({
   <DialogFooter className="shrink-0 gap-2 pt-4 sm:justify-between">
     {isEditing && step === 3 ? (
       <Button variant="destructive" onClick={onDelete}>
-        Remove Isolation
+        Remove Topology
       </Button>
     ) : (
       <div />
@@ -78,7 +78,7 @@ export const WorkspaceIsolationDialogFooter = ({
             Back
           </Button>
           <Button onClick={onSave}>
-            {isEditing ? "Save Isolation" : "Isolate Workspace"}
+            {isEditing ? "Save Topology" : "Save Project Topology"}
           </Button>
         </>
       ) : null}

@@ -1,17 +1,22 @@
 import type { IpcMain } from "electron";
 import type {
+  EnableWorkspaceIsolationInput,
   WorkspaceIsolationProxyStatus,
   SaveWorkspaceIsolationInput,
   WorkspaceIsolationShellHookStatus,
+  WorkspaceIsolationProjectTopology,
   WorkspaceIsolationStack,
 } from "../workspace-isolation/types.js";
 
 interface WorkspaceIsolationIpcDeps {
   ipcMain: Pick<IpcMain, "handle" | "on">;
   getStacks: () => WorkspaceIsolationStack[];
+  getProjectTopologies: () => WorkspaceIsolationProjectTopology[];
   getIntroSeen: () => boolean;
-  saveStack: (input: SaveWorkspaceIsolationInput) => Promise<{ success: boolean; error?: string; stack?: WorkspaceIsolationStack }>;
-  deleteStack: (stackId: string) => Promise<{ success: boolean; error?: string }>;
+  saveProjectTopology: (input: SaveWorkspaceIsolationInput) => Promise<{ success: boolean; error?: string; topology?: WorkspaceIsolationProjectTopology }>;
+  deleteProjectTopology: (topologyId: string) => Promise<{ success: boolean; error?: string }>;
+  enableWorkspace: (input: EnableWorkspaceIsolationInput) => Promise<{ success: boolean; error?: string; stack?: WorkspaceIsolationStack }>;
+  disableWorkspace: (workspaceRootPath: string) => Promise<{ success: boolean; error?: string }>;
   getShellHookStatus: () => WorkspaceIsolationShellHookStatus;
   getProxyStatus: () => WorkspaceIsolationProxyStatus;
   markIntroSeen: () => Promise<boolean>;
@@ -21,9 +26,12 @@ interface WorkspaceIsolationIpcDeps {
 export const registerWorkspaceIsolationIpc = ({
   ipcMain,
   getStacks,
+  getProjectTopologies,
   getIntroSeen,
-  saveStack,
-  deleteStack,
+  saveProjectTopology,
+  deleteProjectTopology,
+  enableWorkspace,
+  disableWorkspace,
   getShellHookStatus,
   getProxyStatus,
   markIntroSeen,
@@ -31,6 +39,9 @@ export const registerWorkspaceIsolationIpc = ({
 }: WorkspaceIsolationIpcDeps): void => {
   ipcMain.on("workspace-isolation/get-sync", (event) => {
     event.returnValue = getStacks();
+  });
+  ipcMain.on("workspace-isolation/get-topologies-sync", (event) => {
+    event.returnValue = getProjectTopologies();
   });
   ipcMain.on("workspace-isolation/get-intro-seen-sync", (event) => {
     event.returnValue = getIntroSeen();
@@ -40,8 +51,11 @@ export const registerWorkspaceIsolationIpc = ({
   });
 
   ipcMain.handle("workspace-isolation/list", () => getStacks());
-  ipcMain.handle("workspace-isolation/save", async (_event, input: SaveWorkspaceIsolationInput) => saveStack(input));
-  ipcMain.handle("workspace-isolation/delete", async (_event, stackId: string) => deleteStack(stackId));
+  ipcMain.handle("workspace-isolation/topologies", () => getProjectTopologies());
+  ipcMain.handle("workspace-isolation/save-topology", async (_event, input: SaveWorkspaceIsolationInput) => saveProjectTopology(input));
+  ipcMain.handle("workspace-isolation/delete-topology", async (_event, topologyId: string) => deleteProjectTopology(topologyId));
+  ipcMain.handle("workspace-isolation/enable-workspace", async (_event, input: EnableWorkspaceIsolationInput) => enableWorkspace(input));
+  ipcMain.handle("workspace-isolation/disable-workspace", async (_event, workspaceRootPath: string) => disableWorkspace(workspaceRootPath));
   ipcMain.handle("workspace-isolation/proxy-status", () => getProxyStatus());
   ipcMain.handle("workspace-isolation/mark-intro-seen", async () => ({
     success: await markIntroSeen(),

@@ -1,6 +1,7 @@
 import { buildWorkspaceIsolationHostname } from "./workspace-isolation-routing.js";
 import type {
   WorkspaceIsolationConnectionTarget,
+  WorkspaceIsolationProjectTopology,
   WorkspaceIsolationService,
   WorkspaceIsolationStack,
 } from "../types/workspace-isolation.js";
@@ -17,10 +18,11 @@ const sortTargets = (
 const toTarget = (
   source: "local" | "external",
   stack: Pick<
-    WorkspaceIsolationStack,
+    WorkspaceIsolationProjectTopology,
     "id" | "projectId" | "projectName" | "workspaceRootPath" | "workspaceRootLabel"
   >,
   service: Pick<WorkspaceIsolationService, "id" | "name" | "slug">,
+  enabled: boolean,
 ): WorkspaceIsolationConnectionTarget => ({
   value: `${stack.id}:${service.id}`,
   source,
@@ -32,6 +34,7 @@ const toTarget = (
   workspaceRootLabel: stack.workspaceRootLabel,
   serviceName: service.name,
   hostname: buildWorkspaceIsolationHostname(stack, service),
+  enabled,
 });
 
 export const buildWorkspaceIsolationConnectionValue = (
@@ -47,6 +50,7 @@ export const getWorkspaceIsolationConnectionTargets = ({
   currentWorkspaceLabel,
   currentServiceId,
   currentServices,
+  workspaceIsolationProjectTopologies,
   workspaceIsolationStacks,
 }: {
   currentProjectId: string;
@@ -56,6 +60,7 @@ export const getWorkspaceIsolationConnectionTargets = ({
   currentWorkspaceLabel: string;
   currentServiceId: string;
   currentServices: WorkspaceIsolationService[];
+  workspaceIsolationProjectTopologies: WorkspaceIsolationProjectTopology[];
   workspaceIsolationStacks: WorkspaceIsolationStack[];
 }): {
   localTargets: WorkspaceIsolationConnectionTarget[];
@@ -73,13 +78,22 @@ export const getWorkspaceIsolationConnectionTargets = ({
     localTargets: sortTargets(
       currentServices
         .filter((service) => service.id !== currentServiceId)
-        .map((service) => toTarget("local", localStack, service)),
+        .map((service) => toTarget("local", localStack, service, true)),
     ),
     externalTargets: sortTargets(
-      workspaceIsolationStacks
-        .filter((stack) => stack.projectId !== currentProjectId)
-        .flatMap((stack) =>
-          stack.services.map((service) => toTarget("external", stack, service)),
+      workspaceIsolationProjectTopologies
+        .filter((topology) => topology.projectId !== currentProjectId)
+        .flatMap((topology) =>
+          topology.services.map((service) =>
+            toTarget(
+              "external",
+              topology,
+              service,
+              workspaceIsolationStacks.some(
+                (stack) => stack.projectId === topology.projectId,
+              ),
+            ),
+          ),
         ),
     ),
   };

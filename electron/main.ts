@@ -923,9 +923,15 @@ registerMcpIpc({
 registerWorkspaceIsolationIpc({
   ipcMain,
   getStacks: () => workspaceIsolationManager.getStacks(),
+  getProjectTopologies: () => workspaceIsolationManager.getProjectTopologies(),
   getIntroSeen: () => appSettings.workspaceIsolationIntroSeen,
-  saveStack: (input) => workspaceIsolationManager.saveStack(input),
-  deleteStack: (stackId) => workspaceIsolationManager.deleteStack(stackId),
+  saveProjectTopology: (input) =>
+    workspaceIsolationManager.saveProjectTopology(input),
+  deleteProjectTopology: (topologyId) =>
+    workspaceIsolationManager.deleteProjectTopology(topologyId),
+  enableWorkspace: (input) => workspaceIsolationManager.enableWorkspace(input),
+  disableWorkspace: (workspaceRootPath) =>
+    workspaceIsolationManager.disableWorkspace(workspaceRootPath),
   getShellHookStatus: () => workspaceIsolationManager.getShellHookStatus(),
   getProxyStatus: () => workspaceIsolationManager.getProxyStatus(),
   markIntroSeen: async () => {

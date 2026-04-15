@@ -10,7 +10,7 @@ const HASH_LENGTH = 4;
 const APP_DISPLAY_NAME = "App";
 const GENERATED_NAME_LENGTH = 5;
 const GENERATED_NAME_CHARS = "abcdefghijklmnopqrstuvwxyz";
-const REPOSITORY_ROOT_LABEL = "Repository Root";
+export const REPOSITORY_ROOT_LABEL = "Repository Root";
 const ROOT_BRANCH_SEGMENT = "root";
 
 export const WORKSPACE_ISOLATION_PROXY_PORT = 1355;
@@ -149,10 +149,11 @@ export const buildWorkspaceIsolationUrl = (
 
 export const buildStoredStack = (
   input: SaveWorkspaceIsolationInput,
+  id: string,
   services: WorkspaceIsolationService[],
   createdAt: number,
 ): WorkspaceIsolationStack => ({
-  id: input.id,
+  id,
   kind: "workspace-isolation",
   name: input.name.trim(),
   slug: toSlug(input.name, "stack"),

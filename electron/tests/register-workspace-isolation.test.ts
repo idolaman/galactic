@@ -2,6 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { IpcMainInvokeEvent, IpcMainEvent } from "electron";
 import { registerWorkspaceIsolationIpc } from "../ipc/register-workspace-isolation.js";
+import type {
+  EnableWorkspaceIsolationInput,
+  SaveWorkspaceIsolationInput,
+} from "../workspace-isolation/types.js";
 
 type HandleHandler = (event: IpcMainInvokeEvent, ...args: unknown[]) => Promise<unknown> | unknown;
 type OnHandler = (event: IpcMainEvent, ...args: unknown[]) => void;
@@ -35,9 +39,18 @@ test("registerWorkspaceIsolationIpc registers handlers and sync bootstrap", asyn
       },
     },
     getStacks: () => stacks,
+    getProjectTopologies: () => stacks,
     getIntroSeen: () => true,
-    saveStack: async (input) => ({ success: true, stack: { ...stacks[0], id: input.id } }),
-    deleteStack: async () => ({ success: true }),
+    saveProjectTopology: async (_input: SaveWorkspaceIsolationInput) => ({
+      success: true,
+      topology: stacks[0],
+    }),
+    deleteProjectTopology: async () => ({ success: true }),
+    enableWorkspace: async (_input: EnableWorkspaceIsolationInput) => ({
+      success: true,
+      stack: stacks[0],
+    }),
+    disableWorkspace: async () => ({ success: true }),
     getShellHookStatus: () => ({
       enabled: true,
       supported: true,
@@ -63,11 +76,15 @@ test("registerWorkspaceIsolationIpc registers handlers and sync bootstrap", asyn
   });
 
   assert.equal(onHandlers.has("workspace-isolation/get-sync"), true);
+  assert.equal(onHandlers.has("workspace-isolation/get-topologies-sync"), true);
   assert.equal(onHandlers.has("workspace-isolation/get-intro-seen-sync"), true);
   assert.equal(onHandlers.has("workspace-isolation/get-shell-hooks-sync"), true);
   assert.equal(handleHandlers.has("workspace-isolation/list"), true);
-  assert.equal(handleHandlers.has("workspace-isolation/save"), true);
-  assert.equal(handleHandlers.has("workspace-isolation/delete"), true);
+  assert.equal(handleHandlers.has("workspace-isolation/topologies"), true);
+  assert.equal(handleHandlers.has("workspace-isolation/save-topology"), true);
+  assert.equal(handleHandlers.has("workspace-isolation/delete-topology"), true);
+  assert.equal(handleHandlers.has("workspace-isolation/enable-workspace"), true);
+  assert.equal(handleHandlers.has("workspace-isolation/disable-workspace"), true);
   assert.equal(handleHandlers.has("workspace-isolation/proxy-status"), true);
   assert.equal(handleHandlers.has("settings/get-workspace-isolation-shell-hooks"), true);
   assert.equal(handleHandlers.has("settings/set-workspace-isolation-shell-hooks"), true);
@@ -75,6 +92,12 @@ test("registerWorkspaceIsolationIpc registers handlers and sync bootstrap", asyn
   const syncEvent = { returnValue: null } as unknown as IpcMainEvent & { returnValue: unknown };
   onHandlers.get("workspace-isolation/get-sync")?.(syncEvent);
   assert.deepEqual(syncEvent.returnValue, stacks);
+
+  const topologiesSyncEvent = {
+    returnValue: null,
+  } as unknown as IpcMainEvent & { returnValue: unknown };
+  onHandlers.get("workspace-isolation/get-topologies-sync")?.(topologiesSyncEvent);
+  assert.deepEqual(topologiesSyncEvent.returnValue, stacks);
 
   const shellHookSyncEvent = { returnValue: null } as unknown as IpcMainEvent & { returnValue: unknown };
   onHandlers.get("workspace-isolation/get-shell-hooks-sync")?.(shellHookSyncEvent);
@@ -91,10 +114,9 @@ test("registerWorkspaceIsolationIpc registers handlers and sync bootstrap", asyn
   onHandlers.get("workspace-isolation/get-intro-seen-sync")?.(introSeenSyncEvent);
   assert.equal(introSeenSyncEvent.returnValue, true);
 
-  const saveResult = await handleHandlers.get("workspace-isolation/save")?.(
+  const saveResult = await handleHandlers.get("workspace-isolation/save-topology")?.(
     {} as IpcMainInvokeEvent,
     {
-      id: "stack-2",
       name: "demo",
       projectId: "project-1",
       workspaceRootPath: "/repo",
@@ -104,7 +126,23 @@ test("registerWorkspaceIsolationIpc registers handlers and sync bootstrap", asyn
       services: [],
     },
   );
-  assert.deepEqual(saveResult, { success: true, stack: { ...stacks[0], id: "stack-2" } });
+  assert.deepEqual(saveResult, {
+    success: true,
+    topology: stacks[0],
+  });
+
+  const enableResult = await handleHandlers.get(
+    "workspace-isolation/enable-workspace",
+  )?.({} as IpcMainInvokeEvent, {
+    projectId: "project-1",
+    projectName: "demo",
+    workspaceRootPath: "/repo/.worktrees/feature-a",
+    workspaceRootLabel: "feature-a",
+  });
+  assert.deepEqual(enableResult, {
+    success: true,
+    stack: stacks[0],
+  });
 
   const proxyStatus = await handleHandlers.get("workspace-isolation/proxy-status")?.(
     {} as IpcMainInvokeEvent,

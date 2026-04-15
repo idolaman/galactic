@@ -31,6 +31,19 @@ export interface WorkspaceIsolationStack {
   services: WorkspaceIsolationService[];
 }
 
+export type WorkspaceIsolationProjectTopology = WorkspaceIsolationStack;
+
+export interface WorkspaceIsolationEnabledWorkspace {
+  id: string;
+  topologyId: string;
+  projectId: string;
+  projectName: string;
+  workspaceRootPath: string;
+  workspaceRootLabel: string;
+  createdAt: number;
+  servicePorts: Record<string, number>;
+}
+
 export interface WorkspaceIsolationConnectionTarget {
   value: string;
   source: "local" | "external";
@@ -42,6 +55,7 @@ export interface WorkspaceIsolationConnectionTarget {
   workspaceRootLabel: string;
   serviceName: string;
   hostname: string;
+  enabled: boolean;
 }
 
 export interface ResolvedWorkspaceIsolationConnection

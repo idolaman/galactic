@@ -34,7 +34,7 @@ const missingValue = (connectionId: string) => `__missing__:${connectionId}`;
 const getTargetLabel = (target: WorkspaceIsolationConnectionTarget): string =>
   target.source === "local"
     ? target.serviceName || "Untitled Service"
-    : `${target.projectName} / ${target.workspaceRootLabel} / ${target.serviceName}`;
+    : `${target.projectName} / ${target.workspaceRootLabel} / ${target.serviceName}${target.enabled ? "" : " (Not enabled)"}`;
 
 export const WorkspaceIsolationConnectionRow = ({
   serviceId,
@@ -87,7 +87,7 @@ export const WorkspaceIsolationConnectionRow = ({
             ) : null}
             {localTargets.length > 0 ? (
               <SelectGroup>
-                <SelectLabel>This Workspace</SelectLabel>
+                <SelectLabel>This Project</SelectLabel>
                 {localTargets.map((target) => (
                   <SelectItem key={target.value} value={target.value}>
                     {getTargetLabel(target)}
