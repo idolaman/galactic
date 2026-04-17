@@ -1,0 +1,7 @@
+interface:
+  display_name: "Galactic Feature Gap Analysis"
+  short_description: "Finds product gaps in current Galactic flows"
+  default_prompt: "Use $galactic-feature-gap-analysis to analyze the current gaps in Galactic's MCP installation experience."
+
+policy:
+  allow_implicit_invocation: true
