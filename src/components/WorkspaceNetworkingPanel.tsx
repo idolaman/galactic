@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { PlayCircle, ShieldCheck, StopCircle, Waypoints } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { WorkspaceIsolationAutoEnvWarning } from "@/components/WorkspaceIsolationAutoEnvWarning";
 import { WorkspaceIsolationServices } from "@/components/WorkspaceIsolationServices";
@@ -98,15 +97,7 @@ export const WorkspaceNetworkingPanel = ({
                 <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
                   <Waypoints className="h-3.5 w-3.5" />
                 </div>
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  Project Services ready
-                  <Badge
-                    variant="secondary"
-                    className="h-4 border-primary/10 bg-primary/10 px-1.5 py-0 text-[10px] text-primary"
-                  >
-                    {topology.services.length} routes
-                  </Badge>
-                </div>
+                <div className="text-sm font-medium">Project Services ready</div>
               </div>
               <Button
                 size="sm"

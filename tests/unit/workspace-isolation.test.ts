@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   getWorkspaceIsolationName,
+  getWorkspaceIsolationProjectScopeLabel,
   getWorkspaceIsolationRouteDomain,
   getWorkspaceIsolationPreviewRoutes,
   getWorkspaceIsolationRunHint,
@@ -15,6 +16,18 @@ test("getWorkspaceIsolationName uses the project name for repository root", () =
 
 test("getWorkspaceIsolationName uses the workspace label for worktrees", () => {
   assert.equal(getWorkspaceIsolationName("shop", "feature/auth"), "feature/auth");
+});
+
+test("getWorkspaceIsolationProjectScopeLabel shows the service count only when a topology exists", () => {
+  assert.equal(getWorkspaceIsolationProjectScopeLabel(null), "Project Services");
+  assert.equal(
+    getWorkspaceIsolationProjectScopeLabel(1),
+    "Edit Project Services (1 service)",
+  );
+  assert.equal(
+    getWorkspaceIsolationProjectScopeLabel(3),
+    "Edit Project Services (3 services)",
+  );
 });
 
 test("getWorkspaceIsolationPreviewRoutes returns the first preview routes with the proxy port", () => {

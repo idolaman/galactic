@@ -1,5 +1,4 @@
 import { ChevronDown, Globe, Terminal, Waypoints } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Collapsible,
@@ -45,12 +44,6 @@ export const WorkspaceIsolationServices = ({
                   <span className="text-sm font-medium text-foreground/90 transition-colors group-hover:text-foreground">
                     Routed Services
                   </span>
-                  <Badge 
-                    variant="secondary" 
-                    className="h-5 border-none bg-primary/10 px-1.5 text-[10px] text-primary transition-colors group-hover:bg-primary/20"
-                  >
-                    {stack.services.length} active
-                  </Badge>
                 </div>
                 <ChevronDown
                   className={cn(

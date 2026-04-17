@@ -20,6 +20,7 @@ import { LaunchButton } from "@/components/LaunchButton";
 import { ProjectSyncTargets } from "@/components/ProjectSyncTargets";
 import { WorkspaceNetworkingPanel } from "@/components/WorkspaceNetworkingPanel";
 import type { CreateWorkspaceRequest } from "@/lib/create-workspace-request";
+import { getWorkspaceIsolationProjectScopeLabel } from "@/lib/workspace-isolation";
 import type { Workspace } from "@/types/workspace";
 import type { Environment, EnvironmentBinding } from "@/types/environment";
 import type { SyncTarget } from "@/types/sync-target";
@@ -110,7 +111,9 @@ export const ProjectDetail = ({
                   className="gap-2"
                 >
                   <Settings2 className="h-4 w-4" />
-                  {projectTopology ? "Edit Project Services" : "Project Services"}
+                  {getWorkspaceIsolationProjectScopeLabel(
+                    projectTopology?.services.length ?? null,
+                  )}
                 </Button>
             )}
             {project.isGitRepo && (

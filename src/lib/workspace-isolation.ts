@@ -17,6 +17,13 @@ export const getWorkspaceIsolationName = (
     ? projectName
     : workspaceRootLabel;
 
+export const getWorkspaceIsolationProjectScopeLabel = (
+  serviceCount: number | null,
+): string =>
+  serviceCount === null
+    ? "Project Services"
+    : `Edit Project Services (${serviceCount} ${serviceCount === 1 ? "service" : "services"})`;
+
 export const getWorkspaceIsolationPreviewRoutes = (
   stack: WorkspaceIsolationStack,
   limit = 2,
