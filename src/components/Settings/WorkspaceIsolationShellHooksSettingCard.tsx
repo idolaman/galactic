@@ -32,7 +32,7 @@ export function WorkspaceIsolationShellHooksSettingCard() {
       .catch(() => {
         showError({
           title: "Proxy settings unavailable",
-          description: "Unable to load the Workspace Isolation proxy status.",
+          description: "Unable to load the Project Services proxy status.",
         });
       })
       .finally(() => setLoading(false));
@@ -69,11 +69,11 @@ export function WorkspaceIsolationShellHooksSettingCard() {
     <Card className="border-border bg-card" id="workspace-isolation-shell-hooks">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between gap-3">
-          <CardTitle>Workspace Isolation</CardTitle>
+          <CardTitle>Project Services Support</CardTitle>
           <WorkspaceIsolationFeatureIntroDialog />
         </div>
         <CardDescription>
-          Run multiple branches of your stack safely using clean local domains, powered by a shared proxy and Terminal Auto-Env.
+          Check the shared proxy and Terminal Auto-Env that Project Services uses. Activation still happens from each workspace.
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
@@ -110,7 +110,7 @@ export function WorkspaceIsolationShellHooksSettingCard() {
           <div className="flex flex-col gap-4 rounded-lg border bg-background/60 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <Label htmlFor="workspace-isolation-shell-hooks" className="text-sm font-medium">Terminal Auto-Env (direnv support)</Label>
+                <Label htmlFor="workspace-isolation-shell-hooks" className="text-sm font-medium">Terminal Auto-Env</Label>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button type="button" size="icon" variant="ghost" className="h-4 w-4 rounded-full text-muted-foreground hover:text-primary">
@@ -118,7 +118,7 @@ export function WorkspaceIsolationShellHooksSettingCard() {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-[300px]">
-                    Adds a secure hook to your ~/.zshrc so your terminal automatically knows which randomized port to use without manual config.
+                    Adds a managed hook block to your ~/.zshrc so your terminal automatically uses the right workspace values.
                   </TooltipContent>
                 </Tooltip>
               </div>

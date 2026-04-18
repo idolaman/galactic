@@ -5,7 +5,7 @@ const autoEnvItems = [
     icon: Terminal,
     title: "Why Terminal Auto-Env is required",
     description:
-      "Workspace Isolation routes clean local domains back to service ports behind the scenes. Your terminal needs the right HOST and PORT values when you run dev commands.",
+      "Project Services routes clean local domains back to service ports behind the scenes. Your terminal needs the right HOST and PORT values when you run dev commands.",
   },
   {
     icon: Zap,

@@ -44,6 +44,15 @@ export interface WorkspaceIsolationEnabledWorkspace {
   servicePorts: Record<string, number>;
 }
 
+export type WorkspaceActivationTargetKind = "base" | "workspace";
+
+export interface WorkspaceActivationTarget {
+  label: string;
+  path: string;
+  kind: WorkspaceActivationTargetKind;
+  isActive: boolean;
+}
+
 export interface WorkspaceIsolationConnectionTarget {
   value: string;
   source: "local" | "external";

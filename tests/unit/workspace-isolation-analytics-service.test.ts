@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  trackWorkspaceIsolationActivationCompleted,
+  trackWorkspaceIsolationActivationOffered,
+  trackWorkspaceIsolationActivationSkipped,
   trackWorkspaceIsolationAutoEnvEnableCompleted,
   trackWorkspaceIsolationDialogOpened,
   trackWorkspaceIsolationInfoDialogOpened,
@@ -42,6 +45,21 @@ test("workspace isolation analytics wrappers send the expected typed events", ()
     );
     trackWorkspaceIsolationInfoDialogOpened();
     trackWorkspaceIsolationAutoEnvEnableCompleted("settings-card", true);
+    trackWorkspaceIsolationActivationOffered({
+      source: "project-dialog",
+      targetKind: "base",
+      isFirstTimeSetup: true,
+    });
+    trackWorkspaceIsolationActivationCompleted({
+      source: "project-dialog",
+      targetKind: "workspace",
+      isFirstTimeSetup: true,
+    });
+    trackWorkspaceIsolationActivationSkipped({
+      source: "project-dialog",
+      targetKind: "workspace",
+      isFirstTimeSetup: true,
+    });
     trackWorkspaceIsolationSaved(false, "enabled", {
       workspaceMode: "monorepo",
       serviceCount: 2,
@@ -70,6 +88,30 @@ test("workspace isolation analytics wrappers send the expected typed events", ()
         payload: {
           source: "settings-card",
           success: true,
+        },
+      },
+      {
+        event: "WorkspaceIsolation.activationOffered",
+        payload: {
+          source: "project-dialog",
+          targetKind: "base",
+          isFirstTimeSetup: true,
+        },
+      },
+      {
+        event: "WorkspaceIsolation.activationCompleted",
+        payload: {
+          source: "project-dialog",
+          targetKind: "workspace",
+          isFirstTimeSetup: true,
+        },
+      },
+      {
+        event: "WorkspaceIsolation.activationSkipped",
+        payload: {
+          source: "project-dialog",
+          targetKind: "workspace",
+          isFirstTimeSetup: true,
         },
       },
       {

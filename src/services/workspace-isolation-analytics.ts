@@ -1,4 +1,5 @@
 import type {
+  WorkspaceIsolationActivationTargetKind,
   WorkspaceIsolationAnalyticsAutoEnvState,
   WorkspaceIsolationAnalyticsOpeningStep,
   WorkspaceIsolationAnalyticsSource,
@@ -80,4 +81,28 @@ export const trackWorkspaceIsolationDeleted = (
     serviceCount: summary.serviceCount,
     connectionCount: summary.connectionCount,
   });
+};
+
+export const trackWorkspaceIsolationActivationOffered = (input: {
+  source: WorkspaceIsolationAnalyticsSource;
+  targetKind: WorkspaceIsolationActivationTargetKind;
+  isFirstTimeSetup: boolean;
+}): void => {
+  trackAnalyticsEvent("WorkspaceIsolation.activationOffered", input);
+};
+
+export const trackWorkspaceIsolationActivationCompleted = (input: {
+  source: WorkspaceIsolationAnalyticsSource;
+  targetKind: WorkspaceIsolationActivationTargetKind;
+  isFirstTimeSetup: boolean;
+}): void => {
+  trackAnalyticsEvent("WorkspaceIsolation.activationCompleted", input);
+};
+
+export const trackWorkspaceIsolationActivationSkipped = (input: {
+  source: WorkspaceIsolationAnalyticsSource;
+  targetKind: WorkspaceIsolationActivationTargetKind;
+  isFirstTimeSetup: boolean;
+}): void => {
+  trackAnalyticsEvent("WorkspaceIsolation.activationSkipped", input);
 };

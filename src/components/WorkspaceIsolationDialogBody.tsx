@@ -1,14 +1,14 @@
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { WorkspaceIsolationActivateWorkspaceStep } from "@/components/WorkspaceIsolationActivateWorkspaceStep";
 import { WorkspaceIsolationAutoEnvStep } from "@/components/WorkspaceIsolationAutoEnvStep";
-import { WorkspaceIsolationDialogLead } from "@/components/WorkspaceIsolationDialogLead";
-import { WorkspaceIsolationDialogServiceCard } from "@/components/WorkspaceIsolationDialogServiceCard";
-import { WorkspaceIsolationDialogSingleAppState } from "@/components/WorkspaceIsolationDialogSingleAppState";
+import { WorkspaceIsolationDialogConfigurationStep } from "@/components/WorkspaceIsolationDialogConfigurationStep";
 import { WorkspaceIsolationIntroStep } from "@/components/WorkspaceIsolationIntroStep";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { isSingleAppOverviewStep } from "@/lib/workspace-isolation-dialog-layout";
 import type { WorkspaceIsolationDialogStep } from "@/lib/workspace-isolation-dialog-step";
 import type {
+  WorkspaceIsolationProxyStatus,
+  WorkspaceIsolationShellHookStatus,
+} from "@/types/electron";
+import type {
+  WorkspaceActivationTarget,
   WorkspaceIsolationConnection,
   WorkspaceIsolationMode,
   WorkspaceIsolationProjectTopology,
@@ -25,6 +25,10 @@ interface WorkspaceIsolationDialogBodyProps {
   stackId: string;
   draftWorkspaceMode: WorkspaceIsolationMode;
   draftServices: WorkspaceIsolationService[];
+  activationTargets: WorkspaceActivationTarget[];
+  proxyStatus: WorkspaceIsolationProxyStatus;
+  shellHookStatus: WorkspaceIsolationShellHookStatus | null;
+  selectedActivationTargetPath: string | null;
   workspaceIsolationProjectTopologies: WorkspaceIsolationProjectTopology[];
   workspaceIsolationStacks: WorkspaceIsolationStack[];
   onAddService: () => void;
@@ -41,6 +45,7 @@ interface WorkspaceIsolationDialogBodyProps {
   ) => void;
   onRemoveConnection: (serviceId: string, linkId: string) => void;
   onWorkspaceModeChange: (value: WorkspaceIsolationMode) => void;
+  onSelectActivationTarget: (path: string) => void;
 }
 
 export const WorkspaceIsolationDialogBody = ({
@@ -52,6 +57,10 @@ export const WorkspaceIsolationDialogBody = ({
   stackId,
   draftWorkspaceMode,
   draftServices,
+  activationTargets,
+  proxyStatus,
+  shellHookStatus,
+  selectedActivationTargetPath,
   workspaceIsolationProjectTopologies,
   workspaceIsolationStacks,
   onAddService,
@@ -61,6 +70,7 @@ export const WorkspaceIsolationDialogBody = ({
   onChangeConnection,
   onRemoveConnection,
   onWorkspaceModeChange,
+  onSelectActivationTarget,
 }: WorkspaceIsolationDialogBodyProps) => {
   if (step === 1) {
     return <WorkspaceIsolationIntroStep />;
@@ -68,73 +78,37 @@ export const WorkspaceIsolationDialogBody = ({
   if (step === 2) {
     return <WorkspaceIsolationAutoEnvStep />;
   }
-
-  const lead = (
-    <WorkspaceIsolationDialogLead
-      step={step}
-      workspaceRootPath={workspaceRootPath}
-      workspaceRootLabel={workspaceRootLabel}
-      workspaceMode={draftWorkspaceMode}
-      onWorkspaceModeChange={onWorkspaceModeChange}
-    />
-  );
-
-  if (isSingleAppOverviewStep(step, draftWorkspaceMode)) {
+  if (step === 5) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col gap-6">
-        {lead}
-        <WorkspaceIsolationDialogSingleAppState className="flex-1" />
-      </div>
+      <WorkspaceIsolationActivateWorkspaceStep
+        activationTargets={activationTargets}
+        selectedTargetPath={selectedActivationTargetPath}
+        proxyStatus={proxyStatus}
+        shellHookStatus={shellHookStatus}
+        onSelectTarget={onSelectActivationTarget}
+      />
     );
   }
 
   return (
-    <ScrollArea className="flex-1 -mr-4 pr-4">
-      <div className="grid gap-6">
-        {lead}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-medium">Services</h3>
-              <p className="text-xs text-muted-foreground">
-                {step === 3
-                  ? "Define folders for services in this monorepo."
-                  : "Define environment variable connections for each service."}
-              </p>
-            </div>
-            {step === 3 && draftWorkspaceMode === "monorepo" ? (
-              <Button size="sm" variant="secondary" onClick={onAddService}>
-                <Plus className="h-4 w-4" />
-                Add Service
-              </Button>
-            ) : null}
-          </div>
-
-          <div className="grid gap-4">
-            {draftServices.map((service) => (
-              <WorkspaceIsolationDialogServiceCard
-                key={service.id}
-                projectId={projectId}
-                projectName={projectName}
-                workspaceRootPath={workspaceRootPath}
-                workspaceLabel={workspaceRootLabel}
-                stackId={stackId}
-                service={service}
-                workspaceMode={draftWorkspaceMode}
-                services={draftServices}
-                workspaceIsolationProjectTopologies={workspaceIsolationProjectTopologies}
-                workspaceIsolationStacks={workspaceIsolationStacks}
-                step={step}
-                onChangeService={onChangeService}
-                onRemoveService={onRemoveService}
-                onAddConnection={onAddConnection}
-                onChangeConnection={onChangeConnection}
-                onRemoveConnection={onRemoveConnection}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-    </ScrollArea>
+    <WorkspaceIsolationDialogConfigurationStep
+      step={step}
+      projectId={projectId}
+      projectName={projectName}
+      workspaceRootPath={workspaceRootPath}
+      workspaceRootLabel={workspaceRootLabel}
+      stackId={stackId}
+      draftWorkspaceMode={draftWorkspaceMode}
+      draftServices={draftServices}
+      workspaceIsolationProjectTopologies={workspaceIsolationProjectTopologies}
+      workspaceIsolationStacks={workspaceIsolationStacks}
+      onAddService={onAddService}
+      onChangeService={onChangeService}
+      onRemoveService={onRemoveService}
+      onAddConnection={onAddConnection}
+      onChangeConnection={onChangeConnection}
+      onRemoveConnection={onRemoveConnection}
+      onWorkspaceModeChange={onWorkspaceModeChange}
+    />
   );
 };

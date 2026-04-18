@@ -10,7 +10,10 @@ export type WorkspaceIsolationAnalyticsSource =
   | "workspace-warning"
   | "settings-card"
   | "settings-info"
-  | "onboarding";
+  | "onboarding"
+  | "project-dialog";
+
+export type WorkspaceIsolationActivationTargetKind = "base" | "workspace";
 
 export type WorkspaceIsolationAnalyticsOpeningStep =
   | "intro"
@@ -54,7 +57,7 @@ export const getWorkspaceIsolationAnalyticsAutoEnvState = (
 };
 
 export const getWorkspaceIsolationAnalyticsOpeningStep = (
-  step: 1 | 2 | 3 | 4,
+  step: 1 | 2 | 3 | 4 | 5,
 ): WorkspaceIsolationAnalyticsOpeningStep =>
   step === 1 ? "intro" : step === 2 ? "auto-env" : "configuration";
 

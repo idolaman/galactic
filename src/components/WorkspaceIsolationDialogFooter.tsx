@@ -7,6 +7,8 @@ interface WorkspaceIsolationDialogFooterProps {
   isEditing: boolean;
   showFeatureIntroStep: boolean;
   isEnablingLocalEnv: boolean;
+  activationButtonLabel: string;
+  isActivatingSelectedWorkspace: boolean;
   onClose: () => void;
   onDelete: () => void;
   onContinueIntro: () => void;
@@ -15,6 +17,8 @@ interface WorkspaceIsolationDialogFooterProps {
   onContinueToConnections: () => void;
   onBackToConfiguration: () => void;
   onSave: () => void;
+  onActivateSelectedWorkspace: () => void;
+  onFinishWithoutActivation: () => void;
 }
 
 export const WorkspaceIsolationDialogFooter = ({
@@ -22,6 +26,8 @@ export const WorkspaceIsolationDialogFooter = ({
   isEditing,
   showFeatureIntroStep,
   isEnablingLocalEnv,
+  activationButtonLabel,
+  isActivatingSelectedWorkspace,
   onClose,
   onDelete,
   onContinueIntro,
@@ -30,16 +36,18 @@ export const WorkspaceIsolationDialogFooter = ({
   onContinueToConnections,
   onBackToConfiguration,
   onSave,
+  onActivateSelectedWorkspace,
+  onFinishWithoutActivation,
 }: WorkspaceIsolationDialogFooterProps) => (
   <DialogFooter className="shrink-0 gap-2 pt-4 sm:justify-between">
     {isEditing && step === 3 ? (
       <Button variant="destructive" onClick={onDelete}>
-        Remove Topology
+        Remove Project Services
       </Button>
     ) : (
       <div />
     )}
-    <div className="flex flex-col-reverse gap-2 sm:flex-row">
+    <div className="flex min-w-0 flex-col-reverse gap-2 sm:flex-row sm:justify-end">
       {step === 1 ? (
         <>
           <Button variant="outline" onClick={onClose}>
@@ -77,8 +85,25 @@ export const WorkspaceIsolationDialogFooter = ({
           <Button variant="outline" onClick={onBackToConfiguration}>
             Back
           </Button>
-          <Button onClick={onSave}>
-            {isEditing ? "Save Topology" : "Save Project Topology"}
+          <Button onClick={onSave}>Save Project Services</Button>
+        </>
+      ) : null}
+
+      {step === 5 ? (
+        <>
+          <Button variant="outline" onClick={onFinishWithoutActivation} className="shrink-0">
+            Done for now
+          </Button>
+          <Button
+            onClick={onActivateSelectedWorkspace}
+            disabled={isActivatingSelectedWorkspace}
+            className="max-w-full overflow-hidden sm:max-w-[350px]"
+          >
+            <span className="truncate">
+              {isActivatingSelectedWorkspace
+                ? "Activating..."
+                : activationButtonLabel}
+            </span>
           </Button>
         </>
       ) : null}

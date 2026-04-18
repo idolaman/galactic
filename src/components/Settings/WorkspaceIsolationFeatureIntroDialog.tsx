@@ -28,7 +28,7 @@ export function WorkspaceIsolationFeatureIntroDialog() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Welcome to Workspace Isolation</DialogTitle>
+            <DialogTitle>What Project Services does</DialogTitle>
             <DialogDescription>
               See how Galactic gives each workspace its own routed local surface
               before you enable Terminal Auto-Env.

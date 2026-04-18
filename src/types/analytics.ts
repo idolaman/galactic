@@ -25,6 +25,9 @@ export type AnalyticsEvent =
   | "WorkspaceIsolation.autoEnvEnableAttempted"
   | "WorkspaceIsolation.autoEnvEnableCompleted"
   | "WorkspaceIsolation.configurationAdvanced"
+  | "WorkspaceIsolation.activationOffered"
+  | "WorkspaceIsolation.activationCompleted"
+  | "WorkspaceIsolation.activationSkipped"
   | "WorkspaceIsolation.saved"
   | "WorkspaceIsolation.deleted"
   | "Update.completed";

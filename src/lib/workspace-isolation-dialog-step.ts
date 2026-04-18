@@ -1,6 +1,6 @@
 import type { WorkspaceIsolationShellHookStatus } from "../types/electron.js";
 
-export type WorkspaceIsolationDialogStep = 1 | 2 | 3 | 4;
+export type WorkspaceIsolationDialogStep = 1 | 2 | 3 | 4 | 5;
 
 export interface WorkspaceIsolationDialogOpeningState {
   step: 1 | 2 | 3;

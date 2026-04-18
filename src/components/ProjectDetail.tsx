@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ArrowLeft,
   GitMerge,
@@ -20,6 +20,7 @@ import { LaunchButton } from "@/components/LaunchButton";
 import { ProjectSyncTargets } from "@/components/ProjectSyncTargets";
 import { WorkspaceNetworkingPanel } from "@/components/WorkspaceNetworkingPanel";
 import type { CreateWorkspaceRequest } from "@/lib/create-workspace-request";
+import { createWorkspaceActivationTargets } from "@/lib/workspace-isolation-activation";
 import { getWorkspaceIsolationProjectScopeLabel } from "@/lib/workspace-isolation";
 import type { Workspace } from "@/types/workspace";
 import type { Environment, EnvironmentBinding } from "@/types/environment";
@@ -77,9 +78,19 @@ export const ProjectDetail = ({
   onEnvironmentChange,
 }: ProjectDetailProps) => {
   const [isProjectIsolationDialogOpen, setIsProjectIsolationDialogOpen] = useState(false);
-  const { workspaceIsolationTopologyForProject } =
+  const { workspaceIsolationStacks, workspaceIsolationTopologyForProject } =
     useWorkspaceIsolationManager();
   const projectTopology = workspaceIsolationTopologyForProject(project.id);
+  const activationTargets = useMemo(
+    () =>
+      createWorkspaceActivationTargets({
+        workspaceRootPath: project.path,
+        workspaceRootLabel: "Repository Root",
+        workspaces,
+        workspaceIsolationStacks,
+      }),
+    [project.path, workspaces, workspaceIsolationStacks],
+  );
 
   return (
     <div className="space-y-6">
@@ -136,6 +147,7 @@ export const ProjectDetail = ({
           workspaceRootPath={project.path}
           workspaceRootLabel="Repository Root"
           projectName={project.name}
+          activationTargets={activationTargets}
           stack={projectTopology}
         />
 

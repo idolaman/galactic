@@ -1,23 +1,25 @@
 import type { WorkspaceIsolationDialogStep } from "@/lib/workspace-isolation-dialog-step";
 
 const dialogTitles: Record<WorkspaceIsolationDialogStep, string> = {
-  1: "Welcome to Project Isolation",
+  1: "Welcome to Project Services",
   2: "Enable Terminal Auto-Env",
-  3: "Project Services Topology",
-  4: "Map Connections",
+  3: "Set Up Project Services",
+  4: "Map Service Connections",
+  5: "Activate a Workspace",
 };
 
 const dialogDescriptions: Record<WorkspaceIsolationDialogStep, string> = {
-  1: "See how Galactic gives your project its own routed local surface.",
+  1: "See how Galactic gives your project a safer local surface across multiple workspaces.",
   2: "Enable the terminal bridge Galactic needs before configuring routed services.",
-  3: "Define the core services for this project. They will be available to all branches.",
+  3: "Define services once for the project. You can turn them on per workspace later.",
   4: "Map environment variables to other services in this project or across Galactic.",
+  5: "Project Services are saved. Choose one workspace to activate now, or enable others later from their cards.",
 };
 
 export const getWorkspaceIsolationDialogTitle = (
   step: WorkspaceIsolationDialogStep,
   isEditing: boolean,
-): string => (step === 3 && isEditing ? "Edit Project Topology" : dialogTitles[step]);
+): string => (step === 3 && isEditing ? "Edit Project Services" : dialogTitles[step]);
 
 export const getWorkspaceIsolationDialogDescription = (
   step: WorkspaceIsolationDialogStep,

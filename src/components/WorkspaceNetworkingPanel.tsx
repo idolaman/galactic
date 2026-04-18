@@ -107,7 +107,7 @@ export const WorkspaceNetworkingPanel = ({
                 className="group h-7 shrink-0 border-primary/30 px-3 text-xs text-primary hover:bg-primary/10"
               >
                 <PlayCircle className="mr-1.5 h-3 w-3 transition-transform group-hover:scale-110" />
-                Enable
+                Activate
               </Button>
             </div>
           </div>
@@ -122,7 +122,7 @@ export const WorkspaceNetworkingPanel = ({
                 </div>
                 <div className="space-y-0.5">
                   <p className="text-sm font-semibold tracking-tight">
-                    Project Isolation Active
+                    Project Services active
                   </p>
                   <p className="text-[11px] font-medium opacity-80">
                     Traffic routed via secure local proxy

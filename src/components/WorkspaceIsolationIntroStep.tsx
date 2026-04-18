@@ -9,7 +9,7 @@ const introItems = [
     icon: GitBranch,
     title: "Run multiple branches side by side",
     description:
-      "Workspace Isolation lets you keep separate branch environments live at the same time without localhost collisions.",
+      "Project Services lets you keep separate branch environments live at the same time without localhost collisions.",
   },
   {
     icon: Network,

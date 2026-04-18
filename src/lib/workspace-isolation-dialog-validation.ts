@@ -21,7 +21,7 @@ export const validateWorkspaceIsolationDraft = (
     return {
       error: {
         title: "Name required",
-        description: "Workspace Isolation name cannot be empty.",
+        description: "Project Services name cannot be empty.",
       },
     };
   }
@@ -30,7 +30,7 @@ export const validateWorkspaceIsolationDraft = (
     return {
       error: {
         title: "Add a service",
-        description: "Workspace Isolation needs at least one service.",
+        description: "Project Services needs at least one service.",
       },
     };
   }

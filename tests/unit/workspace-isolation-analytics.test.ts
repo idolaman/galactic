@@ -45,6 +45,7 @@ test("workspace isolation analytics opening step collapses setup flow to three b
   assert.equal(getWorkspaceIsolationAnalyticsOpeningStep(2), "auto-env");
   assert.equal(getWorkspaceIsolationAnalyticsOpeningStep(3), "configuration");
   assert.equal(getWorkspaceIsolationAnalyticsOpeningStep(4), "configuration");
+  assert.equal(getWorkspaceIsolationAnalyticsOpeningStep(5), "configuration");
 });
 
 test("workspace isolation analytics summary counts services and complete connections only", () => {

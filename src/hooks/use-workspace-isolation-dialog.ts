@@ -6,6 +6,13 @@ import {
   getWorkspaceIsolationAnalyticsOpeningStep,
   getWorkspaceIsolationAnalyticsSummary,
 } from "@/lib/workspace-isolation-analytics";
+import {
+  getInitialWorkspaceActivationTargetPath,
+  getSelectableWorkspaceActivationTargets,
+  getWorkspaceActivationButtonLabel,
+  getWorkspaceActivationTarget,
+  shouldOfferWorkspaceActivation,
+} from "@/lib/workspace-isolation-activation";
 import { createEmptyService } from "@/lib/workspace-isolation-dialog";
 import {
   addDraftConnection,
@@ -31,7 +38,11 @@ import {
   getWorkspaceIsolationMode,
 } from "@/lib/workspace-isolation-mode";
 import { getWorkspaceIsolationName } from "@/lib/workspace-isolation";
+import { getWorkspaceIsolationProxyStatus } from "@/services/workspace-isolation";
 import {
+  trackWorkspaceIsolationActivationCompleted,
+  trackWorkspaceIsolationActivationOffered,
+  trackWorkspaceIsolationActivationSkipped,
   trackWorkspaceIsolationConfigurationAdvanced,
   trackWorkspaceIsolationDialogOpened,
   trackWorkspaceIsolationDeleted,
@@ -39,11 +50,13 @@ import {
   trackWorkspaceIsolationSaved,
 } from "@/services/workspace-isolation-analytics";
 import type {
+  WorkspaceActivationTarget,
   WorkspaceIsolationConnection,
   WorkspaceIsolationMode,
   WorkspaceIsolationProjectTopology,
   WorkspaceIsolationService,
 } from "@/types/workspace-isolation";
+import type { WorkspaceIsolationProxyStatus } from "@/types/electron";
 
 interface UseWorkspaceIsolationDialogParams {
   open: boolean;
@@ -51,6 +64,7 @@ interface UseWorkspaceIsolationDialogParams {
   workspaceRootPath: string;
   workspaceRootLabel: string;
   projectName: string;
+  activationTargets: WorkspaceActivationTarget[];
   stack?: WorkspaceIsolationProjectTopology | null;
   onOpenChange: (open: boolean) => void;
 }
@@ -58,17 +72,24 @@ interface UseWorkspaceIsolationDialogParams {
 const getDraftServices = (services: WorkspaceIsolationService[]) =>
   applyDerivedWorkspaceIsolationServiceFields(services);
 
+const defaultProxyStatus: WorkspaceIsolationProxyStatus = {
+  running: false,
+  port: 1355,
+};
+
 export const useWorkspaceIsolationDialog = ({
   open,
   projectId,
   workspaceRootPath,
   workspaceRootLabel,
   projectName,
+  activationTargets,
   stack,
   onOpenChange,
 }: UseWorkspaceIsolationDialogParams) => {
   const { error } = useAppToast();
   const {
+    enableWorkspaceIsolationForWorkspace,
     deleteWorkspaceIsolationProjectTopology,
     markWorkspaceIsolationIntroSeen,
     saveWorkspaceIsolationProjectTopology,
@@ -90,15 +111,43 @@ export const useWorkspaceIsolationDialog = ({
   const [step, setStep] = useState<WorkspaceIsolationDialogStep>(3);
   const [showFeatureIntroStep, setShowFeatureIntroStep] = useState(false);
   const [isOpenInitialized, setIsOpenInitialized] = useState(false);
+  const [isActivatingSelectedWorkspace, setIsActivatingSelectedWorkspace] =
+    useState(false);
+  const [selectedActivationTargetPath, setSelectedActivationTargetPath] =
+    useState<string | null>(null);
+  const [proxyStatus, setProxyStatus] =
+    useState<WorkspaceIsolationProxyStatus>(defaultProxyStatus);
   const draftName = useMemo(
     () => getWorkspaceIsolationName(projectName, workspaceRootLabel),
     [projectName, workspaceRootLabel],
+  );
+  const selectableActivationTargets = useMemo(
+    () => getSelectableWorkspaceActivationTargets(activationTargets),
+    [activationTargets],
+  );
+  const selectedActivationTarget = useMemo(
+    () =>
+      getWorkspaceActivationTarget(
+        selectableActivationTargets,
+        selectedActivationTargetPath,
+      ) ?? selectableActivationTargets[0] ?? null,
+    [selectableActivationTargets, selectedActivationTargetPath],
+  );
+  const activationButtonLabel = useMemo(
+    () =>
+      getWorkspaceActivationButtonLabel(
+        selectedActivationTarget?.label ?? null,
+      ),
+    [selectedActivationTarget],
   );
 
   useEffect(() => {
     if (!open) {
       setIsOpenInitialized(false);
       setShowFeatureIntroStep(false);
+      setSelectedActivationTargetPath(null);
+      setIsActivatingSelectedWorkspace(false);
+      setProxyStatus(defaultProxyStatus);
       return;
     }
     if (isOpenInitialized) {
@@ -120,15 +169,23 @@ export const useWorkspaceIsolationDialog = ({
       );
       setSavedMonorepoServices([]);
     }
+    setSelectedActivationTargetPath(
+      getInitialWorkspaceActivationTargetPath(activationTargets),
+    );
     setStep(openingState.step);
     setShowFeatureIntroStep(openingState.showFeatureIntroStep);
     trackWorkspaceIsolationDialogOpened(
       Boolean(stack),
       getWorkspaceIsolationAnalyticsOpeningStep(openingState.step),
       getWorkspaceIsolationAnalyticsAutoEnvState(shellHookStatus),
+      "project-dialog",
     );
+    void getWorkspaceIsolationProxyStatus()
+      .then(setProxyStatus)
+      .catch(() => setProxyStatus(defaultProxyStatus));
     setIsOpenInitialized(true);
   }, [
+    activationTargets,
     open,
     stack,
     isOpenInitialized,
@@ -241,6 +298,7 @@ export const useWorkspaceIsolationDialog = ({
   };
 
   const handleSave = async () => {
+    const isEditing = Boolean(stack);
     const result = validateWorkspaceIsolationDraft(
       draftName,
       draftStackId,
@@ -265,12 +323,12 @@ export const useWorkspaceIsolationDialog = ({
         title: "Save failed",
         description:
           saveResult.error ??
-          "Failed to save Workspace Isolation project services.",
+          "Failed to save Project Services.",
       });
       return;
     }
     trackWorkspaceIsolationSaved(
-      Boolean(stack),
+      isEditing,
       getWorkspaceIsolationAnalyticsAutoEnvState(shellHookStatus),
       getWorkspaceIsolationAnalyticsSummary(
         draftStackId,
@@ -278,6 +336,66 @@ export const useWorkspaceIsolationDialog = ({
         result.services,
       ),
     );
+    if (shouldOfferWorkspaceActivation(isEditing, activationTargets)) {
+      const nextTarget = selectedActivationTarget ?? selectableActivationTargets[0];
+      if (nextTarget) {
+        setSelectedActivationTargetPath(nextTarget.path);
+        trackWorkspaceIsolationActivationOffered({
+          source: "project-dialog",
+          targetKind: nextTarget.kind,
+          isFirstTimeSetup: true,
+        });
+        setStep(5);
+        return;
+      }
+    }
+    onOpenChange(false);
+  };
+
+  const handleSelectActivationTarget = (path: string) =>
+    setSelectedActivationTargetPath(path);
+
+  const handleActivateSelectedWorkspace = async () => {
+    if (!selectedActivationTarget) {
+      return;
+    }
+
+    setIsActivatingSelectedWorkspace(true);
+    try {
+      const result = await enableWorkspaceIsolationForWorkspace({
+        projectId,
+        projectName,
+        workspaceRootPath: selectedActivationTarget.path,
+        workspaceRootLabel: selectedActivationTarget.label,
+      });
+      if (!result.success) {
+        error({
+          title: "Activation failed",
+          description:
+            result.error ??
+            `Failed to activate Project Services for ${selectedActivationTarget.label}.`,
+        });
+        return;
+      }
+      trackWorkspaceIsolationActivationCompleted({
+        source: "project-dialog",
+        targetKind: selectedActivationTarget.kind,
+        isFirstTimeSetup: true,
+      });
+      onOpenChange(false);
+    } finally {
+      setIsActivatingSelectedWorkspace(false);
+    }
+  };
+
+  const handleFinishWithoutActivation = () => {
+    if (selectedActivationTarget) {
+      trackWorkspaceIsolationActivationSkipped({
+        source: "project-dialog",
+        targetKind: selectedActivationTarget.kind,
+        isFirstTimeSetup: true,
+      });
+    }
     onOpenChange(false);
   };
 
@@ -291,7 +409,7 @@ export const useWorkspaceIsolationDialog = ({
         title: "Delete failed",
         description:
           deleteResult.error ??
-          "Failed to remove Workspace Isolation project services.",
+          "Failed to remove Project Services.",
       });
       return;
     }
@@ -311,6 +429,12 @@ export const useWorkspaceIsolationDialog = ({
     draftServices,
     draftStackId,
     draftWorkspaceMode,
+    activationButtonLabel,
+    isActivatingSelectedWorkspace,
+    proxyStatus,
+    shellHookStatus,
+    selectableActivationTargets,
+    selectedActivationTargetPath,
     workspaceIsolationProjectTopologies,
     workspaceIsolationStacks,
     handleFeatureIntroContinue,
@@ -327,5 +451,8 @@ export const useWorkspaceIsolationDialog = ({
     handleWorkspaceModeChange,
     handleSave,
     handleDelete,
+    handleSelectActivationTarget,
+    handleActivateSelectedWorkspace,
+    handleFinishWithoutActivation,
   };
 };
