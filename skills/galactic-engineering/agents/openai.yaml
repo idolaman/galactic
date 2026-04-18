@@ -1,0 +1,7 @@
+interface:
+  display_name: "Galactic Engineering"
+  short_description: "Applies the repo's canonical engineering rules"
+  default_prompt: "Use $galactic-engineering to apply the canonical engineering rules for the galactic-ide repository."
+
+policy:
+  allow_implicit_invocation: true
