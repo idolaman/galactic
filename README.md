@@ -5,7 +5,7 @@
 <h1 align="center">Galactic</h1>
 
 <p align="center">
-  <strong>The command center for developers who juggle multiple projects, branches, and environments.</strong>
+  <strong>The desktop command center for running branch workspaces, project services, and AI agents side by side.</strong>
 </p>
 
 <p align="center">
@@ -36,9 +36,9 @@ Modern development means working across multiple repositories, branches, microse
 
 **Galactic** gives you a single native desktop app to manage it all:
 
-- **Launch any project** in Cursor or VS Code with one click
+- **Run Project Services side by side** with stable local domains for every branch, app, API, worker, and dependency
 - **Create isolated Git worktrees** so you can work on multiple branches simultaneously without stashing
-- **Run parallel environments** on the same ports using network isolation, no Docker or VMs needed
+- **Launch any project** in Cursor or VS Code with one click
 - **Monitor your AI agents** (Cursor, Claude, Codex) in real time through MCP integration
 - **Jump to anything instantly** with a global hotkey launcher
 
@@ -46,24 +46,41 @@ Modern development means working across multiple repositories, branches, microse
 
 ## Features
 
+### Project Services
+
+Galactic's main workflow is Project Services: define the services in a project once, then run the same stack across multiple branch workspaces without fighting over one shared `localhost`.
+
+Instead of every branch trying to own `localhost:3000`, Galactic gives each service a predictable route:
+
+```text
+client.add-labels-feature.task-manager.localhost:1355
+api.add-labels-feature.task-manager.localhost:1355
+client.add-basic-sidebar.task-manager.localhost:1355
+api.add-basic-sidebar.task-manager.localhost:1355
+```
+
+That route is service-aware, branch-aware, and project-aware. You can keep a feature branch, a hotfix branch, and the repository root running at the same time, all with the same dev commands and without containers, VMs, or manual port juggling.
+
+<p align="center">
+  <img src="https://galactic-dev.com/workspaces-monorepo-services.png" alt="Galactic Project Services showing local domains for monorepo workspaces" width="720" />
+</p>
+
+How it works:
+
+- **Project topology:** choose single-app or monorepo mode, then map services to folders such as `.`, `apps/web`, `apps/api`, or `workers/email`.
+- **Workspace activation:** when you activate Project Services for a branch worktree, Galactic applies the saved topology to that workspace and assigns runtime ports for each service.
+- **Local routing:** Galactic runs a local proxy on `localhost:1355`. Requests to `service.branch.project.localhost:1355` are routed back to the correct `127.0.0.1:<port>` service for that workspace, including WebSocket traffic.
+- **Terminal Auto-Env:** a managed zsh hook exports the right `HOST` and `PORT` when you `cd` into a service folder, so normal commands like `npm run dev` start on the workspace-specific port.
+- **Service connections:** services can declare environment variables that point to other services, including services in another Galactic project. For example, a web app can receive `API_URL=http://api.feature-auth.shop.localhost:1355`.
+
+Most common frameworks already respect `PORT`, including Next.js, Express, and Nuxt. Galactic handles host and port wiring for Vite, Astro, React Router, Angular, Expo, and React Native; SvelteKit is covered through Vite. The older local-IP environment mode is kept for existing setups, but Project Services is the recommended path for new parallel workspace workflows.
+
 ### Project Dashboard & Git Worktrees
 
 Create fully isolated worktrees for any branch with a single click. Each worktree gets its own `.code-workspace` file and can optionally inherit config files from the main repo. Work on a hotfix while your feature branch stays untouched.
 
 <p align="center">
   <img src="https://galactic-dev.com/demos/clip-workspaces.gif" alt="Git Worktrees" width="720" />
-</p>
-
-### Network Isolation Environments
-
-The standout feature. Galactic assigns unique loopback addresses (`127.0.0.2`, `127.0.0.3`, ...) to each environment, letting you run **multiple instances of the same stack on the same ports** without conflicts. No containers, no port juggling.
-
-<p align="center">
-  <img src="https://galactic-dev.com/ip-feature.png" alt="Network Isolation — unique local IP per workspace" width="600" />
-</p>
-
-<p align="center">
-  <img src="https://galactic-dev.com/demos/clip-environments.gif" alt="Network Isolation Environments" width="720" />
 </p>
 
 ### AI Agent Monitoring (MCP)
@@ -84,11 +101,11 @@ Press **Cmd+Shift+G** anywhere on your Mac to summon a floating sidebar with all
 
 ### Dual Editor Support
 
-First-class support for both **Cursor** and **VS Code**. Choose your preferred editor globally, and Galactic handles workspace file generation, environment binding, and smart launch logic for either one.
+First-class support for both **Cursor** and **VS Code**. Choose your preferred editor globally, and Galactic handles workspace file generation, Project Services metadata, and smart launch logic for either one.
 
-### Workspace Environment Binding
+### Workspace Awareness
 
-Attach environments to projects and worktrees. Galactic writes `.code-workspace` files with your environment variables baked in, and detects when variables change so you know to relaunch.
+Keep projects, branch worktrees, routed services, and active agent sessions connected to the workspace they belong to. Galactic makes it clear which branch is running, which services are live, and which editor or agent session needs attention.
 
 ---
 
@@ -96,7 +113,7 @@ Attach environments to projects and worktrees. Galactic writes `.code-workspace`
 
 ### Download
 
-Grab the latest signed `.dmg` from [galactic-dev.com](https://galactic-dev.com).
+Grab the `.dmg` from [galactic-dev.com](https://galactic-dev.com).
 
 ### Build from Source
 
@@ -126,40 +143,6 @@ Outputs a signed `.dmg` and `.zip` to the `release/` directory (arm64 + x64).
 
 ---
 
-## Architecture
-
-```
-galactic-ide/
-├── electron/            # Main process, preload, MCP server
-│   ├── main.ts          # Electron entry point & IPC handlers
-│   ├── preload.ts       # Secure bridge to renderer
-│   └── mcp-server.ts    # Model Context Protocol server
-├── src/                 # React renderer (Vite)
-│   ├── pages/           # Top-level routes
-│   ├── components/      # React components + shadcn/ui
-│   ├── services/        # Business logic & IPC bridges
-│   ├── hooks/           # Custom React hooks
-│   ├── stores/          # Zustand state
-│   └── types/           # TypeScript definitions
-├── electron-builder.yml # Build & packaging config
-└── package.json
-```
-
-### Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Desktop Shell | Electron 32 |
-| Frontend | React 18, TypeScript 5.8, Vite 5 |
-| UI Components | shadcn/ui + Radix UI |
-| Styling | Tailwind CSS 3 |
-| State | Zustand, TanStack React Query |
-| Validation | Zod |
-| Icons | Lucide React |
-| Auto-Updates | electron-updater |
-
----
-
 ## Scripts
 
 | Command | Description |
@@ -184,16 +167,6 @@ npm run lint   # Must pass before submitting
 ```
 
 See [CLAUDE.md](CLAUDE.md) for detailed coding conventions (file size limits, styling rules, import patterns, naming, etc.).
-
----
-
-## Roadmap
-
-- [ ] Windows and Linux support
-- [ ] Plugin system for custom integrations
-- [ ] Project templates and scaffolding
-- [ ] Team workspace sharing
-- [ ] Built-in terminal with environment awareness
 
 Have an idea? [Open an issue](../../issues) to start a discussion.
 

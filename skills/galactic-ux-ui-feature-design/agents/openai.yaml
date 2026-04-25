@@ -1,0 +1,7 @@
+interface:
+  display_name: "Galactic UX/UI Feature Design"
+  short_description: "Designs Galactic UX flows and interface states"
+  default_prompt: "Use $galactic-ux-ui-feature-design to design the UX/UI for a Galactic feature using an approved solution brief."
+
+policy:
+  allow_implicit_invocation: true

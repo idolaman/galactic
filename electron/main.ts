@@ -28,6 +28,7 @@ import { registerEditorLaunchIpc } from "./ipc/register-editor-launch.js";
 import { registerGitWorktreeIpc } from "./ipc/register-git-worktree.js";
 import { MCP_SERVER_PORT, registerMcpIpc } from "./ipc/register-mcp.js";
 import { registerProjectSyncIpc } from "./ipc/register-project-sync.js";
+import { registerWorkspaceIsolationIpc } from "./ipc/register-workspace-isolation.js";
 import {
   startMcpServer,
   stopMcpServer,
@@ -49,6 +50,7 @@ import { syncFinishedSessionNotificationState } from "./utils/session-notificati
 import { fetchGitBranchesWithReason } from "./utils/git-fetch-branches.js";
 import { listGitBranches } from "./utils/git-list-branches.js";
 import { isWorktreeAlreadyRemovedError } from "./utils/git-worktree-remove.js";
+import { WorkspaceIsolationManager } from "./workspace-isolation/manager.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const execFileAsync = promisify(execFile);
@@ -72,6 +74,7 @@ let updateCheckTimer: NodeJS.Timeout | null = null;
 let updateCheckInFlight: Promise<UpdateCheckResult | null> | null = null;
 const isUpdateEnabled = () => getGalacticUpdateUrl().length > 0;
 const editorLaunchService = createEditorLaunchService();
+const workspaceIsolationManager = new WorkspaceIsolationManager(app.getPath("userData"), process.platform);
 const macNotifierService = createMacNotifierService({
   isPackaged: app.isPackaged,
   resourcesPath: process.resourcesPath,
@@ -663,6 +666,19 @@ app.whenReady().then(async () => {
     appSettings = { ...appSettings, quickSidebarHotkeyEnabled: false };
     await persistAppSettings();
   }
+  try {
+    await workspaceIsolationManager.start(appSettings.workspaceIsolationShellHooksEnabled);
+    const shellHookStatus = workspaceIsolationManager.getShellHookStatus();
+    if (shellHookStatus.enabled !== appSettings.workspaceIsolationShellHooksEnabled) {
+      appSettings = {
+        ...appSettings,
+        workspaceIsolationShellHooksEnabled: shellHookStatus.enabled,
+      };
+      await persistAppSettings();
+    }
+  } catch (error) {
+    console.error("Failed to start Workspace Isolation services:", error);
+  }
 
   createWindow().catch((error) => {
     console.error("Failed to create window:", error);
@@ -695,6 +711,7 @@ app.on("before-quit", () => {
     updateCheckTimer = null;
   }
   stopMcpServer();
+  void workspaceIsolationManager.stop();
 });
 
 app.on("will-quit", () => {
@@ -901,6 +918,39 @@ registerProjectSyncIpc({
 registerMcpIpc({
   ipcMain,
   mcpConnected: (tool) => analytics.mcpConnected(tool),
+});
+
+registerWorkspaceIsolationIpc({
+  ipcMain,
+  getStacks: () => workspaceIsolationManager.getStacks(),
+  getProjectTopologies: () => workspaceIsolationManager.getProjectTopologies(),
+  getIntroSeen: () => appSettings.workspaceIsolationIntroSeen,
+  saveProjectTopology: (input) =>
+    workspaceIsolationManager.saveProjectTopology(input),
+  deleteProjectTopology: (topologyId) =>
+    workspaceIsolationManager.deleteProjectTopology(topologyId),
+  enableWorkspace: (input) => workspaceIsolationManager.enableWorkspace(input),
+  disableWorkspace: (workspaceRootPath) =>
+    workspaceIsolationManager.disableWorkspace(workspaceRootPath),
+  getShellHookStatus: () => workspaceIsolationManager.getShellHookStatus(),
+  getProxyStatus: () => workspaceIsolationManager.getProxyStatus(),
+  markIntroSeen: async () => {
+    appSettings = {
+      ...appSettings,
+      workspaceIsolationIntroSeen: true,
+    };
+    await persistAppSettings();
+    return true;
+  },
+  setShellHooksEnabled: async (enabled) => {
+    const status = await workspaceIsolationManager.setShellHooksEnabled(enabled);
+    appSettings = {
+      ...appSettings,
+      workspaceIsolationShellHooksEnabled: status.enabled,
+    };
+    await persistAppSettings();
+    return status;
+  },
 });
 
 const resolveWorktreePath = (projectPath: string, worktreePath: string) => {

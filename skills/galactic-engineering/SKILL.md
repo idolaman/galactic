@@ -1,12 +1,15 @@
 ---
-name: coding-conventions
-description: Enforces client coding conventions. Use when writing, reviewing, or modifying React/TypeScript code in the client/ directory. Ensures proper use of Tailwind/shadcn UI components, path aliases, TypeScript interfaces, icon usage, platform-safe storage/git logic, and consistent design system rules.
+name: galactic-engineering
+description: Applies Galactic engineering rules for work in the galactic-ide repository. Use when implementing, reviewing, or refactoring repo code and you need the canonical standards for testing, versioning, React/Tailwind conventions, toasts, storage, OS-aware logic, and git-service boundaries.
 allowed-tools: Read, Grep, Glob, Write, Edit
 ---
 
-# Client Coding Conventions (shadcn + Tailwind)
+# Galactic Engineering
 
-Apply these conventions when working on code in the `client/` directory.
+Apply these conventions when working on code in the `galactic-ide` repository.
+
+- Apply the testing and versioning rules to all feature work.
+- Apply the React/TypeScript/Tailwind rules when editing renderer code in `src/`.
 
 ---
 

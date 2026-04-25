@@ -16,6 +16,7 @@ import NotFound from "./pages/NotFound";
 import { useUpdateListener } from "@/hooks/use-update";
 import { ThemeProvider } from "@/components/theme-provider";
 import { EnvironmentProvider } from "@/hooks/use-environment-manager";
+import { WorkspaceIsolationManagerProvider } from "@/providers/WorkspaceIsolationManagerProvider";
 import { StarsBackground } from "@/components/StarsBackground";
 
 const queryClient = new QueryClient();
@@ -84,10 +85,12 @@ const App = () => {
       <ThemeProvider attribute="class" defaultTheme="dark" storageKey="galactic-ide-theme">
         <StarsBackground />
         <EnvironmentProvider>
-          <TooltipProvider>
-            {toastLayers}
-            {content}
-          </TooltipProvider>
+          <WorkspaceIsolationManagerProvider>
+            <TooltipProvider>
+              {toastLayers}
+              {content}
+            </TooltipProvider>
+          </WorkspaceIsolationManagerProvider>
         </EnvironmentProvider>
       </ThemeProvider>
     </QueryClientProvider>

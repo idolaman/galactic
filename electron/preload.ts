@@ -2,6 +2,16 @@ import { contextBridge, ipcRenderer } from "electron";
 
 const initialSessionCache = ipcRenderer.sendSync("session/get-cache-sync");
 const initialDismissedSessions = ipcRenderer.sendSync("session/get-dismissed-sync");
+const initialWorkspaceIsolationStacks = ipcRenderer.sendSync("workspace-isolation/get-sync");
+const initialWorkspaceIsolationProjectTopologies = ipcRenderer.sendSync(
+  "workspace-isolation/get-topologies-sync",
+);
+const initialWorkspaceIsolationIntroSeen = ipcRenderer.sendSync(
+  "workspace-isolation/get-intro-seen-sync",
+);
+const initialWorkspaceIsolationShellHookStatus = ipcRenderer.sendSync(
+  "workspace-isolation/get-shell-hooks-sync",
+);
 
 interface SessionCacheSnapshot {
   sessions: unknown[];
@@ -39,6 +49,38 @@ contextBridge.exposeInMainWorld("electronAPI", {
   ) => ipcRenderer.invoke("project/copy-sync-targets-to-worktree", projectPath, worktreePath, targets),
   configureEnvironmentInterface: (action: "add" | "remove", address: string) =>
     ipcRenderer.invoke("network/configure-environment-interface", action, address),
+  initialWorkspaceIsolationStacks: Array.isArray(initialWorkspaceIsolationStacks)
+    ? initialWorkspaceIsolationStacks
+    : [],
+  initialWorkspaceIsolationProjectTopologies: Array.isArray(
+    initialWorkspaceIsolationProjectTopologies,
+  )
+    ? initialWorkspaceIsolationProjectTopologies
+    : [],
+  initialWorkspaceIsolationIntroSeen:
+    typeof initialWorkspaceIsolationIntroSeen === "boolean"
+      ? initialWorkspaceIsolationIntroSeen
+      : false,
+  initialWorkspaceIsolationShellHookStatus:
+    initialWorkspaceIsolationShellHookStatus &&
+    typeof initialWorkspaceIsolationShellHookStatus === "object"
+      ? initialWorkspaceIsolationShellHookStatus
+      : null,
+  getWorkspaceIsolationStacks: () => ipcRenderer.invoke("workspace-isolation/list"),
+  getWorkspaceIsolationProjectTopologies: () =>
+    ipcRenderer.invoke("workspace-isolation/topologies"),
+  saveWorkspaceIsolationProjectTopology: (input: unknown) =>
+    ipcRenderer.invoke("workspace-isolation/save-topology", input),
+  deleteWorkspaceIsolationProjectTopology: (topologyId: string) =>
+    ipcRenderer.invoke("workspace-isolation/delete-topology", topologyId),
+  enableWorkspaceIsolationForWorkspace: (input: unknown) =>
+    ipcRenderer.invoke("workspace-isolation/enable-workspace", input),
+  disableWorkspaceIsolationForWorkspace: (workspaceRootPath: string) =>
+    ipcRenderer.invoke("workspace-isolation/disable-workspace", workspaceRootPath),
+  markWorkspaceIsolationIntroSeen: () =>
+    ipcRenderer.invoke("workspace-isolation/mark-intro-seen"),
+  getWorkspaceIsolationProxyStatus: () =>
+    ipcRenderer.invoke("workspace-isolation/proxy-status"),
   writeCodeWorkspace: (
     targetPath: string,
     envConfig: { address?: string; envVars?: Record<string, string> } | null,
@@ -56,6 +98,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getQuickSidebarHotkeyEnabled: () => ipcRenderer.invoke("settings/get-quick-sidebar-hotkey"),
   setQuickSidebarHotkeyEnabled: (enabled: boolean) =>
     ipcRenderer.invoke("settings/set-quick-sidebar-hotkey", enabled),
+  getWorkspaceIsolationShellHookStatus: () =>
+    ipcRenderer.invoke("settings/get-workspace-isolation-shell-hooks"),
+  setWorkspaceIsolationShellHooksEnabled: (enabled: boolean) =>
+    ipcRenderer.invoke("settings/set-workspace-isolation-shell-hooks", enabled),
   getEventNotificationStatus: () => ipcRenderer.invoke("settings/get-event-notification-status"),
   setEventNotificationsEnabled: (enabled: boolean) =>
     ipcRenderer.invoke("settings/set-event-notifications", enabled),

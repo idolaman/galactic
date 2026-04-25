@@ -1,0 +1,39 @@
+{
+  "name": "galactic-ide",
+  "version": "1.0.26",
+  "description": "The command center for developers who juggle multiple projects, branches, and environments.",
+  "author": {
+    "name": "Galactic Dev",
+    "email": "hello@galactic-dev.com",
+    "url": "https://galactic-dev.com"
+  },
+  "homepage": "https://galactic-dev.com",
+  "repository": "https://github.com/idolaman/galactic-ide",
+  "license": "AGPL-3.0",
+  "keywords": [
+    "galactic",
+    "developer-tools",
+    "git",
+    "worktrees",
+    "mcp",
+    "codex-skills"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Galactic Skills",
+    "shortDescription": "Repo-local Codex skills for Galactic product, UX, and client conventions.",
+    "longDescription": "Exposes the Galactic repo's local Codex skills so they can be discovered with $skill-name in a plugin-aware Codex runtime.",
+    "developerName": "Galactic Dev",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://galactic-dev.com",
+    "defaultPrompt": [
+      "Use $galactic-feature-gap-analysis on the current Galactic workflow.",
+      "Use $galactic-solution-framing to scope the next Galactic bet.",
+      "Use $coding-conventions before editing client React code."
+    ]
+  }
+}

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Galactic Design Validation"
+  short_description: "Critiques Galactic design specs before handoff"
+  default_prompt: "Use $galactic-design-validation to validate a Galactic UX/UI spec before it is handed to engineering."
+
+policy:
+  allow_implicit_invocation: true

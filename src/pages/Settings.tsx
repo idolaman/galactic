@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ArrowDownToLine, CheckCircle2, Info, Loader2, RefreshCw } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AsyncToggleSettingCard } from "@/components/Settings/AsyncToggleSettingCard";
-import { EventNotificationsSettingCard } from "@/components/Settings/EventNotificationsSettingCard";
+import { AsyncToggleSettingCard } from "@/components/settings/AsyncToggleSettingCard";
+import { EventNotificationsSettingCard } from "@/components/settings/EventNotificationsSettingCard";
+import { WorkspaceIsolationShellHooksSettingCard } from "@/components/settings/WorkspaceIsolationShellHooksSettingCard";
 import { useAppToast } from "@/hooks/use-app-toast";
 import vscodeIcon from "@/assets/vscode-icon.png";
 import cursorIcon from "@/assets/cursor.jpeg";
@@ -213,6 +214,7 @@ export default function Settings() {
       </Card>
 
       <EventNotificationsSettingCard />
+      <WorkspaceIsolationShellHooksSettingCard />
 
       <AsyncToggleSettingCard
         cardId="global-hotkey"

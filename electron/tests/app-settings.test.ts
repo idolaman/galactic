@@ -33,6 +33,8 @@ test("loadAppSettings defaults event notifications to true when the key is missi
     const settings = await loadAppSettings(settingsPath);
     assert.equal(settings.eventNotificationsEnabled, true);
     assert.equal(settings.quickSidebarHotkeyEnabled, true);
+    assert.equal(settings.workspaceIsolationShellHooksEnabled, false);
+    assert.equal(settings.workspaceIsolationIntroSeen, false);
   } finally {
     await rm(tempDir, { recursive: true, force: true });
   }
@@ -47,11 +49,15 @@ test("saveAppSettings persists event notification changes across reloads", async
       ...DEFAULT_APP_SETTINGS,
       eventNotificationsEnabled: false,
       quickSidebarHotkeyEnabled: true,
+      workspaceIsolationShellHooksEnabled: true,
+      workspaceIsolationIntroSeen: true,
     });
 
     const settings = await loadAppSettings(settingsPath);
     assert.equal(settings.eventNotificationsEnabled, false);
     assert.equal(settings.quickSidebarHotkeyEnabled, true);
+    assert.equal(settings.workspaceIsolationShellHooksEnabled, true);
+    assert.equal(settings.workspaceIsolationIntroSeen, true);
   } finally {
     await rm(tempDir, { recursive: true, force: true });
   }

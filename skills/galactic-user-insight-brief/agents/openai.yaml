@@ -1,0 +1,7 @@
+interface:
+  display_name: "Galactic User Insight Brief"
+  short_description: "Maps requests to Galactic user archetypes"
+  default_prompt: "Use $galactic-user-insight-brief to write a user insight brief for Galactic's workspace isolation onboarding flow."
+
+policy:
+  allow_implicit_invocation: true

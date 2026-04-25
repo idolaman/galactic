@@ -53,6 +53,21 @@ export interface EventNotificationStatus {
   supported: boolean;
 }
 
+export interface WorkspaceIsolationShellHookStatus {
+  enabled: boolean;
+  supported: boolean;
+  installed: boolean;
+  hookPath: string | null;
+  zshrcPath: string | null;
+  message?: string;
+}
+
+export interface WorkspaceIsolationProxyStatus {
+  running: boolean;
+  port: number;
+  message?: string;
+}
+
 export interface OpenProjectInEditorResult {
   success: boolean;
   error?: string;
@@ -87,6 +102,26 @@ export interface ElectronAPI {
     worktreePath: string,
     targets: SyncTarget[]
   ) => Promise<CopySyncTargetsResult>;
+  initialWorkspaceIsolationStacks?: unknown[];
+  initialWorkspaceIsolationProjectTopologies?: unknown[];
+  initialWorkspaceIsolationIntroSeen?: boolean;
+  initialWorkspaceIsolationShellHookStatus?: unknown;
+  getWorkspaceIsolationStacks: () => Promise<unknown[]>;
+  getWorkspaceIsolationProjectTopologies: () => Promise<unknown[]>;
+  saveWorkspaceIsolationProjectTopology: (
+    input: unknown
+  ) => Promise<{ success: boolean; error?: string; topology?: unknown }>;
+  deleteWorkspaceIsolationProjectTopology: (
+    topologyId: string
+  ) => Promise<{ success: boolean; error?: string }>;
+  enableWorkspaceIsolationForWorkspace: (
+    input: unknown
+  ) => Promise<{ success: boolean; error?: string; stack?: unknown }>;
+  disableWorkspaceIsolationForWorkspace: (
+    workspaceRootPath: string
+  ) => Promise<{ success: boolean; error?: string }>;
+  markWorkspaceIsolationIntroSeen: () => Promise<{ success: boolean; seen: boolean; error?: string }>;
+  getWorkspaceIsolationProxyStatus: () => Promise<WorkspaceIsolationProxyStatus>;
   configureEnvironmentInterface: (
     action: "add" | "remove",
     address: string
@@ -105,6 +140,8 @@ export interface ElectronAPI {
   hideQuickSidebar: () => Promise<{ hidden: boolean }>;
   getQuickSidebarHotkeyEnabled: () => Promise<boolean>;
   setQuickSidebarHotkeyEnabled: (enabled: boolean) => Promise<ToggleSettingResult>;
+  getWorkspaceIsolationShellHookStatus: () => Promise<WorkspaceIsolationShellHookStatus>;
+  setWorkspaceIsolationShellHooksEnabled: (enabled: boolean) => Promise<ToggleSettingResult>;
   getEventNotificationStatus: () => Promise<EventNotificationStatus>;
   setEventNotificationsEnabled: (enabled: boolean) => Promise<ToggleSettingResult>;
   checkForUpdates: () => Promise<{ supported: boolean; updateAvailable?: boolean; version?: string | null; message?: string; error?: string }>;

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Galactic Solution Framing"
+  short_description: "Turns a gap into a scoped product brief"
+  default_prompt: "Use $galactic-solution-framing to turn a Galactic gap analysis into a scoped solution brief."
+
+policy:
+  allow_implicit_invocation: true

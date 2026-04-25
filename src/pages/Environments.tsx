@@ -55,8 +55,8 @@ import {
 } from "@/components/ui/tabs";
 import { useAppToast } from "@/hooks/use-app-toast";
 import { useEnvironmentManager } from "@/hooks/use-environment-manager";
+import { resolveSelectedEnvironmentId } from "@/lib/environment-selection";
 import type { Environment } from "@/types/environment";
-import { cn } from "@/lib/utils";
 import { writeCodeWorkspace } from "@/services/workspace";
 import { markWorkspaceRequiresRelaunch } from "@/services/workspace-state";
 
@@ -67,7 +67,7 @@ export default function Environments() {
 
   // State
   const [selectedEnvironmentId, setSelectedEnvironmentId] = useState<string | null>(
-    null
+    () => environments[0]?.id ?? null
   );
   const [newEnvName, setNewEnvName] = useState("");
 
@@ -87,19 +87,20 @@ export default function Environments() {
 
   // Select initial environment
   useEffect(() => {
-    if (environments.length > 0 && !selectedEnvironmentId) {
-      setSelectedEnvironmentId(environments[0].id);
-    } else if (
-      selectedEnvironmentId &&
-      !environments.find((e) => e.id === selectedEnvironmentId)
-    ) {
-      setSelectedEnvironmentId(environments.length > 0 ? environments[0].id : null);
+    const nextSelectedEnvironmentId = resolveSelectedEnvironmentId(
+      selectedEnvironmentId,
+      environments,
+    );
+    if (nextSelectedEnvironmentId !== selectedEnvironmentId) {
+      setSelectedEnvironmentId(nextSelectedEnvironmentId);
     }
   }, [environments, selectedEnvironmentId]);
 
+  const activeEnvironmentId = selectedEnvironmentId ?? environments[0]?.id ?? null;
+
   const selectedEnvironment = useMemo(
-    () => environments.find((env) => env.id === selectedEnvironmentId) || null,
-    [environments, selectedEnvironmentId]
+    () => environments.find((env) => env.id === activeEnvironmentId) || null,
+    [activeEnvironmentId, environments]
   );
 
   // Sync local config state with selected environment
@@ -343,7 +344,7 @@ export default function Environments() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <Tabs
-          value={selectedEnvironmentId || ""}
+          value={activeEnvironmentId || ""}
           onValueChange={(val) => setSelectedEnvironmentId(val)}
           className="flex-1 flex flex-col overflow-hidden"
         >
@@ -572,7 +573,7 @@ export default function Environments() {
                       Network Isolation Environments
                     </h3>
                     <p className="text-muted-foreground leading-relaxed">
-                      Run multiple workspaces simultaneously on the same ports (e.g. :3000) without conflicts.
+                      Older workspace-wide loopback mode for existing setups. Project Services is the recommended path for new parallel workspace workflows.
                     </p>
                   </div>
 
@@ -584,7 +585,7 @@ export default function Environments() {
                       <div className="space-y-1">
                         <h4 className="font-semibold text-foreground text-sm">Dedicated Loopback</h4>
                         <p className="text-xs text-muted-foreground leading-snug">
-                          Each environment gets a unique local IP (e.g. 127.0.0.2), acting as a private network namespace.
+                          Each environment gets a unique local IP (e.g. 127.0.0.2), acting as a private network namespace for older compatibility flows.
                         </p>
                       </div>
                     </div>

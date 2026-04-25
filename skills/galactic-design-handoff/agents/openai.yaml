@@ -1,0 +1,7 @@
+interface:
+  display_name: "Galactic Design Handoff"
+  short_description: "Packages approved design for engineering input"
+  default_prompt: "Use $galactic-design-handoff to turn an approved Galactic design into a final handoff for future engineering skills."
+
+policy:
+  allow_implicit_invocation: true
