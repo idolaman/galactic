@@ -257,7 +257,12 @@ const Index = () => {
     });
 
     // Clean up project-scoped isolation once for the whole project.
-    void deleteWorkspaceIsolationForProject(projectId);
+    void deleteWorkspaceIsolationForProject(projectId).catch((error) => {
+      console.error(
+        `Failed to delete Project Services for project ${projectId}:`,
+        error,
+      );
+    });
     unassignTarget(projectToDelete.path);
     deleteCodeWorkspace(projectToDelete.path).catch((err) =>
       console.error("Failed to delete project workspace file:", err),
@@ -399,11 +404,27 @@ const Index = () => {
       return;
     }
 
-    // Delete associated .code-workspace file
-    await disableWorkspaceIsolationForWorkspace(workspacePath);
-    unassignTarget(workspacePath);
-    await deleteCodeWorkspace(workspacePath);
-    clearWorkspaceRelaunchFlag(workspacePath);
+    let cleanupError: string | undefined;
+    try {
+      const isolationResult =
+        await disableWorkspaceIsolationForWorkspace(workspacePath);
+      if (!isolationResult.success) {
+        cleanupError =
+          isolationResult.error ?? "Could not stop Project Services.";
+      }
+
+      const workspaceDeleteResult = await deleteCodeWorkspace(workspacePath);
+      if (!workspaceDeleteResult.success) {
+        cleanupError =
+          workspaceDeleteResult.error ?? "Could not delete the workspace file.";
+      }
+    } catch (error) {
+      cleanupError =
+        error instanceof Error ? error.message : "Workspace cleanup failed.";
+    } finally {
+      unassignTarget(workspacePath);
+      clearWorkspaceRelaunchFlag(workspacePath);
+    }
 
     setProjectWorkspaces((prev) => {
       const next = { ...prev };
@@ -429,6 +450,11 @@ const Index = () => {
 
       return next;
     });
+
+    if (cleanupError) {
+      deleteWorkspaceToast.error(getWorktreeRemovalFailureToast(cleanupError));
+      return;
+    }
 
     deleteWorkspaceToast.dismiss();
   };

@@ -5,8 +5,10 @@ import {
   getWorkspaceIsolationActivationReloadDescription,
   getWorkspaceIsolationActivationReloadTitle,
   getWorkspaceIsolationAutoEnvBadgeLabel,
-  getWorkspaceIsolationAutoEnvSuccessDescription,
   getWorkspaceIsolationAutoEnvSummary,
+  getWorkspaceIsolationTopologyEditReloadDescription,
+  getWorkspaceIsolationTopologyEditReloadTitle,
+  shouldShowWorkspaceIsolationTopologyEditReloadToast,
 } from "../../src/lib/workspace-isolation-support.js";
 
 test("getWorkspaceIsolationAutoEnvBadgeLabel matches the current support state", () => {
@@ -47,13 +49,6 @@ test("getWorkspaceIsolationAutoEnvSummary includes the reload instruction when e
   assert.match(summary, new RegExp(WORKSPACE_ISOLATION_AUTO_ENV_RELOAD_INSTRUCTION));
 });
 
-test("getWorkspaceIsolationAutoEnvSuccessDescription keeps the reload next step explicit", () => {
-  const description = getWorkspaceIsolationAutoEnvSuccessDescription();
-
-  assert.match(description, /New terminals will pick it up automatically/);
-  assert.match(description, new RegExp(WORKSPACE_ISOLATION_AUTO_ENV_RELOAD_INSTRUCTION));
-});
-
 test("activation reload copy stays workspace-specific", () => {
   const workspaceLabel = "shop/api";
 
@@ -64,5 +59,63 @@ test("activation reload copy stays workspace-specific", () => {
   assert.match(
     getWorkspaceIsolationActivationReloadDescription(workspaceLabel),
     /Project Services is active for shop\/api/,
+  );
+});
+
+test("topology edit reload copy is conditional for active workspaces", () => {
+  assert.equal(
+    getWorkspaceIsolationTopologyEditReloadTitle(),
+    "Reload zsh if active services changed",
+  );
+  assert.match(
+    getWorkspaceIsolationTopologyEditReloadDescription(),
+    /If this edit affects an activated workspace/,
+  );
+  assert.match(
+    getWorkspaceIsolationTopologyEditReloadDescription(),
+    /copy and run the reload command/,
+  );
+});
+
+test("topology edit reload toast only shows for active edited auto-env workspaces", () => {
+  const enabledShellHookStatus = {
+    enabled: true,
+    supported: true,
+    installed: true,
+    hookPath: "/tmp/hook.zsh",
+    zshrcPath: "/tmp/.zshrc",
+  };
+
+  assert.equal(
+    shouldShowWorkspaceIsolationTopologyEditReloadToast({
+      isEditing: true,
+      shellHookStatus: enabledShellHookStatus,
+      activationTargets: [{ isActive: true }],
+    }),
+    true,
+  );
+  assert.equal(
+    shouldShowWorkspaceIsolationTopologyEditReloadToast({
+      isEditing: false,
+      shellHookStatus: enabledShellHookStatus,
+      activationTargets: [{ isActive: true }],
+    }),
+    false,
+  );
+  assert.equal(
+    shouldShowWorkspaceIsolationTopologyEditReloadToast({
+      isEditing: true,
+      shellHookStatus: { ...enabledShellHookStatus, enabled: false },
+      activationTargets: [{ isActive: true }],
+    }),
+    false,
+  );
+  assert.equal(
+    shouldShowWorkspaceIsolationTopologyEditReloadToast({
+      isEditing: true,
+      shellHookStatus: enabledShellHookStatus,
+      activationTargets: [{ isActive: false }],
+    }),
+    false,
   );
 });

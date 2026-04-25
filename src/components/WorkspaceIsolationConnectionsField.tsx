@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Info, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { WorkspaceIsolationConnectionRow } from "@/components/WorkspaceIsolationConnectionRow";
@@ -79,9 +79,15 @@ export const WorkspaceIsolationConnectionsField = ({
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="flex h-5 w-5 cursor-help items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-                    </div>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-5 w-5 cursor-help rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                      aria-label="Why Connect is disabled"
+                    >
+                      <Info className="h-4 w-4" />
+                    </Button>
                   </TooltipTrigger>
                   <TooltipContent side="left" className="max-w-xs text-center">
                     No other services are available yet. Add another project service or configure isolation in another project.

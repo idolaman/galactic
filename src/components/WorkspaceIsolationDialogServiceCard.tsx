@@ -60,6 +60,7 @@ export const WorkspaceIsolationDialogServiceCard = ({
     workspaceMode === "monorepo" && !pathValue ? "New Service" : service.name;
   const canRemoveService =
     step === 3 && (workspaceMode === "monorepo" || services.length > 1);
+  const relativeFolderInputId = `relative-folder-${service.id}`;
 
   return (
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
@@ -69,9 +70,11 @@ export const WorkspaceIsolationDialogServiceCard = ({
         </div>
         {canRemoveService ? (
           <Button
+            type="button"
             variant="ghost"
             size="icon"
             className="h-7 w-7 text-muted-foreground hover:text-destructive"
+            aria-label={`Remove service ${title || service.id}`}
             onClick={() => onRemoveService(service.id)}
           >
             <Trash2 className="h-4 w-4" />
@@ -82,8 +85,9 @@ export const WorkspaceIsolationDialogServiceCard = ({
       <div className="grid gap-5 p-4">
         {step === 3 && workspaceMode === "monorepo" ? (
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <Label className="sm:w-32 shrink-0">Relative Folder</Label>
+            <Label htmlFor={relativeFolderInputId} className="sm:w-32 shrink-0">Relative Folder</Label>
             <Input
+              id={relativeFolderInputId}
               value={pathValue}
               onChange={(event) =>
                 onChangeService(service.id, { relativePath: event.target.value })

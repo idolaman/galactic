@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   getNextAvailableServicePort,
+  normalizeWorkspaceRootPath,
   normalizeRelativeServicePath,
   sanitizeRelativeServicePathInput,
   toWorkspaceIsolationSlug,
@@ -15,12 +16,21 @@ test("toWorkspaceIsolationSlug normalizes names into stable slugs", () => {
   assert.equal(toWorkspaceIsolationSlug("   ", "service"), "service");
 });
 
-test("sanitizeRelativeServicePathInput keeps only lowercase letters and slashes", () => {
-  assert.equal(sanitizeRelativeServicePathInput("App//API-1"), "app/api");
+test("sanitizeRelativeServicePathInput preserves valid folder characters", () => {
+  assert.equal(sanitizeRelativeServicePathInput("App//API-1"), "App/API-1");
   assert.equal(sanitizeRelativeServicePathInput("/services/worker/"), "/services/worker/");
-  assert.equal(sanitizeRelativeServicePathInput("api_123"), "api");
+  assert.equal(sanitizeRelativeServicePathInput("api_123"), "api_123");
+  assert.equal(sanitizeRelativeServicePathInput("packages/ui.kit"), "packages/ui.kit");
+  assert.equal(sanitizeRelativeServicePathInput("apps/web-2"), "apps/web-2");
   assert.equal(sanitizeRelativeServicePathInput("app/"), "app/");
   assert.equal(sanitizeRelativeServicePathInput("/"), "/");
+});
+
+test("normalizeWorkspaceRootPath preserves filesystem roots", () => {
+  assert.equal(normalizeWorkspaceRootPath("/"), "/");
+  assert.equal(normalizeWorkspaceRootPath("C:\\"), "C:\\");
+  assert.equal(normalizeWorkspaceRootPath("/repo/"), "/repo");
+  assert.equal(normalizeWorkspaceRootPath("C:\\repo\\"), "C:\\repo");
 });
 
 test("normalizeRelativeServicePath trims leading current-directory prefixes", () => {

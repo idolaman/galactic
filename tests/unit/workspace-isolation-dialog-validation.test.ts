@@ -109,6 +109,34 @@ test("validateWorkspaceIsolationDraft sanitizes folder paths before saving", () 
     return;
   }
 
-  assert.equal(result.services[0]?.name, "api");
-  assert.equal(result.services[0]?.relativePath, "app/api");
+  assert.equal(result.services[0]?.name, "API-1");
+  assert.equal(result.services[0]?.relativePath, "App/API-1");
+});
+
+test("validateWorkspaceIsolationDraft trims env keys before saving", () => {
+  const result = validateWorkspaceIsolationDraft("shop", "stack-1", "monorepo", [
+    {
+      id: "service-1",
+      name: "",
+      slug: "",
+      relativePath: "apps/web",
+      port: 4310,
+      createdAt: 1,
+      connections: [
+        {
+          id: "connection-1",
+          envKey: " API_URL ",
+          targetStackId: "target-stack",
+          targetServiceId: "api",
+        },
+      ],
+    },
+  ]);
+
+  assert.equal("error" in result, false);
+  if ("error" in result) {
+    return;
+  }
+
+  assert.equal(result.services[0]?.connections[0]?.envKey, "API_URL");
 });

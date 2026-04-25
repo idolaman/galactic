@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAppToast } from "@/hooks/use-app-toast";
 import { useWorkspaceIsolationManager } from "@/hooks/use-workspace-isolation-manager";
+import { useWorkspaceIsolationReloadToast } from "@/hooks/use-workspace-isolation-reload-toast";
 import {
   getWorkspaceIsolationAnalyticsAutoEnvState,
   getWorkspaceIsolationAnalyticsOpeningStep,
@@ -31,6 +32,7 @@ import {
   getWorkspaceIsolationDialogOpeningState,
   type WorkspaceIsolationDialogStep,
 } from "@/lib/workspace-isolation-dialog-step";
+import { shouldShowWorkspaceIsolationTopologyEditReloadToast } from "@/lib/workspace-isolation-support";
 import { applyDerivedWorkspaceIsolationServiceFields } from "@/lib/workspace-isolation-routing";
 import {
   createMonorepoDraftServices,
@@ -98,6 +100,7 @@ export const useWorkspaceIsolationDialog = ({
     workspaceIsolationProjectTopologies,
     workspaceIsolationStacks,
   } = useWorkspaceIsolationManager();
+  const { showTopologyEditReloadToast } = useWorkspaceIsolationReloadToast();
   const topologyId = getWorkspaceIsolationTopologyId(projectId);
   const draftStackId = stack?.id ?? topologyId;
   const [draftServices, setDraftServices] = useState<WorkspaceIsolationService[]>(
@@ -336,6 +339,13 @@ export const useWorkspaceIsolationDialog = ({
         result.services,
       ),
     );
+    if (shouldShowWorkspaceIsolationTopologyEditReloadToast({
+      isEditing,
+      shellHookStatus,
+      activationTargets,
+    })) {
+      showTopologyEditReloadToast();
+    }
     if (shouldOfferWorkspaceActivation(isEditing, activationTargets)) {
       const nextTarget = selectedActivationTarget ?? selectableActivationTargets[0];
       if (nextTarget) {

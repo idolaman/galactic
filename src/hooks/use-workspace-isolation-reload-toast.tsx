@@ -6,28 +6,25 @@ import type { AppToastController, AppToastOptions } from "@/lib/app-toast";
 import {
   WORKSPACE_ISOLATION_AUTO_ENV_RELOAD_COMMAND,
   getWorkspaceIsolationActivationReloadTitle,
-  getWorkspaceIsolationAutoEnvSuccessDescription,
+  getWorkspaceIsolationTopologyEditReloadDescription,
+  getWorkspaceIsolationTopologyEditReloadTitle,
 } from "@/lib/workspace-isolation-support";
 
-const AUTO_ENV_SUCCESS_DURATION_MS = 10000;
-
 interface WorkspaceIsolationReloadToastOptions extends AppToastOptions {
-  kind?: "info" | "success";
   workspaceLabel?: string;
 }
 
 export const useWorkspaceIsolationReloadToast = () => {
-  const { info, success } = useAppToast();
+  const { info } = useAppToast();
 
   const showReloadToast = useCallback(
     ({
-      kind = "info",
       workspaceLabel,
       ...toastOptions
     }: WorkspaceIsolationReloadToastOptions) => {
       let toastController: AppToastController | null = null;
 
-      toastController = (kind === "success" ? success : info)({
+      toastController = info({
         ...toastOptions,
         action: (
           <div className="group flex min-w-0 items-center justify-between gap-3 rounded-lg border border-black/[0.04] bg-black/[0.02] px-2.5 py-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.01)] transition-all hover:border-black/10 hover:bg-background hover:shadow-sm dark:border-white/[0.04] dark:bg-white/[0.02] dark:hover:border-white/10 dark:hover:bg-background/80 shrink-0">
@@ -51,17 +48,8 @@ export const useWorkspaceIsolationReloadToast = () => {
         ),
       });
     },
-    [info, success],
+    [info],
   );
-
-  const showAutoEnvEnabledToast = useCallback(() => {
-    showReloadToast({
-      kind: "success",
-      title: "Terminal Auto-Env enabled",
-      description: getWorkspaceIsolationAutoEnvSuccessDescription(),
-      duration: AUTO_ENV_SUCCESS_DURATION_MS,
-    });
-  }, [showReloadToast]);
 
   const showActivationReloadToast = useCallback(
     (workspaceLabel: string) => {
@@ -74,8 +62,16 @@ export const useWorkspaceIsolationReloadToast = () => {
     [showReloadToast],
   );
 
+  const showTopologyEditReloadToast = useCallback(() => {
+    showReloadToast({
+      title: getWorkspaceIsolationTopologyEditReloadTitle(),
+      description: getWorkspaceIsolationTopologyEditReloadDescription(),
+      duration: Infinity,
+    });
+  }, [showReloadToast]);
+
   return {
     showActivationReloadToast,
-    showAutoEnvEnabledToast,
+    showTopologyEditReloadToast,
   };
 };

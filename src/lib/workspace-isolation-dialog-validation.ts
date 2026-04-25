@@ -116,9 +116,11 @@ export const validateWorkspaceIsolationDraft = (
     name: stackName,
     services: services.map((service) => ({
       ...service,
-      connections: service.connections.filter(
-        (link) => link.envKey.trim() && link.targetStackId && link.targetServiceId,
-      ),
+      connections: service.connections
+        .filter(
+          (link) => link.envKey.trim() && link.targetStackId && link.targetServiceId,
+        )
+        .map((link) => ({ ...link, envKey: link.envKey.trim() })),
     })),
   };
 };

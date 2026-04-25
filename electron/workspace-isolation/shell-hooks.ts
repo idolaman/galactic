@@ -114,6 +114,9 @@ export const syncWorkspaceIsolationShellFiles = async (
 ): Promise<WorkspaceIsolationShellHookStatus> => {
   const supported = platform !== "win32";
   const { hookPath, statePath, zshrcPath } = getStatePaths(stateDir, homeDir);
+  if (!supported) {
+    return { enabled: false, supported: false, installed: false, hookPath: null, zshrcPath: null, message: "Workspace Isolation shell hooks are available only on macOS and Linux zsh." };
+  }
   await fs.mkdir(path.dirname(hookPath), { recursive: true });
   await fs.writeFile(
     statePath,
@@ -121,9 +124,6 @@ export const syncWorkspaceIsolationShellFiles = async (
     "utf-8",
   );
   await fs.writeFile(hookPath, buildHookScript(statePath), "utf-8");
-  if (!supported) {
-    return { enabled: false, supported: false, installed: false, hookPath: null, zshrcPath: null, message: "Workspace Isolation shell hooks are available only on macOS and Linux zsh." };
-  }
   const managedBlock = `${START_MARKER}\n[[ -f ${shellQuote(hookPath)} ]] && source ${shellQuote(hookPath)}\n${END_MARKER}`;
   const currentZshrc = existsSync(zshrcPath) ? await fs.readFile(zshrcPath, "utf-8") : "";
   const nextZshrc = enabled ? replaceManagedBlock(currentZshrc, managedBlock) : removeManagedBlock(currentZshrc);

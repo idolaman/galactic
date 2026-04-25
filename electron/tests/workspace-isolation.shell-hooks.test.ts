@@ -79,3 +79,25 @@ test("syncWorkspaceIsolationShellFiles installs and removes the managed zsh bloc
     await rm(homeDir, { recursive: true, force: true });
   }
 });
+
+test("syncWorkspaceIsolationShellFiles returns unsupported before writing on Windows", async () => {
+  const stateDir = await createTempDir();
+  const homeDir = await createTempDir();
+
+  try {
+    const status = await syncWorkspaceIsolationShellFiles(
+      stateDir,
+      stacks,
+      true,
+      "win32",
+      homeDir,
+    );
+
+    assert.equal(status.supported, false);
+    assert.equal(status.installed, false);
+    await assert.rejects(access(path.join(stateDir, "shell")));
+  } finally {
+    await rm(stateDir, { recursive: true, force: true });
+    await rm(homeDir, { recursive: true, force: true });
+  }
+});

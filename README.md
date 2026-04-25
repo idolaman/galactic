@@ -113,7 +113,7 @@ Keep projects, branch worktrees, routed services, and active agent sessions conn
 
 ### Download
 
-Grab the latest signed `.dmg` from [galactic-dev.com](https://galactic-dev.com).
+Grab the `.dmg` from [galactic-dev.com](https://galactic-dev.com).
 
 ### Build from Source
 
@@ -143,40 +143,6 @@ Outputs a signed `.dmg` and `.zip` to the `release/` directory (arm64 + x64).
 
 ---
 
-## Architecture
-
-```
-galactic-ide/
-├── electron/            # Main process, preload, MCP server
-│   ├── main.ts          # Electron entry point & IPC handlers
-│   ├── preload.ts       # Secure bridge to renderer
-│   └── mcp-server.ts    # Model Context Protocol server
-├── src/                 # React renderer (Vite)
-│   ├── pages/           # Top-level routes
-│   ├── components/      # React components + shadcn/ui
-│   ├── services/        # Business logic & IPC bridges
-│   ├── hooks/           # Custom React hooks
-│   ├── stores/          # Zustand state
-│   └── types/           # TypeScript definitions
-├── electron-builder.yml # Build & packaging config
-└── package.json
-```
-
-### Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Desktop Shell | Electron 32 |
-| Frontend | React 18, TypeScript 5.8, Vite 5 |
-| UI Components | shadcn/ui + Radix UI |
-| Styling | Tailwind CSS 3 |
-| State | Zustand, TanStack React Query |
-| Validation | Zod |
-| Icons | Lucide React |
-| Auto-Updates | electron-updater |
-
----
-
 ## Scripts
 
 | Command | Description |
@@ -201,16 +167,6 @@ npm run lint   # Must pass before submitting
 ```
 
 See [CLAUDE.md](CLAUDE.md) for detailed coding conventions (file size limits, styling rules, import patterns, naming, etc.).
-
----
-
-## Roadmap
-
-- [ ] Windows and Linux support
-- [ ] Plugin system for custom integrations
-- [ ] Project templates and scaffolding
-- [ ] Team workspace sharing
-- [ ] Built-in terminal with environment awareness
 
 Have an idea? [Open an issue](../../issues) to start a discussion.
 

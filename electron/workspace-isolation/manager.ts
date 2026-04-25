@@ -53,7 +53,7 @@ const getStableHash = (value: string): string => {
 const cloneServices = (services: WorkspaceIsolationStack["services"]) =>
   services.map((service) => ({
     ...service,
-    connections: [...service.connections],
+    connections: service.connections.map((connection) => ({ ...connection })),
   }));
 
 const cloneStack = <T extends WorkspaceIsolationStack>(stack: T): T => ({
@@ -223,7 +223,8 @@ const readStore = async (storePath: string): Promise<WorkspaceIsolationStore> =>
       : [];
 
     return { topologies, enabledWorkspaces };
-  } catch {
+  } catch (error) {
+    console.error(`Failed to read Workspace Isolation store at ${storePath}:`, error);
     return createEmptyStore();
   }
 };
@@ -481,32 +482,29 @@ export class WorkspaceIsolationManager {
       topologies.map((topology) => [topology.id, topology]),
     );
     const usedPorts = new Set<number>();
-    const normalizedEnabledWorkspaces = await Promise.all(
-      enabledWorkspaces.map(async (workspace) => {
+    const normalizedEnabledWorkspaces: WorkspaceIsolationEnabledWorkspace[] = [];
+    for (const workspace of enabledWorkspaces) {
         const topology = topologiesById.get(workspace.topologyId);
         if (!topology) {
-          return workspace;
+          normalizedEnabledWorkspaces.push(workspace);
+          continue;
         }
 
-        const servicePorts = Object.fromEntries(
-          await Promise.all(
-            topology.services.map(async (service) => {
-              const existingPort = workspace.servicePorts[service.id];
-              const port =
-                typeof existingPort === "number" &&
-                existingPort > 0 &&
-                !usedPorts.has(existingPort)
-                  ? existingPort
-                  : await this.allocatePort(usedPorts);
-              usedPorts.add(port);
-              return [service.id, port];
-            }),
-          ),
-        );
+        const servicePorts: Record<string, number> = {};
+        for (const service of topology.services) {
+          const existingPort = workspace.servicePorts[service.id];
+          const port =
+            typeof existingPort === "number" &&
+            existingPort > 0 &&
+            !usedPorts.has(existingPort)
+              ? existingPort
+              : await this.allocatePort(usedPorts);
+          usedPorts.add(port);
+          servicePorts[service.id] = port;
+        }
 
-        return { ...workspace, servicePorts };
-      }),
-    );
+        normalizedEnabledWorkspaces.push({ ...workspace, servicePorts });
+    }
 
     const enabledByTopologyId = new Map<string, WorkspaceIsolationEnabledWorkspace[]>();
     normalizedEnabledWorkspaces.forEach((workspace) => {

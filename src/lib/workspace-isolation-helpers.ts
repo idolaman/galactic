@@ -5,15 +5,23 @@ import type {
 export const WORKSPACE_ISOLATION_PROXY_PORT = 1355;
 export const WORKSPACE_ISOLATION_SERVICE_PORT_START = 4310;
 
-export const normalizeWorkspaceRootPath = (value: string): string =>
-  value.replace(/[\\/]+$/, "");
+export const normalizeWorkspaceRootPath = (value: string): string => {
+  if (/^[\\/]+$/.test(value)) {
+    return value[0] ?? value;
+  }
+  if (/^[A-Za-z]:[\\/]?$/.test(value)) {
+    return value;
+  }
+
+  return value.replace(/[\\/]+$/, "");
+};
 
 export const sanitizeRelativeServicePathInput = (value: string): string =>
   value
     .trim()
-    .toLowerCase()
     .replace(/\\/g, "/")
-    .replace(/[^a-z/]+/g, "")
+    .replace(/(^|\/)\.{1,2}(?=\/|$)/g, "")
+    .replace(/[^A-Za-z0-9._/-]+/g, "")
     .replace(/\/{2,}/g, "/");
 
 export const normalizeRelativeServicePath = (value: string): string =>

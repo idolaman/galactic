@@ -56,6 +56,7 @@ export const WorkspaceIsolationConnectionRow = ({
     <div className="flex flex-col sm:flex-row sm:items-start gap-2">
       <Input
         className="w-full sm:w-[180px] shrink-0 font-mono text-sm h-9"
+        aria-label={`Environment variable key for connection ${connection.id}`}
         value={connection.envKey}
         onChange={(event) =>
           onChangeConnection(serviceId, connection.id, { envKey: event.target.value })
@@ -79,7 +80,7 @@ export const WorkspaceIsolationConnectionRow = ({
             onChangeConnection(serviceId, connection.id, { targetStackId, targetServiceId });
           }}
         >
-          <SelectTrigger className="h-9">
+          <SelectTrigger className="h-9" aria-label={`Target service for connection ${connection.id}`}>
             <SelectValue placeholder="Choose service" />
           </SelectTrigger>
           <SelectContent>
@@ -113,9 +114,11 @@ export const WorkspaceIsolationConnectionRow = ({
         ) : null}
       </div>
       <Button
+        type="button"
         size="icon"
         variant="ghost"
         className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
+        aria-label={`Remove connection ${connection.id}`}
         onClick={() => onRemoveConnection(serviceId, connection.id)}
       >
         <Trash2 className="h-4 w-4" />

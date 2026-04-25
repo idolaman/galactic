@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { useAppToast } from "@/hooks/use-app-toast";
 import { useWorkspaceIsolationManager } from "@/hooks/use-workspace-isolation-manager";
-import { useWorkspaceIsolationReloadToast } from "@/hooks/use-workspace-isolation-reload-toast";
 import { getWorkspaceIsolationProxySummary } from "@/lib/workspace-isolation-proxy-status";
 import {
   getWorkspaceIsolationAutoEnvBadgeLabel,
@@ -19,11 +18,11 @@ import { getWorkspaceIsolationProxyStatus } from "@/services/workspace-isolation
 import type { WorkspaceIsolationProxyStatus } from "@/types/electron";
 
 const defaultProxyStatus: WorkspaceIsolationProxyStatus = { running: false, port: 1355 };
+const shellHooksSwitchId = "workspace-isolation-shell-hooks-switch";
 
 export function WorkspaceIsolationShellHooksSettingCard() {
   const { error: showError } = useAppToast();
   const { shellHookStatus, setShellHooksEnabled } = useWorkspaceIsolationManager();
-  const { showAutoEnvEnabledToast } = useWorkspaceIsolationReloadToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [proxyStatus, setProxyStatus] = useState<WorkspaceIsolationProxyStatus>(defaultProxyStatus);
@@ -62,10 +61,18 @@ export function WorkspaceIsolationShellHooksSettingCard() {
         });
         return;
       }
-      if (nextValue) {
-        showAutoEnvEnabledToast();
-      }
       await loadProxyStatus();
+    } catch (error) {
+      if (nextValue) {
+        trackWorkspaceIsolationAutoEnvEnableCompleted("settings-card", false);
+      }
+      showError({
+        title: "Setup failed",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Unable to update the Terminal Auto-Env preference.",
+      });
     } finally {
       setSaving(false);
     }
@@ -93,11 +100,12 @@ export function WorkspaceIsolationShellHooksSettingCard() {
         <WorkspaceIsolationSupportStatusRow
           badgeLabel={getWorkspaceIsolationAutoEnvBadgeLabel(shellHookStatus)}
           description={getWorkspaceIsolationAutoEnvSummary(shellHookStatus)}
+          labelFor={shellHooksSwitchId}
           title="Terminal Auto-Env"
           tooltip="Adds a managed zsh hook block to ~/.zshrc so your terminal automatically uses the right workspace values."
         >
           <Switch
-            id="workspace-isolation-shell-hooks"
+            id={shellHooksSwitchId}
             checked={shellHookStatus?.enabled ?? false}
             disabled={loading || saving || !shellHookStatus?.supported}
             onCheckedChange={handleCheckedChange}

@@ -14,6 +14,11 @@ const allocatePort = async (usedPorts: Set<number>) => {
   usedPorts.add(port);
   return port;
 };
+const delayedAllocator = async (usedPorts: Set<number>) => {
+  const port = usedPorts.has(4310) ? 4311 : 4310;
+  await Promise.resolve();
+  return port;
+};
 const createService = (
   id: string,
   relativePath: string,
@@ -66,6 +71,31 @@ test("saving a project topology does not enable any workspace by default", async
     await rm(userDataPath, { recursive: true, force: true });
   }
 });
+test("enabled services receive unique ports from delayed allocators", async () => {
+  const userDataPath = await createTempDir();
+  const repoPath = path.join(userDataPath, "repo");
+  await mkdir(repoPath, { recursive: true });
+  const manager = new WorkspaceIsolationManager(userDataPath, "win32", delayedAllocator);
+  try {
+    await manager.saveProjectTopology(
+      createTopologyInput("project-1", "shop", repoPath, [
+        createService("api", "apps/api"),
+        createService("web", "apps/web"),
+      ]),
+    );
+    await manager.enableWorkspace({
+      projectId: "project-1",
+      projectName: "shop",
+      workspaceRootPath: repoPath,
+      workspaceRootLabel: REPOSITORY_ROOT_LABEL,
+    });
+    const ports = manager.getStacks()[0]?.services.map((service) => service.port);
+    assert.deepEqual(ports, [4310, 4311]);
+  } finally {
+    await rm(userDataPath, { recursive: true, force: true });
+  }
+});
+
 test("editing a topology updates every enabled workspace and preserves unchanged ports", async () => {
   const userDataPath = await createTempDir();
   const repoPath = path.join(userDataPath, "repo");
@@ -88,6 +118,40 @@ test("editing a topology updates every enabled workspace and preserves unchanged
     await rm(userDataPath, { recursive: true, force: true });
   }
 });
+test("getStacks returns cloned connection objects", async () => {
+  const userDataPath = await createTempDir();
+  const repoPath = path.join(userDataPath, "repo");
+  await mkdir(repoPath, { recursive: true });
+  const manager = new WorkspaceIsolationManager(userDataPath, "win32", allocatePort);
+  try {
+    await manager.saveProjectTopology(
+      createTopologyInput("project-1", "shop", repoPath, [
+        createService("api", "apps/api", [
+          {
+            id: "connection-1",
+            envKey: "WEB_URL",
+            targetStackId: "target-stack",
+            targetServiceId: "web",
+          },
+        ]),
+      ]),
+    );
+    await manager.enableWorkspace({
+      projectId: "project-1",
+      projectName: "shop",
+      workspaceRootPath: repoPath,
+      workspaceRootLabel: REPOSITORY_ROOT_LABEL,
+    });
+    const firstRead = manager.getStacks();
+    const connection = firstRead[0]?.services[0]?.connections[0];
+    assert.ok(connection);
+    connection.envKey = "MUTATED";
+    assert.equal(manager.getStacks()[0]?.services[0]?.connections[0]?.envKey, "WEB_URL");
+  } finally {
+    await rm(userDataPath, { recursive: true, force: true });
+  }
+});
+
 test("external topology connections prefer the same workspace label and then repository root", async () => {
   const userDataPath = await createTempDir();
   const repoA = path.join(userDataPath, "repo-a");

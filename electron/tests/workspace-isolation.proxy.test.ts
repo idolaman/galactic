@@ -184,3 +184,28 @@ test("workspace isolation proxy upgrade handler forwards websocket responses", a
   assert.match(output, /101 Switching Protocols/);
   assert.match(output, /backend-ready/);
 });
+
+test("workspace isolation proxy upgrade handler strips pseudo headers", async () => {
+  let forwardedHeaders: http.OutgoingHttpHeaders | undefined;
+  const { handleUpgrade } = createWorkspaceIsolationProxyHandlers(
+    () => [{ hostname: "api.root.demo.localhost", port: 4310 }],
+    () => undefined,
+    {
+      request: ((options: http.RequestOptions) => {
+        const headers = options.headers;
+        forwardedHeaders = Array.isArray(headers)
+          ? undefined
+          : headers as http.OutgoingHttpHeaders | undefined;
+        return asClientRequest(createProxyRequest());
+      }) as typeof http.request,
+    },
+  );
+
+  const request = createRequest("ignored.localhost", {
+    ":authority": "api.root.demo.localhost",
+  });
+  const socket = new PassThrough();
+  handleUpgrade(request, socket as never, Buffer.alloc(0));
+  assert.equal(forwardedHeaders?.[":authority"], undefined);
+  assert.equal(forwardedHeaders?.["x-forwarded-host"], "api.root.demo.localhost");
+});

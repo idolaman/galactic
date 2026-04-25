@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useAppToast } from "@/hooks/use-app-toast";
 import { useWorkspaceIsolationManager } from "@/hooks/use-workspace-isolation-manager";
-import { useWorkspaceIsolationReloadToast } from "@/hooks/use-workspace-isolation-reload-toast";
 import {
   trackWorkspaceIsolationActivationCompleted,
   trackWorkspaceIsolationAutoEnvEnableAttempted,
@@ -26,7 +25,6 @@ export const useWorkspaceNetworkingActions = ({
   workspacePath,
 }: UseWorkspaceNetworkingActionsParams) => {
   const { error } = useAppToast();
-  const { showAutoEnvEnabledToast } = useWorkspaceIsolationReloadToast();
   const {
     setShellHooksEnabled,
     enableWorkspaceIsolationForWorkspace,
@@ -42,12 +40,20 @@ export const useWorkspaceNetworkingActions = ({
       const result = await setShellHooksEnabled(true);
       trackWorkspaceIsolationAutoEnvEnableCompleted("workspace-warning", result.success);
       if (result.success) {
-        showAutoEnvEnabledToast();
         return;
       }
       error({
         title: "Setup failed",
         description: result.error ?? "Unable to update Terminal Auto-Env.",
+      });
+    } catch (caughtError) {
+      trackWorkspaceIsolationAutoEnvEnableCompleted("workspace-warning", false);
+      error({
+        title: "Setup failed",
+        description:
+          caughtError instanceof Error
+            ? caughtError.message
+            : "Unable to update Terminal Auto-Env.",
       });
     } finally {
       setIsEnablingAutoEnv(false);
@@ -75,6 +81,20 @@ export const useWorkspaceNetworkingActions = ({
           description: result.error ?? `Couldn’t activate Project Services for ${workspaceLabel}.`,
         });
       }
+    } catch (caughtError) {
+      trackWorkspaceIsolationActivationCompleted({
+        source: "workspace-card",
+        targetKind,
+        isFirstTimeSetup: false,
+        success: false,
+      });
+      error({
+        title: "Activation failed",
+        description:
+          caughtError instanceof Error
+            ? caughtError.message
+            : `Couldn’t activate Project Services for ${workspaceLabel}.`,
+      });
     } finally {
       setIsChangingWorkspaceIsolation(false);
     }
@@ -95,6 +115,19 @@ export const useWorkspaceNetworkingActions = ({
           description: result.error ?? `Couldn’t stop Project Services for ${workspaceLabel}.`,
         });
       }
+    } catch (caughtError) {
+      trackWorkspaceIsolationDeactivationCompleted({
+        source: "workspace-card",
+        targetKind,
+        success: false,
+      });
+      error({
+        title: "Stop failed",
+        description:
+          caughtError instanceof Error
+            ? caughtError.message
+            : `Couldn’t stop Project Services for ${workspaceLabel}.`,
+      });
     } finally {
       setIsChangingWorkspaceIsolation(false);
     }

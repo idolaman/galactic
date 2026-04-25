@@ -31,6 +31,23 @@ export const buildWorkspaceIsolationForwardedHeaders = (req: http.IncomingMessag
   };
 };
 
+export const buildWorkspaceIsolationProxyHeaders = (
+  req: http.IncomingMessage,
+  hops: number,
+): http.OutgoingHttpHeaders => {
+  const headers: http.OutgoingHttpHeaders = {
+    ...req.headers,
+    ...buildWorkspaceIsolationForwardedHeaders(req),
+    [HOPS_HEADER]: String(hops + 1),
+  };
+  Object.keys(headers).forEach((key) => {
+    if (key.startsWith(":")) {
+      delete headers[key];
+    }
+  });
+  return headers;
+};
+
 export const findWorkspaceIsolationRoute = (routes: WorkspaceIsolationRoute[], host: string): WorkspaceIsolationRoute | undefined =>
   routes.find((route) => route.hostname === host);
 
@@ -69,12 +86,7 @@ export const createWorkspaceIsolationProxyHandlers = (
       res.end(buildPage(404, "Route Not Found", `No routed service is registered for ${host}.`));
       return;
     }
-    const headers: http.OutgoingHttpHeaders = { ...req.headers, ...buildWorkspaceIsolationForwardedHeaders(req), [HOPS_HEADER]: String(hops + 1) };
-    Object.keys(headers).forEach((key) => {
-      if (key.startsWith(":")) {
-        delete headers[key];
-      }
-    });
+    const headers = buildWorkspaceIsolationProxyHeaders(req, hops);
     const proxyReq = requestImpl({ hostname: "127.0.0.1", port: route.port, path: req.url, method: req.method, headers }, (proxyRes) => {
       res.writeHead(proxyRes.statusCode || 502, { ...proxyRes.headers, [HEALTH_HEADER]: "1" });
       proxyRes.on("error", () => res.destroy());
@@ -104,7 +116,7 @@ export const createWorkspaceIsolationProxyHandlers = (
       socket.destroy();
       return;
     }
-    const headers: http.OutgoingHttpHeaders = { ...req.headers, ...buildWorkspaceIsolationForwardedHeaders(req), [HOPS_HEADER]: String(hops + 1) };
+    const headers = buildWorkspaceIsolationProxyHeaders(req, hops);
     const proxyReq = requestImpl({ hostname: "127.0.0.1", port: route.port, path: req.url, method: req.method, headers });
     proxyReq.on("upgrade", (proxyRes, proxySocket, proxyHead) => {
       let response = "HTTP/1.1 101 Switching Protocols\r\n";
