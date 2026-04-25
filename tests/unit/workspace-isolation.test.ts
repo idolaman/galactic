@@ -19,7 +19,10 @@ test("getWorkspaceIsolationName uses the workspace label for worktrees", () => {
 });
 
 test("getWorkspaceIsolationProjectScopeLabel shows the service count only when a topology exists", () => {
-  assert.equal(getWorkspaceIsolationProjectScopeLabel(null), "Project Services");
+  assert.equal(
+    getWorkspaceIsolationProjectScopeLabel(null),
+    "Set up Project Services",
+  );
   assert.equal(
     getWorkspaceIsolationProjectScopeLabel(1),
     "Edit Project Services (1 service)",

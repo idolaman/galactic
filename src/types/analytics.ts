@@ -28,6 +28,10 @@ export type AnalyticsEvent =
   | "WorkspaceIsolation.activationOffered"
   | "WorkspaceIsolation.activationCompleted"
   | "WorkspaceIsolation.activationSkipped"
+  | "WorkspaceIsolation.workspaceStateViewed"
+  | "WorkspaceIsolation.proofDrawerOpened"
+  | "WorkspaceIsolation.legacyBridgeOpened"
+  | "WorkspaceIsolation.legacyBridgeSelected"
   | "WorkspaceIsolation.saved"
   | "WorkspaceIsolation.deleted"
   | "Update.completed";

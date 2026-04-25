@@ -571,7 +571,7 @@ export default function Environments() {
                       Network Isolation Environments
                     </h3>
                     <p className="text-muted-foreground leading-relaxed">
-                      Run multiple workspaces simultaneously on the same ports (e.g. :3000) without conflicts.
+                      Older workspace-wide loopback mode for existing setups. Project Services is the recommended path for new parallel workspace workflows.
                     </p>
                   </div>
 
@@ -583,7 +583,7 @@ export default function Environments() {
                       <div className="space-y-1">
                         <h4 className="font-semibold text-foreground text-sm">Dedicated Loopback</h4>
                         <p className="text-xs text-muted-foreground leading-snug">
-                          Each environment gets a unique local IP (e.g. 127.0.0.2), acting as a private network namespace.
+                          Each environment gets a unique local IP (e.g. 127.0.0.2), acting as a private network namespace for older compatibility flows.
                         </p>
                       </div>
                     </div>

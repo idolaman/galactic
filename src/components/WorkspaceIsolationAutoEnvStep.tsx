@@ -1,4 +1,5 @@
 import { Terminal, Zap } from "lucide-react";
+import { WORKSPACE_ISOLATION_AUTO_ENV_RELOAD_INSTRUCTION } from "@/lib/workspace-isolation-support";
 
 const autoEnvItems = [
   {
@@ -33,7 +34,8 @@ export const WorkspaceIsolationAutoEnvStep = () => (
 
     <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-600 dark:text-amber-500">
       Terminal Auto-Env currently supports zsh only. Galactic updates a managed
-      block in your ~/.zshrc and you can disable it later from Settings.
+      block in your ~/.zshrc and you can disable it later from Settings. After
+      enabling it, {WORKSPACE_ISOLATION_AUTO_ENV_RELOAD_INSTRUCTION.toLowerCase()}
     </div>
   </div>
 );

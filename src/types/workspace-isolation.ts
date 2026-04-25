@@ -66,12 +66,3 @@ export interface WorkspaceIsolationConnectionTarget {
   hostname: string;
   enabled: boolean;
 }
-
-export interface ResolvedWorkspaceIsolationConnection
-  extends WorkspaceIsolationConnection {
-  targetName: string;
-  targetProjectName: string;
-  targetWorkspaceLabel: string;
-  targetUrl: string | null;
-  isMissing: boolean;
-}

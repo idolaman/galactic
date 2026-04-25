@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getWorkspaceIsolationConnectionLabel } from "../../src/lib/workspace-isolation.js";
+import { getWorkspaceIsolationConnectionProofLabel } from "../../src/lib/workspace-isolation-connection-proof-labels.js";
 
-test("getWorkspaceIsolationConnectionLabel keeps local targets concise", () => {
+test("getWorkspaceIsolationConnectionProofLabel keeps local targets concise", () => {
   assert.equal(
-    getWorkspaceIsolationConnectionLabel(
+    getWorkspaceIsolationConnectionProofLabel(
       { projectName: "shop", workspaceRootLabel: "feature/auth" },
       {
-        isMissing: false,
+        status: "live_target",
         targetName: "web",
         targetProjectName: "shop",
         targetWorkspaceLabel: "feature/auth",
@@ -17,12 +17,12 @@ test("getWorkspaceIsolationConnectionLabel keeps local targets concise", () => {
   );
 });
 
-test("getWorkspaceIsolationConnectionLabel includes project context for external targets", () => {
+test("getWorkspaceIsolationConnectionProofLabel includes project context for external targets", () => {
   assert.equal(
-    getWorkspaceIsolationConnectionLabel(
+    getWorkspaceIsolationConnectionProofLabel(
       { projectName: "shop", workspaceRootLabel: "feature/auth" },
       {
-        isMissing: false,
+        status: "configured_target",
         targetName: "api",
         targetProjectName: "payments",
         targetWorkspaceLabel: "feature/payments",
@@ -32,12 +32,12 @@ test("getWorkspaceIsolationConnectionLabel includes project context for external
   );
 });
 
-test("getWorkspaceIsolationConnectionLabel keeps missing targets visible", () => {
+test("getWorkspaceIsolationConnectionProofLabel keeps missing targets visible", () => {
   assert.equal(
-    getWorkspaceIsolationConnectionLabel(
+    getWorkspaceIsolationConnectionProofLabel(
       { projectName: "shop", workspaceRootLabel: "feature/auth" },
       {
-        isMissing: true,
+        status: "missing_target",
         targetName: "api",
         targetProjectName: "payments",
         targetWorkspaceLabel: "feature/payments",

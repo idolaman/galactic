@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getWorkspaceIsolationConnectionProofStatusLabel } from "@/lib/workspace-isolation-connection-proof-labels";
 import { buildWorkspaceIsolationConnectionValue } from "@/lib/workspace-isolation-connection-targets";
 import type {
   WorkspaceIsolationConnection,
@@ -34,7 +35,7 @@ const missingValue = (connectionId: string) => `__missing__:${connectionId}`;
 const getTargetLabel = (target: WorkspaceIsolationConnectionTarget): string =>
   target.source === "local"
     ? target.serviceName || "Untitled Service"
-    : `${target.projectName} / ${target.workspaceRootLabel} / ${target.serviceName}${target.enabled ? "" : " (Not enabled)"}`;
+    : `${target.projectName} / ${target.workspaceRootLabel} / ${target.serviceName} (${getWorkspaceIsolationConnectionProofStatusLabel(target.enabled ? "live_target" : "configured_target")})`;
 
 export const WorkspaceIsolationConnectionRow = ({
   serviceId,

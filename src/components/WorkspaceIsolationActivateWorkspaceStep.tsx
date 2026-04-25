@@ -1,8 +1,12 @@
-import { CheckCircle2, ShieldCheck, TerminalSquare } from "lucide-react";
+import { ShieldCheck, TerminalSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { getWorkspaceIsolationProxySummary } from "@/lib/workspace-isolation-proxy-status";
+import {
+  getWorkspaceIsolationAutoEnvBadgeLabel,
+  getWorkspaceIsolationAutoEnvSummary,
+} from "@/lib/workspace-isolation-support";
 import { cn } from "@/lib/utils";
 import type { WorkspaceIsolationProxyStatus, WorkspaceIsolationShellHookStatus } from "@/types/electron";
 import type { WorkspaceActivationTarget } from "@/types/workspace-isolation";
@@ -14,21 +18,6 @@ interface WorkspaceIsolationActivateWorkspaceStepProps {
   shellHookStatus: WorkspaceIsolationShellHookStatus | null;
   onSelectTarget: (path: string) => void;
 }
-
-const getAutoEnvBadgeLabel = (
-  shellHookStatus: WorkspaceIsolationShellHookStatus | null,
-): string => {
-  if (!shellHookStatus?.supported) return "Unsupported";
-  return shellHookStatus.enabled ? "Enabled" : "Needs setup";
-};
-
-const getAutoEnvSummary = (
-  shellHookStatus: WorkspaceIsolationShellHookStatus | null,
-): string =>
-  shellHookStatus?.supported
-    ? shellHookStatus.message ??
-      "Galactic adds a managed block to ~/.zshrc and you can disable it later."
-    : "Terminal Auto-Env currently supports zsh only. Routed domains still work with manual setup.";
 
 const targetKindLabels = {
   base: "Repository Root",
@@ -58,11 +47,19 @@ export const WorkspaceIsolationActivateWorkspaceStep = ({
         <div className="flex items-center gap-2 text-sm font-medium">
           <TerminalSquare className="h-4 w-4 text-primary" />
           <span>Terminal Auto-Env</span>
-          <Badge variant="secondary">{getAutoEnvBadgeLabel(shellHookStatus)}</Badge>
+          <Badge variant="secondary">
+            {getWorkspaceIsolationAutoEnvBadgeLabel(shellHookStatus)}
+          </Badge>
         </div>
-        <p className="text-xs text-muted-foreground">{getAutoEnvSummary(shellHookStatus)}</p>
+        <p className="text-xs text-muted-foreground">
+          {getWorkspaceIsolationAutoEnvSummary(shellHookStatus)}
+        </p>
       </div>
     </div>
+
+    <p className="text-xs text-muted-foreground">
+      Choose where to turn Project Services on first.
+    </p>
 
     <RadioGroup
       value={selectedTargetPath ?? undefined}

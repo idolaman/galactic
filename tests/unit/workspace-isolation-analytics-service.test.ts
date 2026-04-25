@@ -7,7 +7,11 @@ import {
   trackWorkspaceIsolationAutoEnvEnableCompleted,
   trackWorkspaceIsolationDialogOpened,
   trackWorkspaceIsolationInfoDialogOpened,
+  trackWorkspaceIsolationLegacyBridgeOpened,
+  trackWorkspaceIsolationLegacyBridgeSelected,
+  trackWorkspaceIsolationProofDrawerOpened,
   trackWorkspaceIsolationSaved,
+  trackWorkspaceIsolationWorkspaceStateViewed,
 } from "../../src/services/workspace-isolation-analytics.js";
 
 const setElectronWindow = (
@@ -59,6 +63,24 @@ test("workspace isolation analytics wrappers send the expected typed events", ()
       source: "project-dialog",
       targetKind: "workspace",
       isFirstTimeSetup: true,
+    });
+    trackWorkspaceIsolationWorkspaceStateViewed({
+      state: "needs_attention",
+      targetKind: "workspace",
+      hasDependencies: true,
+      hasNonLiveDependencies: true,
+    });
+    trackWorkspaceIsolationProofDrawerOpened({
+      targetKind: "workspace",
+      hasDependencies: true,
+      hasNonLiveDependencies: false,
+    });
+    trackWorkspaceIsolationLegacyBridgeOpened({
+      targetKind: "base",
+    });
+    trackWorkspaceIsolationLegacyBridgeSelected({
+      targetKind: "workspace",
+      hasEnvironment: false,
     });
     trackWorkspaceIsolationSaved(false, "enabled", {
       workspaceMode: "monorepo",
@@ -112,6 +134,36 @@ test("workspace isolation analytics wrappers send the expected typed events", ()
           source: "project-dialog",
           targetKind: "workspace",
           isFirstTimeSetup: true,
+        },
+      },
+      {
+        event: "WorkspaceIsolation.workspaceStateViewed",
+        payload: {
+          state: "needs_attention",
+          targetKind: "workspace",
+          hasDependencies: true,
+          hasNonLiveDependencies: true,
+        },
+      },
+      {
+        event: "WorkspaceIsolation.proofDrawerOpened",
+        payload: {
+          targetKind: "workspace",
+          hasDependencies: true,
+          hasNonLiveDependencies: false,
+        },
+      },
+      {
+        event: "WorkspaceIsolation.legacyBridgeOpened",
+        payload: {
+          targetKind: "base",
+        },
+      },
+      {
+        event: "WorkspaceIsolation.legacyBridgeSelected",
+        payload: {
+          targetKind: "workspace",
+          hasEnvironment: false,
         },
       },
       {

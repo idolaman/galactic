@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,12 +9,18 @@ import {
 } from "@/components/ui/collapsible";
 import { EnvironmentSelector } from "@/components/EnvironmentSelector";
 import { getLegacyLocalEnvironmentSummary } from "@/lib/workspace-networking";
+import {
+  trackWorkspaceIsolationLegacyBridgeOpened,
+  trackWorkspaceIsolationLegacyBridgeSelected,
+} from "@/services/workspace-isolation-analytics";
 import { cn } from "@/lib/utils";
 import type { Environment } from "@/types/environment";
+import type { WorkspaceActivationTargetKind } from "@/types/workspace-isolation";
 
 interface WorkspaceLegacyEnvironmentCardProps {
   environments: Environment[];
   localEnvironmentId: string | null;
+  targetKind: WorkspaceActivationTargetKind;
   workspaceLabel: string;
   onLocalEnvironmentChange: (environmentId: string | null) => void;
 }
@@ -22,14 +28,31 @@ interface WorkspaceLegacyEnvironmentCardProps {
 export const WorkspaceLegacyEnvironmentCard = ({
   environments,
   localEnvironmentId,
+  targetKind,
   workspaceLabel,
   onLocalEnvironmentChange,
 }: WorkspaceLegacyEnvironmentCardProps) => {
   const [open, setOpen] = useState(false);
+  const previousOpenRef = useRef(false);
   const selectedEnvironmentName = environments.find(
     (environment) => environment.id === localEnvironmentId,
   )?.name ?? null;
   const summary = getLegacyLocalEnvironmentSummary(selectedEnvironmentName);
+
+  useEffect(() => {
+    if (open && !previousOpenRef.current) {
+      trackWorkspaceIsolationLegacyBridgeOpened({ targetKind });
+    }
+    previousOpenRef.current = open;
+  }, [open, targetKind]);
+
+  const handleLocalEnvironmentChange = (environmentId: string | null) => {
+    trackWorkspaceIsolationLegacyBridgeSelected({
+      targetKind,
+      hasEnvironment: Boolean(environmentId),
+    });
+    onLocalEnvironmentChange(environmentId);
+  };
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
@@ -42,8 +65,8 @@ export const WorkspaceLegacyEnvironmentCard = ({
             >
               <div className="flex w-full items-center justify-between gap-3 text-left">
                 <div className="flex w-full min-w-0 flex-col gap-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-muted-foreground">Legacy Compatibility</span>
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-muted-foreground">Older compatibility mode</span>
                     <Badge
                       variant="outline"
                       className="h-[18px] px-1.5 text-[9px] uppercase tracking-wider text-muted-foreground opacity-70"
@@ -80,7 +103,7 @@ export const WorkspaceLegacyEnvironmentCard = ({
                 </Badge>
               </div>
               <p className="text-[11px] text-muted-foreground/80">
-                Legacy workspace-wide loopback routing. Prefer Project Services for new setups.
+                Project Services is the recommended path for new parallel workspace setups. Keep this older local-IP mode only for existing compatibility needs.
               </p>
             </div>
             <EnvironmentSelector
@@ -88,7 +111,7 @@ export const WorkspaceLegacyEnvironmentCard = ({
               value={localEnvironmentId}
               targetLabel={workspaceLabel}
               minimal
-              onChange={onLocalEnvironmentChange}
+              onChange={handleLocalEnvironmentChange}
             />
           </div>
         </CollapsibleContent>

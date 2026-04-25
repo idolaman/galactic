@@ -4,6 +4,7 @@ import { WorkspaceIsolationDialogFooter } from "@/components/WorkspaceIsolationD
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useWorkspaceIsolationDialog } from "@/hooks/use-workspace-isolation-dialog";
 import { useWorkspaceIsolationManager } from "@/hooks/use-workspace-isolation-manager";
+import { useWorkspaceIsolationReloadToast } from "@/hooks/use-workspace-isolation-reload-toast";
 import { useAppToast } from "@/hooks/use-app-toast";
 import {
   getWorkspaceIsolationDialogDescription,
@@ -48,7 +49,8 @@ export const WorkspaceIsolationDialog = ({
     stack,
   });
   const { setShellHooksEnabled } = useWorkspaceIsolationManager();
-  const { error, success } = useAppToast();
+  const { showAutoEnvEnabledToast } = useWorkspaceIsolationReloadToast();
+  const { error } = useAppToast();
   const [isEnablingLocalEnv, setIsEnablingLocalEnv] = useState(false);
 
   const handleEnableTerminalIntegration = async () => {
@@ -59,7 +61,7 @@ export const WorkspaceIsolationDialog = ({
       const result = await setShellHooksEnabled(true);
       trackWorkspaceIsolationAutoEnvEnableCompleted("onboarding", result.success);
       if (result.success) {
-        success("Terminal Auto-Env enabled");
+        showAutoEnvEnabledToast();
         return;
       }
       error({

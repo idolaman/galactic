@@ -14,13 +14,15 @@ import {
 interface WorkspaceIsolationCopyButtonProps {
   text: string;
   label: string;
-  successMessage?: string;
+  successMessage?: string | null;
+  onCopySuccess?: () => void;
 }
 
 export const WorkspaceIsolationCopyButton = ({
   text,
   label,
   successMessage,
+  onCopySuccess,
 }: WorkspaceIsolationCopyButtonProps) => {
   const { error, success } = useAppToast();
   const [copied, setCopied] = useState(false);
@@ -30,7 +32,10 @@ export const WorkspaceIsolationCopyButton = ({
     if (copied) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-      success(successMessage ?? `${label} copied`);
+      if (successMessage !== null) {
+        success(successMessage ?? `${label} copied`);
+      }
+      onCopySuccess?.();
       return;
     }
 

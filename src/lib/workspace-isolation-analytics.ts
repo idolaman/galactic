@@ -14,6 +14,11 @@ export type WorkspaceIsolationAnalyticsSource =
   | "project-dialog";
 
 export type WorkspaceIsolationActivationTargetKind = "base" | "workspace";
+export type WorkspaceIsolationStateViewedState =
+  | "ready_to_activate"
+  | "active"
+  | "needs_attention"
+  | "blocked";
 
 export type WorkspaceIsolationAnalyticsOpeningStep =
   | "intro"
@@ -30,6 +35,12 @@ export interface WorkspaceIsolationAnalyticsSummary {
   serviceCount: number;
   connectionCount: number;
   externalConnectionCount: number;
+}
+
+export interface WorkspaceIsolationSupportAnalyticsSummary {
+  targetKind: WorkspaceIsolationActivationTargetKind;
+  hasDependencies: boolean;
+  hasNonLiveDependencies: boolean;
 }
 
 const isCompleteConnection = (

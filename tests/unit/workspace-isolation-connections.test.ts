@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { getWorkspaceIsolationConnectionProofStatusLabel } from "../../src/lib/workspace-isolation-connection-proof-labels.js";
+import { resolveWorkspaceIsolationConnections } from "../../src/lib/workspace-isolation-connection-proof.js";
 import { getWorkspaceIsolationConnectionTargets } from "../../src/lib/workspace-isolation-connection-targets.js";
-import { resolveWorkspaceIsolationConnections } from "../../src/lib/workspace-isolation-connection-resolution.js";
 
 test("getWorkspaceIsolationConnectionTargets returns local services and other-project targets only", () => {
   const currentServices = [
@@ -139,7 +140,32 @@ test("getWorkspaceIsolationConnectionTargets returns local services and other-pr
   assert.equal(targets.externalTargets[0]?.enabled, true);
 });
 
-test("resolveWorkspaceIsolationConnections keeps missing targets visible", () => {
+test("resolveWorkspaceIsolationConnections distinguishes live, configured, and missing targets", () => {
+  const workspaceIsolationProjectTopologies = [
+    {
+      id: "payments-topology",
+      kind: "workspace-isolation" as const,
+      name: "payments",
+      slug: "payments",
+      projectId: "project-payments",
+      workspaceRootPath: "/payments",
+      workspaceRootLabel: "Repository Root",
+      projectName: "payments",
+      workspaceMode: "monorepo" as const,
+      createdAt: 1,
+      services: [
+        {
+          id: "billing",
+          name: "billing",
+          slug: "billing",
+          relativePath: "apps/billing",
+          port: 0,
+          createdAt: 1,
+          connections: [],
+        },
+      ],
+    },
+  ];
   const workspaceIsolationStacks = [
     {
       id: "ui-stack",
@@ -182,6 +208,12 @@ test("resolveWorkspaceIsolationConnections keeps missing targets visible", () =>
       },
       {
         id: "link-2",
+        envKey: "BILLING_URL",
+        targetStackId: "payments-topology",
+        targetServiceId: "billing",
+      },
+      {
+        id: "link-3",
         envKey: "MISSING_URL",
         targetStackId: "missing-stack",
         targetServiceId: "missing-service",
@@ -189,15 +221,35 @@ test("resolveWorkspaceIsolationConnections keeps missing targets visible", () =>
     ],
   };
 
-  const [resolved, missing] = resolveWorkspaceIsolationConnections(
-    workspaceIsolationStacks,
+  const [live, configured, missing] = resolveWorkspaceIsolationConnections({
     service,
-  );
+    workspaceIsolationProjectTopologies,
+    workspaceIsolationStacks,
+  });
 
-  assert.equal(resolved?.targetName, "web");
-  assert.equal(resolved?.targetUrl, "http://web.feature-ui.ui.localhost:1355");
-  assert.equal(resolved?.isMissing, false);
+  assert.equal(live?.targetName, "web");
+  assert.equal(live?.targetUrl, "http://web.feature-ui.ui.localhost:1355");
+  assert.equal(live?.status, "live_target");
+  assert.equal(configured?.targetName, "billing");
+  assert.equal(configured?.targetProjectName, "payments");
+  assert.equal(configured?.targetUrl, null);
+  assert.equal(configured?.status, "configured_target");
   assert.equal(missing?.targetName, "Missing target");
   assert.equal(missing?.targetUrl, null);
-  assert.equal(missing?.isMissing, true);
+  assert.equal(missing?.status, "missing_target");
+});
+
+test("getWorkspaceIsolationConnectionProofStatusLabel maps proof states to copy", () => {
+  assert.equal(
+    getWorkspaceIsolationConnectionProofStatusLabel("live_target"),
+    "Live target",
+  );
+  assert.equal(
+    getWorkspaceIsolationConnectionProofStatusLabel("configured_target"),
+    "Configured target",
+  );
+  assert.equal(
+    getWorkspaceIsolationConnectionProofStatusLabel("missing_target"),
+    "Missing target",
+  );
 });

@@ -42,7 +42,7 @@ export const WorkspaceIsolationServices = ({
                     <Waypoints className="h-3 w-3" />
                   </div>
                   <span className="text-sm font-medium text-foreground/90 transition-colors group-hover:text-foreground">
-                    Routed Services
+                    Project Services status
                   </span>
                 </div>
                 <ChevronDown
@@ -57,6 +57,9 @@ export const WorkspaceIsolationServices = ({
 
           {previewRoutes.length > 0 ? (
             <div className="mt-1.5 flex min-w-0 flex-col gap-1.5 px-2 pb-1.5">
+              <p className="px-0.5 text-[10px] uppercase tracking-wider text-muted-foreground/70">
+                {stack.services.length} {stack.services.length === 1 ? "service" : "services"}
+              </p>
               {previewRoutes.map((route, index) => (
                 <div
                   key={route}
