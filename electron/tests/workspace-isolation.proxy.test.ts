@@ -4,6 +4,32 @@ import { PassThrough } from "node:stream";
 import test from "node:test";
 import { createWorkspaceIsolationProxyHandlers } from "../workspace-isolation/proxy.js";
 
+interface TestServerResponse extends PassThrough {
+  headersSent: boolean;
+  setHeader: (name: string, value: string) => TestServerResponse;
+  writeHead: (
+    status: number,
+    statusMessageOrHeaders?: string | http.OutgoingHttpHeaders,
+    maybeHeaders?: http.OutgoingHttpHeaders,
+  ) => TestServerResponse;
+}
+
+interface TestClientRequest extends PassThrough {
+  destroyed: boolean;
+}
+
+interface TestProxyIncomingMessage extends PassThrough {
+  headers: http.IncomingHttpHeaders;
+  rawHeaders: string[];
+  statusCode: number;
+}
+
+const asClientRequest = (request: TestClientRequest): http.ClientRequest =>
+  request as unknown as http.ClientRequest;
+
+const asServerResponse = (response: TestServerResponse): http.ServerResponse =>
+  response as unknown as http.ServerResponse;
+
 const createRequest = (host: string, headers: Record<string, string> = {}) => {
   const request = new PassThrough() as PassThrough & http.IncomingMessage;
   request.headers = { host, ...headers };
@@ -14,7 +40,7 @@ const createRequest = (host: string, headers: Record<string, string> = {}) => {
 };
 
 const createResponse = () => {
-  const response = new PassThrough() as any;
+  const response = new PassThrough() as TestServerResponse;
   const headers: Record<string, string> = {};
   let statusCode = 200;
   let body = "";
@@ -53,13 +79,14 @@ const createResponse = () => {
 };
 
 const createProxyRequest = (callback?: (res: http.IncomingMessage) => void) => {
-  const request = new PassThrough() as any;
+  const request = new PassThrough() as TestClientRequest;
   if (callback) {
-    const proxyResponse = new PassThrough() as any;
+    const proxyResponse = new PassThrough() as TestProxyIncomingMessage;
     proxyResponse.headers = { "content-type": "text/plain" };
+    proxyResponse.rawHeaders = ["Content-Type", "text/plain"];
     proxyResponse.statusCode = 200;
     process.nextTick(() => {
-      callback(proxyResponse);
+      callback(proxyResponse as unknown as http.IncomingMessage);
       proxyResponse.end("hello");
     });
   }
@@ -72,13 +99,17 @@ test("workspace isolation proxy request handler routes, errors, and detects loop
     () => undefined,
     {
       request: ((...args: unknown[]) =>
-        createProxyRequest(args[1] as ((res: http.IncomingMessage) => void) | undefined)) as typeof http.request,
+        asClientRequest(
+          createProxyRequest(
+            args[1] as ((res: http.IncomingMessage) => void) | undefined,
+          ),
+        )) as unknown as typeof http.request,
     },
   );
 
   const okRequest = createRequest("api.root.demo.localhost");
   const okResponse = createResponse();
-  handleRequest(okRequest, okResponse.response);
+  handleRequest(okRequest, asServerResponse(okResponse.response));
   okRequest.end();
   const okResult = await okResponse.read();
   assert.equal(okResult.statusCode, 200);
@@ -87,7 +118,7 @@ test("workspace isolation proxy request handler routes, errors, and detects loop
 
   const missingRequest = createRequest("missing.root.demo.localhost");
   const missingResponse = createResponse();
-  handleRequest(missingRequest, missingResponse.response);
+  handleRequest(missingRequest, asServerResponse(missingResponse.response));
   missingRequest.end();
   const missingResult = await missingResponse.read();
   assert.equal(missingResult.statusCode, 404);
@@ -95,7 +126,7 @@ test("workspace isolation proxy request handler routes, errors, and detects loop
 
   const loopRequest = createRequest("api.root.demo.localhost", { "x-galactic-hops": "5" });
   const loopResponse = createResponse();
-  handleRequest(loopRequest, loopResponse.response);
+  handleRequest(loopRequest, asServerResponse(loopResponse.response));
   loopRequest.end();
   const loopResult = await loopResponse.read();
   assert.equal(loopResult.statusCode, 508);
@@ -110,14 +141,14 @@ test("workspace isolation proxy request handler returns 502 when backend fails",
       request: ((..._args: unknown[]) => {
         const request = createProxyRequest();
         process.nextTick(() => request.emit("error", new Error("ECONNREFUSED")));
-        return request as ReturnType<typeof http.request>;
+        return asClientRequest(request);
       }) as typeof http.request,
     },
   );
 
   const req = createRequest("api.root.demo.localhost");
   const res = createResponse();
-  handleRequest(req, res.response);
+  handleRequest(req, asServerResponse(res.response));
   req.end();
   const result = await res.read();
   assert.equal(result.statusCode, 502);
@@ -137,7 +168,7 @@ test("workspace isolation proxy upgrade handler forwards websocket responses", a
             rawHeaders: ["Connection", "Upgrade", "Upgrade", "websocket", "Sec-WebSocket-Accept", "test"],
           }, proxySocket, Buffer.from("backend-ready"));
         });
-        return request as ReturnType<typeof http.request>;
+        return asClientRequest(request);
       }) as typeof http.request,
     },
   );

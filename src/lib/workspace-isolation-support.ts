@@ -6,16 +6,11 @@ export const WORKSPACE_ISOLATION_AUTO_ENV_RELOAD_INSTRUCTION =
   `Restart zsh or run ${WORKSPACE_ISOLATION_AUTO_ENV_RELOAD_COMMAND}.`;
 
 export const getWorkspaceIsolationAutoEnvSuccessDescription = (): string =>
-  `New terminals will pick it up automatically. To update an open shell, ${WORKSPACE_ISOLATION_AUTO_ENV_RELOAD_INSTRUCTION}`;
+  `New terminals will pick it up automatically. Run this command to update an open shell.`;
 
 export const getWorkspaceIsolationActivationReloadTitle = (
   workspaceLabel: string,
 ): string => `Reload zsh to use Project Services in ${workspaceLabel}`;
-
-export const getWorkspaceIsolationActivationReloadDescription = (
-  workspaceLabel: string,
-): string =>
-  `Project Services is active for ${workspaceLabel}. If this shell is already open, ${WORKSPACE_ISOLATION_AUTO_ENV_RELOAD_INSTRUCTION}`;
 
 const defaultAutoEnvSetupMessage =
   "Install a managed zsh hook block in ~/.zshrc.";

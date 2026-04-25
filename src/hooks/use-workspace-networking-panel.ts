@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppToast } from "@/hooks/use-app-toast";
 import { useWorkspaceIsolationManager } from "@/hooks/use-workspace-isolation-manager";
 import { resolveWorkspaceIsolationConnections } from "@/lib/workspace-isolation-connection-proof";
@@ -53,7 +53,7 @@ export const useWorkspaceNetworkingPanel = ({
     [connectionProofs, proxyStatus, realStack, shellHookStatus, topology],
   );
 
-  const refreshProxyStatus = async () => {
+  const refreshProxyStatus = useCallback(async () => {
     try {
       setProxyStatus(await getWorkspaceIsolationProxyStatus());
     } catch {
@@ -62,11 +62,11 @@ export const useWorkspaceNetworkingPanel = ({
         description: "Unable to load the Project Services proxy status.",
       });
     }
-  };
+  }, [error]);
 
   useEffect(() => {
     void refreshProxyStatus();
-  }, []);
+  }, [refreshProxyStatus]);
 
   useEffect(() => {
     const nextStackId = realStack?.id ?? null;

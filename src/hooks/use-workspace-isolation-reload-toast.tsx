@@ -5,7 +5,6 @@ import { useAppToast } from "@/hooks/use-app-toast";
 import type { AppToastController, AppToastOptions } from "@/lib/app-toast";
 import {
   WORKSPACE_ISOLATION_AUTO_ENV_RELOAD_COMMAND,
-  getWorkspaceIsolationActivationReloadDescription,
   getWorkspaceIsolationActivationReloadTitle,
   getWorkspaceIsolationAutoEnvSuccessDescription,
 } from "@/lib/workspace-isolation-support";
@@ -68,9 +67,6 @@ export const useWorkspaceIsolationReloadToast = () => {
     (workspaceLabel: string) => {
       showReloadToast({
         title: getWorkspaceIsolationActivationReloadTitle(workspaceLabel),
-        description: getWorkspaceIsolationActivationReloadDescription(
-          workspaceLabel,
-        ),
         duration: Infinity,
         workspaceLabel,
       });
