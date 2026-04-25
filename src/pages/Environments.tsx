@@ -55,6 +55,7 @@ import {
 } from "@/components/ui/tabs";
 import { useAppToast } from "@/hooks/use-app-toast";
 import { useEnvironmentManager } from "@/hooks/use-environment-manager";
+import { resolveSelectedEnvironmentId } from "@/lib/environment-selection";
 import type { Environment } from "@/types/environment";
 import { writeCodeWorkspace } from "@/services/workspace";
 import { markWorkspaceRequiresRelaunch } from "@/services/workspace-state";
@@ -86,11 +87,12 @@ export default function Environments() {
 
   // Select initial environment
   useEffect(() => {
-    if (
-      selectedEnvironmentId &&
-      !environments.find((e) => e.id === selectedEnvironmentId)
-    ) {
-      setSelectedEnvironmentId(environments.length > 0 ? environments[0].id : null);
+    const nextSelectedEnvironmentId = resolveSelectedEnvironmentId(
+      selectedEnvironmentId,
+      environments,
+    );
+    if (nextSelectedEnvironmentId !== selectedEnvironmentId) {
+      setSelectedEnvironmentId(nextSelectedEnvironmentId);
     }
   }, [environments, selectedEnvironmentId]);
 
