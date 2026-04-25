@@ -32,6 +32,7 @@ export const WorkspaceNetworkingPanel = ({
   const actions = useWorkspaceNetworkingActions({
     projectId,
     projectName,
+    targetKind,
     workspaceLabel,
     workspacePath,
   });

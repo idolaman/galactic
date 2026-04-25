@@ -3,13 +3,17 @@ import { useAppToast } from "@/hooks/use-app-toast";
 import { useWorkspaceIsolationManager } from "@/hooks/use-workspace-isolation-manager";
 import { useWorkspaceIsolationReloadToast } from "@/hooks/use-workspace-isolation-reload-toast";
 import {
+  trackWorkspaceIsolationActivationCompleted,
   trackWorkspaceIsolationAutoEnvEnableAttempted,
   trackWorkspaceIsolationAutoEnvEnableCompleted,
+  trackWorkspaceIsolationDeactivationCompleted,
 } from "@/services/workspace-isolation-analytics";
+import type { WorkspaceActivationTargetKind } from "@/types/workspace-isolation";
 
 interface UseWorkspaceNetworkingActionsParams {
   projectId: string;
   projectName: string;
+  targetKind: WorkspaceActivationTargetKind;
   workspaceLabel: string;
   workspacePath: string;
 }
@@ -17,6 +21,7 @@ interface UseWorkspaceNetworkingActionsParams {
 export const useWorkspaceNetworkingActions = ({
   projectId,
   projectName,
+  targetKind,
   workspaceLabel,
   workspacePath,
 }: UseWorkspaceNetworkingActionsParams) => {
@@ -58,6 +63,12 @@ export const useWorkspaceNetworkingActions = ({
         workspaceRootPath: workspacePath,
         workspaceRootLabel: workspaceLabel,
       });
+      trackWorkspaceIsolationActivationCompleted({
+        source: "workspace-card",
+        targetKind,
+        isFirstTimeSetup: false,
+        success: result.success,
+      });
       if (!result.success) {
         error({
           title: "Activation failed",
@@ -73,6 +84,11 @@ export const useWorkspaceNetworkingActions = ({
     setIsChangingWorkspaceIsolation(true);
     try {
       const result = await disableWorkspaceIsolationForWorkspace(workspacePath);
+      trackWorkspaceIsolationDeactivationCompleted({
+        source: "workspace-card",
+        targetKind,
+        success: result.success,
+      });
       if (!result.success) {
         error({
           title: "Stop failed",

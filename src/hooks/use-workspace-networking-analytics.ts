@@ -1,9 +1,13 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { WorkspaceIsolationWorkspaceStatus } from "@/lib/workspace-isolation-status";
+import {
+  getWorkspaceIsolationSupportAnalyticsFingerprint,
+  getWorkspaceIsolationSupportAnalyticsSummary,
+} from "@/lib/workspace-isolation-analytics";
 import {
   trackWorkspaceIsolationProofDrawerOpened,
   trackWorkspaceIsolationWorkspaceStateViewed,
-} from "@/services/workspace-isolation-analytics";
+} from "@/services/workspace-isolation-support-analytics";
 import type { WorkspaceActivationTargetKind } from "@/types/workspace-isolation";
 
 interface UseWorkspaceNetworkingAnalyticsParams {
@@ -21,32 +25,36 @@ export const useWorkspaceNetworkingAnalytics = ({
 }: UseWorkspaceNetworkingAnalyticsParams) => {
   const previousDrawerOpenRef = useRef(false);
   const previousTrackedStateRef = useRef<string | null>(null);
+  const supportSummary = useMemo(
+    () =>
+      status
+        ? getWorkspaceIsolationSupportAnalyticsSummary(targetKind, status)
+        : null,
+    [status, targetKind],
+  );
 
   useEffect(() => {
-    if (!status) {
+    if (!status || !supportSummary) {
       return;
     }
-    const key = `${workspacePath}:${status.state}`;
+    const key = getWorkspaceIsolationSupportAnalyticsFingerprint(
+      workspacePath,
+      status,
+    );
     if (previousTrackedStateRef.current === key) {
       return;
     }
     trackWorkspaceIsolationWorkspaceStateViewed({
       state: status.state,
-      targetKind,
-      hasDependencies: status.hasDependencies,
-      hasNonLiveDependencies: status.hasNonLiveDependencies,
+      ...supportSummary,
     });
     previousTrackedStateRef.current = key;
-  }, [status, targetKind, workspacePath]);
+  }, [status, supportSummary, workspacePath]);
 
   useEffect(() => {
-    if (isServicesOpen && !previousDrawerOpenRef.current && status) {
-      trackWorkspaceIsolationProofDrawerOpened({
-        targetKind,
-        hasDependencies: status.hasDependencies,
-        hasNonLiveDependencies: status.hasNonLiveDependencies,
-      });
+    if (isServicesOpen && !previousDrawerOpenRef.current && supportSummary) {
+      trackWorkspaceIsolationProofDrawerOpened(supportSummary);
     }
     previousDrawerOpenRef.current = isServicesOpen;
-  }, [isServicesOpen, status, targetKind]);
+  }, [isServicesOpen, supportSummary]);
 };

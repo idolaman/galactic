@@ -4,6 +4,10 @@ import type {
   WorkspaceIsolationService,
 } from "../types/workspace-isolation.js";
 import type { WorkspaceIsolationShellHookStatus } from "../types/electron.js";
+import type {
+  WorkspaceIsolationWorkspaceReason,
+  WorkspaceIsolationWorkspaceStatus,
+} from "./workspace-isolation-status.js";
 
 export type WorkspaceIsolationAnalyticsSource =
   | "workspace-card"
@@ -29,6 +33,9 @@ export type WorkspaceIsolationAnalyticsAutoEnvState =
   | "enabled"
   | "needs-setup"
   | "unsupported";
+export type WorkspaceIsolationSupportAnalyticsReason =
+  | WorkspaceIsolationWorkspaceReason
+  | "none";
 
 export interface WorkspaceIsolationAnalyticsSummary {
   workspaceMode: WorkspaceIsolationMode;
@@ -39,6 +46,7 @@ export interface WorkspaceIsolationAnalyticsSummary {
 
 export interface WorkspaceIsolationSupportAnalyticsSummary {
   targetKind: WorkspaceIsolationActivationTargetKind;
+  reason: WorkspaceIsolationSupportAnalyticsReason;
   hasDependencies: boolean;
   hasNonLiveDependencies: boolean;
 }
@@ -71,6 +79,32 @@ export const getWorkspaceIsolationAnalyticsOpeningStep = (
   step: 1 | 2 | 3 | 4 | 5,
 ): WorkspaceIsolationAnalyticsOpeningStep =>
   step === 1 ? "intro" : step === 2 ? "auto-env" : "configuration";
+
+export const getWorkspaceIsolationSupportAnalyticsReason = (
+  reason: WorkspaceIsolationWorkspaceReason | null,
+): WorkspaceIsolationSupportAnalyticsReason => reason ?? "none";
+
+export const getWorkspaceIsolationSupportAnalyticsSummary = (
+  targetKind: WorkspaceIsolationActivationTargetKind,
+  status: WorkspaceIsolationWorkspaceStatus,
+): WorkspaceIsolationSupportAnalyticsSummary => ({
+  targetKind,
+  reason: getWorkspaceIsolationSupportAnalyticsReason(status.reason),
+  hasDependencies: status.hasDependencies,
+  hasNonLiveDependencies: status.hasNonLiveDependencies,
+});
+
+export const getWorkspaceIsolationSupportAnalyticsFingerprint = (
+  workspacePath: string,
+  status: WorkspaceIsolationWorkspaceStatus,
+): string =>
+  [
+    workspacePath,
+    status.state,
+    getWorkspaceIsolationSupportAnalyticsReason(status.reason),
+    status.hasDependencies ? "dependencies" : "no-dependencies",
+    status.hasNonLiveDependencies ? "non-live" : "all-live",
+  ].join(":");
 
 export const getWorkspaceIsolationAnalyticsSummary = (
   stackId: string,

@@ -12,7 +12,7 @@ import { getLegacyLocalEnvironmentSummary } from "@/lib/workspace-networking";
 import {
   trackWorkspaceIsolationLegacyBridgeOpened,
   trackWorkspaceIsolationLegacyBridgeSelected,
-} from "@/services/workspace-isolation-analytics";
+} from "@/services/workspace-isolation-support-analytics";
 import { cn } from "@/lib/utils";
 import type { Environment } from "@/types/environment";
 import type { WorkspaceActivationTargetKind } from "@/types/workspace-isolation";

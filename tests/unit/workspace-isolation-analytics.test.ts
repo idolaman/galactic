@@ -4,6 +4,8 @@ import {
   getWorkspaceIsolationAnalyticsAutoEnvState,
   getWorkspaceIsolationAnalyticsOpeningStep,
   getWorkspaceIsolationAnalyticsSummary,
+  getWorkspaceIsolationSupportAnalyticsFingerprint,
+  getWorkspaceIsolationSupportAnalyticsSummary,
 } from "../../src/lib/workspace-isolation-analytics.js";
 
 test("workspace isolation analytics auto-env state stays privacy-safe and coarse", () => {
@@ -95,5 +97,32 @@ test("workspace isolation analytics summary counts services and complete connect
       connectionCount: 2,
       externalConnectionCount: 1,
     },
+  );
+});
+
+test("workspace isolation support analytics preserve root-cause changes", () => {
+  const status = {
+    state: "needs_attention" as const,
+    reason: "auto_env_off" as const,
+    hasDependencies: true,
+    hasNonLiveDependencies: false,
+  };
+
+  assert.deepEqual(
+    getWorkspaceIsolationSupportAnalyticsSummary("workspace", status),
+    {
+      targetKind: "workspace",
+      reason: "auto_env_off",
+      hasDependencies: true,
+      hasNonLiveDependencies: false,
+    },
+  );
+  assert.notEqual(
+    getWorkspaceIsolationSupportAnalyticsFingerprint("/repo/shop", status),
+    getWorkspaceIsolationSupportAnalyticsFingerprint("/repo/shop", {
+      ...status,
+      reason: "connected_target_not_live",
+      hasNonLiveDependencies: true,
+    }),
   );
 });

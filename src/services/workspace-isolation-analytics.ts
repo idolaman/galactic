@@ -3,11 +3,22 @@ import type {
   WorkspaceIsolationAnalyticsAutoEnvState,
   WorkspaceIsolationAnalyticsOpeningStep,
   WorkspaceIsolationAnalyticsSource,
-  WorkspaceIsolationStateViewedState,
   WorkspaceIsolationAnalyticsSummary,
-  WorkspaceIsolationSupportAnalyticsSummary,
 } from "../lib/workspace-isolation-analytics.js";
 import { trackAnalyticsEvent } from "./analytics.js";
+
+interface WorkspaceIsolationActivationEventInput {
+  source: WorkspaceIsolationAnalyticsSource;
+  targetKind: WorkspaceIsolationActivationTargetKind;
+  isFirstTimeSetup: boolean;
+  success: boolean;
+}
+
+interface WorkspaceIsolationDeactivationEventInput {
+  source: WorkspaceIsolationAnalyticsSource;
+  targetKind: WorkspaceIsolationActivationTargetKind;
+  success: boolean;
+}
 
 export const trackWorkspaceIsolationDialogOpened = (
   isEdit: boolean,
@@ -79,10 +90,7 @@ export const trackWorkspaceIsolationSaved = (
 export const trackWorkspaceIsolationDeleted = (
   summary: WorkspaceIsolationAnalyticsSummary,
 ): void => {
-  trackAnalyticsEvent("WorkspaceIsolation.deleted", {
-    serviceCount: summary.serviceCount,
-    connectionCount: summary.connectionCount,
-  });
+  trackAnalyticsEvent("WorkspaceIsolation.deleted", { ...summary });
 };
 
 export const trackWorkspaceIsolationActivationOffered = (input: {
@@ -93,12 +101,10 @@ export const trackWorkspaceIsolationActivationOffered = (input: {
   trackAnalyticsEvent("WorkspaceIsolation.activationOffered", input);
 };
 
-export const trackWorkspaceIsolationActivationCompleted = (input: {
-  source: WorkspaceIsolationAnalyticsSource;
-  targetKind: WorkspaceIsolationActivationTargetKind;
-  isFirstTimeSetup: boolean;
-}): void => {
-  trackAnalyticsEvent("WorkspaceIsolation.activationCompleted", input);
+export const trackWorkspaceIsolationActivationCompleted = (
+  input: WorkspaceIsolationActivationEventInput,
+): void => {
+  trackAnalyticsEvent("WorkspaceIsolation.activationCompleted", { ...input });
 };
 
 export const trackWorkspaceIsolationActivationSkipped = (input: {
@@ -109,27 +115,8 @@ export const trackWorkspaceIsolationActivationSkipped = (input: {
   trackAnalyticsEvent("WorkspaceIsolation.activationSkipped", input);
 };
 
-export const trackWorkspaceIsolationWorkspaceStateViewed = (input: {
-  state: WorkspaceIsolationStateViewedState;
-} & WorkspaceIsolationSupportAnalyticsSummary): void => {
-  trackAnalyticsEvent("WorkspaceIsolation.workspaceStateViewed", { ...input });
-};
-
-export const trackWorkspaceIsolationProofDrawerOpened = (
-  input: WorkspaceIsolationSupportAnalyticsSummary,
+export const trackWorkspaceIsolationDeactivationCompleted = (
+  input: WorkspaceIsolationDeactivationEventInput,
 ): void => {
-  trackAnalyticsEvent("WorkspaceIsolation.proofDrawerOpened", { ...input });
-};
-
-export const trackWorkspaceIsolationLegacyBridgeOpened = (input: {
-  targetKind: WorkspaceIsolationActivationTargetKind;
-}): void => {
-  trackAnalyticsEvent("WorkspaceIsolation.legacyBridgeOpened", input);
-};
-
-export const trackWorkspaceIsolationLegacyBridgeSelected = (input: {
-  targetKind: WorkspaceIsolationActivationTargetKind;
-  hasEnvironment: boolean;
-}): void => {
-  trackAnalyticsEvent("WorkspaceIsolation.legacyBridgeSelected", input);
+  trackAnalyticsEvent("WorkspaceIsolation.deactivationCompleted", { ...input });
 };

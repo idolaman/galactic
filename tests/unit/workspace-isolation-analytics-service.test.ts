@@ -5,13 +5,9 @@ import {
   trackWorkspaceIsolationActivationOffered,
   trackWorkspaceIsolationActivationSkipped,
   trackWorkspaceIsolationAutoEnvEnableCompleted,
+  trackWorkspaceIsolationDeactivationCompleted,
   trackWorkspaceIsolationDialogOpened,
   trackWorkspaceIsolationInfoDialogOpened,
-  trackWorkspaceIsolationLegacyBridgeOpened,
-  trackWorkspaceIsolationLegacyBridgeSelected,
-  trackWorkspaceIsolationProofDrawerOpened,
-  trackWorkspaceIsolationSaved,
-  trackWorkspaceIsolationWorkspaceStateViewed,
 } from "../../src/services/workspace-isolation-analytics.js";
 
 const setElectronWindow = (
@@ -33,7 +29,7 @@ const setElectronWindow = (
   });
 };
 
-test("workspace isolation analytics wrappers send the expected typed events", () => {
+test("workspace isolation lifecycle analytics wrappers send the expected typed events", () => {
   const calls: Array<{
     event: string;
     payload?: Record<string, string | number | boolean>;
@@ -42,11 +38,7 @@ test("workspace isolation analytics wrappers send the expected typed events", ()
 
   try {
     setElectronWindow(calls);
-    trackWorkspaceIsolationDialogOpened(
-      false,
-      "intro",
-      "needs-setup",
-    );
+    trackWorkspaceIsolationDialogOpened(false, "intro", "needs-setup");
     trackWorkspaceIsolationInfoDialogOpened();
     trackWorkspaceIsolationAutoEnvEnableCompleted("settings-card", true);
     trackWorkspaceIsolationActivationOffered({
@@ -55,38 +47,20 @@ test("workspace isolation analytics wrappers send the expected typed events", ()
       isFirstTimeSetup: true,
     });
     trackWorkspaceIsolationActivationCompleted({
-      source: "project-dialog",
+      source: "workspace-card",
       targetKind: "workspace",
-      isFirstTimeSetup: true,
+      isFirstTimeSetup: false,
+      success: false,
     });
     trackWorkspaceIsolationActivationSkipped({
       source: "project-dialog",
       targetKind: "workspace",
       isFirstTimeSetup: true,
     });
-    trackWorkspaceIsolationWorkspaceStateViewed({
-      state: "needs_attention",
+    trackWorkspaceIsolationDeactivationCompleted({
+      source: "workspace-card",
       targetKind: "workspace",
-      hasDependencies: true,
-      hasNonLiveDependencies: true,
-    });
-    trackWorkspaceIsolationProofDrawerOpened({
-      targetKind: "workspace",
-      hasDependencies: true,
-      hasNonLiveDependencies: false,
-    });
-    trackWorkspaceIsolationLegacyBridgeOpened({
-      targetKind: "base",
-    });
-    trackWorkspaceIsolationLegacyBridgeSelected({
-      targetKind: "workspace",
-      hasEnvironment: false,
-    });
-    trackWorkspaceIsolationSaved(false, "enabled", {
-      workspaceMode: "monorepo",
-      serviceCount: 2,
-      connectionCount: 3,
-      externalConnectionCount: 1,
+      success: true,
     });
 
     assert.deepEqual(calls, [
@@ -101,16 +75,11 @@ test("workspace isolation analytics wrappers send the expected typed events", ()
       },
       {
         event: "WorkspaceIsolation.infoDialogOpened",
-        payload: {
-          source: "settings-info",
-        },
+        payload: { source: "settings-info" },
       },
       {
         event: "WorkspaceIsolation.autoEnvEnableCompleted",
-        payload: {
-          source: "settings-card",
-          success: true,
-        },
+        payload: { source: "settings-card", success: true },
       },
       {
         event: "WorkspaceIsolation.activationOffered",
@@ -123,9 +92,10 @@ test("workspace isolation analytics wrappers send the expected typed events", ()
       {
         event: "WorkspaceIsolation.activationCompleted",
         payload: {
-          source: "project-dialog",
+          source: "workspace-card",
           targetKind: "workspace",
-          isFirstTimeSetup: true,
+          isFirstTimeSetup: false,
+          success: false,
         },
       },
       {
@@ -137,44 +107,11 @@ test("workspace isolation analytics wrappers send the expected typed events", ()
         },
       },
       {
-        event: "WorkspaceIsolation.workspaceStateViewed",
+        event: "WorkspaceIsolation.deactivationCompleted",
         payload: {
-          state: "needs_attention",
+          source: "workspace-card",
           targetKind: "workspace",
-          hasDependencies: true,
-          hasNonLiveDependencies: true,
-        },
-      },
-      {
-        event: "WorkspaceIsolation.proofDrawerOpened",
-        payload: {
-          targetKind: "workspace",
-          hasDependencies: true,
-          hasNonLiveDependencies: false,
-        },
-      },
-      {
-        event: "WorkspaceIsolation.legacyBridgeOpened",
-        payload: {
-          targetKind: "base",
-        },
-      },
-      {
-        event: "WorkspaceIsolation.legacyBridgeSelected",
-        payload: {
-          targetKind: "workspace",
-          hasEnvironment: false,
-        },
-      },
-      {
-        event: "WorkspaceIsolation.saved",
-        payload: {
-          isEdit: false,
-          autoEnvState: "enabled",
-          workspaceMode: "monorepo",
-          serviceCount: 2,
-          connectionCount: 3,
-          externalConnectionCount: 1,
+          success: true,
         },
       },
     ]);

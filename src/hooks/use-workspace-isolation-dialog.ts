@@ -368,6 +368,12 @@ export const useWorkspaceIsolationDialog = ({
         workspaceRootPath: selectedActivationTarget.path,
         workspaceRootLabel: selectedActivationTarget.label,
       });
+      trackWorkspaceIsolationActivationCompleted({
+        source: "project-dialog",
+        targetKind: selectedActivationTarget.kind,
+        isFirstTimeSetup: true,
+        success: result.success,
+      });
       if (!result.success) {
         error({
           title: "Activation failed",
@@ -377,11 +383,6 @@ export const useWorkspaceIsolationDialog = ({
         });
         return;
       }
-      trackWorkspaceIsolationActivationCompleted({
-        source: "project-dialog",
-        targetKind: selectedActivationTarget.kind,
-        isFirstTimeSetup: true,
-      });
       onOpenChange(false);
     } finally {
       setIsActivatingSelectedWorkspace(false);
