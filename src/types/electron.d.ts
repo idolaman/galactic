@@ -1,5 +1,6 @@
 import type { CopySyncTargetsResult, SyncTarget } from "@/types/sync-target";
 import type { GitFetchBranchesResult } from "@/types/git";
+import type { AnalyticsEvent } from "@/types/analytics";
 
 export interface GitInfo {
   isGitRepo: boolean;
@@ -159,7 +160,7 @@ export interface ElectronAPI {
   onSessionDismissed: (callback: (sessionId: string, signature: string) => void) => () => void;
   // Analytics
   trackAnalyticsEvent: (
-    event: string,
+    event: AnalyticsEvent,
     payload?: Record<string, string | number | boolean>
   ) => Promise<{ success: boolean }>;
   trackEnvironmentCreated: (address: string) => Promise<{ success: boolean }>;

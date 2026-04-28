@@ -1,98 +1,28 @@
-import TelemetryDeck from "@telemetrydeck/sdk";
-import crypto from "node:crypto";
-import os from "node:os";
 import { app } from "electron";
-import { getTelemetryDeckAppId } from "./release-config.js";
 
-let telemetryClient: TelemetryDeck | null = null;
+import { getAnalyticsDistinctId } from "./analytics-identity.js";
+import { initPostHog, capturePostHogEvent, shutdownPostHog } from "./analytics-posthog.js";
+import { captureTelemetryDeckEvent, initTelemetryDeck } from "./analytics-telemetrydeck.js";
+import { type AnalyticsEvent, isAnalyticsEvent } from "./analytics-events.js";
+import type { AnalyticsPayload } from "./analytics-payloads.js";
 
-// Generate a unique user ID based on machine ID (hashed for privacy)
-const getUserId = (): string => {
-  const machineId = `${process.platform}-${process.arch}-${os.hostname()}`;
-  return crypto.createHash("sha256").update(machineId).digest("hex").slice(0, 16);
-};
+export { ANALYTICS_EVENTS, isAnalyticsEvent } from "./analytics-events.js";
 
-export const ANALYTICS_EVENTS = [
-  "App.launched",
-  "Error.gitFailed",
-  "Workspace.created",
-  "Workspace.deleted",
-  "Workspace.configFileAdded",
-  "Workspace.filesCopied",
-  "Project.added",
-  "Project.removed",
-  "MCP.connected",
-  "MCP.sessionFocused",
-  "MCP.sessionStatusChanged",
-  "Environment.created",
-  "Environment.deleted",
-  "Environment.attached",
-  "Environment.detached",
-  "Environment.updated",
-  "Editor.launched",
-  "QuickLauncher.toggled",
-  "QuickLauncher.navigated",
-  "QuickLauncher.workspaceOpened",
-  "WorkspaceIsolation.dialogOpened",
-  "WorkspaceIsolation.infoDialogOpened",
-  "WorkspaceIsolation.introContinued",
-  "WorkspaceIsolation.autoEnvEnableAttempted",
-  "WorkspaceIsolation.autoEnvEnableCompleted",
-  "WorkspaceIsolation.configurationAdvanced",
-  "WorkspaceIsolation.saved",
-  "WorkspaceIsolation.deleted",
-  "Update.completed",
-] as const;
-
-export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[number];
-
-export const isAnalyticsEvent = (value: string): value is AnalyticsEvent =>
-  ANALYTICS_EVENTS.includes(value as AnalyticsEvent);
+const analyticsDistinctId = getAnalyticsDistinctId();
 
 export const initAnalytics = (): void => {
-  if (telemetryClient) return;
-  const telemetryDeckAppId = getTelemetryDeckAppId();
-  if (!telemetryDeckAppId) {
-    console.log("[Analytics] Disabled - no app ID configured");
-    return;
-  }
-
-  try {
-    telemetryClient = new TelemetryDeck({
-      appID: telemetryDeckAppId,
-      clientUser: getUserId(),
-      subtleCrypto: crypto.webcrypto.subtle as never,
-    });
-    console.log("[Analytics] TelemetryDeck initialized");
-  } catch (error) {
-    console.error("[Analytics] Failed to initialize TelemetryDeck:", error);
-  }
+  initTelemetryDeck(analyticsDistinctId);
+  initPostHog();
 };
 
-interface EventPayload {
-  [key: string]: string | number | boolean;
-}
+export const shutdownAnalytics = async (): Promise<void> => {
+  await shutdownPostHog();
+};
 
-export const trackEvent = (event: AnalyticsEvent, payload?: EventPayload): void => {
-  if (!telemetryClient) {
-    console.warn("[Analytics] TelemetryDeck not initialized, skipping event:", event);
-    return;
-  }
-
-  try {
-    const enrichedPayload: Record<string, string> = {
-      appVersion: app.getVersion(),
-      platform: process.platform,
-      ...Object.fromEntries(
-        Object.entries(payload ?? {}).map(([k, v]) => [k, String(v)])
-      ),
-    };
-
-    telemetryClient.signal(event, enrichedPayload);
-    console.log("[Analytics] Tracked event:", event, enrichedPayload);
-  } catch (error) {
-    console.error("[Analytics] Failed to track event:", event, error);
-  }
+export const trackEvent = (event: AnalyticsEvent, payload?: AnalyticsPayload): void => {
+  const context = { appVersion: app.getVersion(), platform: process.platform };
+  captureTelemetryDeckEvent(event, context, payload);
+  capturePostHogEvent(event, analyticsDistinctId, context, payload);
 };
 
 // Convenience functions for each event type
@@ -120,6 +50,10 @@ export const analytics = {
   projectRemoved: (worktrees: number, configCount: number) =>
     trackEvent("Project.removed", { worktrees, configCount }),
 
+  userLoggedIn: () => trackEvent("User.loggedIn"),
+
+  userLoggedOut: () => trackEvent("User.loggedOut"),
+
   mcpConnected: (tool: string) =>
     trackEvent("MCP.connected", { tool }),
 
@@ -146,6 +80,12 @@ export const analytics = {
 
   editorLaunched: (editor: string) =>
     trackEvent("Editor.launched", { editor }),
+
+  settingsEditorChanged: (editor: string) =>
+    trackEvent("Settings.editorChanged", { editor }),
+
+  settingsMcpInstalled: (tool: string) =>
+    trackEvent("Settings.mcpInstalled", { tool }),
 
   quickLauncherToggled: (visible: boolean, source?: string) =>
     trackEvent("QuickLauncher.toggled", { visible, source: source ?? "unknown" }),

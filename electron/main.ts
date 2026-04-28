@@ -21,7 +21,7 @@ import { promises as fsPromises } from "node:fs";
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import type { ExecFileException } from "node:child_process";
-import { initAnalytics, analytics, isAnalyticsEvent, trackEvent } from "./analytics.js";
+import { initAnalytics, shutdownAnalytics, analytics, isAnalyticsEvent, trackEvent } from "./analytics.js";
 import { createEditorLaunchService, parseEditorName } from "./editor-launch/service.js";
 import type { SupportedEditorName } from "./editor-launch/types.js";
 import { registerEditorLaunchIpc } from "./ipc/register-editor-launch.js";
@@ -647,7 +647,7 @@ ipcMain.on("session/get-dismissed-sync", (event) => {
 
 app.whenReady().then(async () => {
   // Initialize analytics and track app launch
-   initAnalytics();
+  initAnalytics();
   analytics.appLaunched();
   setupAutoUpdater();
   if (app.isPackaged && isUpdateEnabled()) {
@@ -703,6 +703,19 @@ app.whenReady().then(async () => {
       });
     }
   });
+});
+
+let analyticsShutdownStarted = false;
+app.on("before-quit", (event) => {
+  if (analyticsShutdownStarted) return;
+
+  analyticsShutdownStarted = true;
+  event.preventDefault();
+  shutdownAnalytics()
+    .catch((error: Error) => {
+      console.warn("[Analytics] Failed to shut down cleanly:", error);
+    })
+    .finally(() => app.quit());
 });
 
 app.on("before-quit", () => {
