@@ -81,6 +81,12 @@ export interface SessionCacheSnapshot {
   preferredEditor: PreferredEditorName;
 }
 
+export interface PostHogSessionRecordingConfig {
+  enabled: boolean;
+  host: string;
+  projectKey: string;
+}
+
 export interface ElectronAPI {
   ping: () => Promise<string>;
   getAppVersion: () => Promise<string>;
@@ -163,6 +169,7 @@ export interface ElectronAPI {
     event: AnalyticsEvent,
     payload?: Record<string, string | number | boolean>
   ) => Promise<{ success: boolean }>;
+  getPostHogSessionRecordingConfig: () => Promise<PostHogSessionRecordingConfig>;
   trackEnvironmentCreated: (address: string) => Promise<{ success: boolean }>;
 }
 

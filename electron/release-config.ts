@@ -2,12 +2,18 @@ import { app } from "electron";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import { asTrimmedString, getFirstEnvValue, parseEnvFile } from "./release-config-env.js";
+import {
+  asOptionalBooleanFlag,
+  asTrimmedString,
+  getFirstEnvValue,
+  parseEnvFile,
+} from "./release-config-env.js";
 
 interface EmbeddedReleaseConfig {
   galacticUpdateUrl?: unknown;
   posthogHost?: unknown;
   posthogProjectKey?: unknown;
+  posthogSessionReplayEnabled?: unknown;
   telemetrydeckAppId?: unknown;
 }
 
@@ -105,4 +111,18 @@ export const getPostHogHost = (): string => {
     return devEnvValue;
   }
   return asTrimmedString(getEmbeddedReleaseConfig().posthogHost) || "https://us.i.posthog.com";
+};
+
+export const getPostHogSessionReplayEnabled = (): boolean => {
+  const envValue = asOptionalBooleanFlag(process.env.POSTHOG_SESSION_REPLAY_ENABLED);
+  if (envValue !== undefined) {
+    return envValue;
+  }
+
+  const devEnvValue = asOptionalBooleanFlag(getDevEnvValue("POSTHOG_SESSION_REPLAY_ENABLED"));
+  if (devEnvValue !== undefined) {
+    return devEnvValue;
+  }
+
+  return asOptionalBooleanFlag(getEmbeddedReleaseConfig().posthogSessionReplayEnabled) ?? false;
 };

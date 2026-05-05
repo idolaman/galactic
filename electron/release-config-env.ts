@@ -33,3 +33,24 @@ export const getFirstEnvValue = (
   }
   return "";
 };
+
+export const asOptionalBooleanFlag = (value: unknown): boolean | undefined => {
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  const normalized = asTrimmedString(value).toLowerCase();
+  if (!normalized) {
+    return undefined;
+  }
+
+  if (["1", "true", "yes", "on"].includes(normalized)) {
+    return true;
+  }
+
+  if (["0", "false", "no", "off"].includes(normalized)) {
+    return false;
+  }
+
+  return undefined;
+};

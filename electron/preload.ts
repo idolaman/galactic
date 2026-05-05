@@ -133,6 +133,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   trackAnalyticsEvent: (event: string, payload?: Record<string, string | number | boolean>) =>
     ipcRenderer.invoke("analytics/track-event", event, payload),
+  getPostHogSessionRecordingConfig: () =>
+    ipcRenderer.invoke("analytics/get-posthog-session-recording-config"),
   // Analytics
   trackEnvironmentCreated: (address: string) =>
     ipcRenderer.invoke("analytics/track-environment-created", address),
