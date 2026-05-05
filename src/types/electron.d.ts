@@ -80,6 +80,26 @@ export interface SessionCacheSnapshot {
   preferredEditor: PreferredEditorName;
 }
 
+export interface ProjectConfigFileExportInput {
+  defaultFileName: string;
+  payload: unknown;
+}
+
+export interface ProjectConfigFileExportResult {
+  canceled: boolean;
+  success?: boolean;
+  filePath?: string;
+  error?: string;
+}
+
+export interface ProjectConfigFileImportResult {
+  canceled: boolean;
+  success?: boolean;
+  payload?: unknown;
+  filePath?: string;
+  error?: string;
+}
+
 export interface ElectronAPI {
   ping: () => Promise<string>;
   getAppVersion: () => Promise<string>;
@@ -102,6 +122,10 @@ export interface ElectronAPI {
     worktreePath: string,
     targets: SyncTarget[]
   ) => Promise<CopySyncTargetsResult>;
+  exportProjectConfigFile: (
+    input: ProjectConfigFileExportInput
+  ) => Promise<ProjectConfigFileExportResult>;
+  importProjectConfigFile: () => Promise<ProjectConfigFileImportResult>;
   initialWorkspaceIsolationStacks?: unknown[];
   initialWorkspaceIsolationProjectTopologies?: unknown[];
   initialWorkspaceIsolationIntroSeen?: boolean;

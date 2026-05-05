@@ -27,6 +27,7 @@ import type { SupportedEditorName } from "./editor-launch/types.js";
 import { registerEditorLaunchIpc } from "./ipc/register-editor-launch.js";
 import { registerGitWorktreeIpc } from "./ipc/register-git-worktree.js";
 import { MCP_SERVER_PORT, registerMcpIpc } from "./ipc/register-mcp.js";
+import { registerProjectConfigFileIpc } from "./ipc/register-project-config-file.js";
 import { registerProjectSyncIpc } from "./ipc/register-project-sync.js";
 import { registerWorkspaceIsolationIpc } from "./ipc/register-workspace-isolation.js";
 import {
@@ -913,6 +914,22 @@ registerGitWorktreeIpc({
 registerProjectSyncIpc({
   ipcMain,
   workspaceFilesCopied: (count, success) => analytics.workspaceFilesCopied(count, success),
+});
+
+registerProjectConfigFileIpc({
+  ipcMain,
+  getParentWindow: () =>
+    mainWindow && !mainWindow.isDestroyed() ? mainWindow : null,
+  showSaveDialog: (windowRef, options) =>
+    windowRef
+      ? dialog.showSaveDialog(windowRef, options)
+      : dialog.showSaveDialog(options),
+  showOpenDialog: (windowRef, options) =>
+    windowRef
+      ? dialog.showOpenDialog(windowRef, options)
+      : dialog.showOpenDialog(options),
+  writeFile: fsPromises.writeFile,
+  readFile: fsPromises.readFile,
 });
 
 registerMcpIpc({

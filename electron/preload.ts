@@ -47,6 +47,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
     worktreePath: string,
     targets: Array<{ path: string; kind: "file" | "directory" }>,
   ) => ipcRenderer.invoke("project/copy-sync-targets-to-worktree", projectPath, worktreePath, targets),
+  exportProjectConfigFile: (input: { defaultFileName: string; payload: unknown }) =>
+    ipcRenderer.invoke("project-config/export-file", input),
+  importProjectConfigFile: () => ipcRenderer.invoke("project-config/import-file"),
   configureEnvironmentInterface: (action: "add" | "remove", address: string) =>
     ipcRenderer.invoke("network/configure-environment-interface", action, address),
   initialWorkspaceIsolationStacks: Array.isArray(initialWorkspaceIsolationStacks)
