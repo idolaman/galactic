@@ -18,6 +18,16 @@ interface UseProjectConfigExportOptions {
   workspaceIsolationTopologyForProject: WorkspaceIsolationManagerValue["workspaceIsolationTopologyForProject"];
 }
 
+const showProjectConfigExportFailure = (
+  appToast: ProjectConfigExportToast,
+  description: string,
+) => {
+  appToast.error({
+    title: "Project config export failed",
+    description,
+  });
+};
+
 export const useProjectConfigExport = ({
   selectedProject,
   appToast,
@@ -28,23 +38,32 @@ export const useProjectConfigExport = ({
       return;
     }
 
-    const result = await exportProjectConfigFile({
-      defaultFileName: getProjectConfigDefaultFileName(selectedProject.name),
-      payload: buildProjectConfigManifest({
-        syncTargets: selectedProject.syncTargets ?? [],
-        projectServices: workspaceIsolationTopologyForProject(selectedProject.id),
-      }),
-    });
-
-    if (result.canceled) {
-      return;
-    }
-    if (!result.success) {
-      appToast.error({
-        title: "Project config export failed",
-        description: result.error ?? "Unable to write the project config file.",
+    try {
+      const result = await exportProjectConfigFile({
+        defaultFileName: getProjectConfigDefaultFileName(selectedProject.name),
+        payload: buildProjectConfigManifest({
+          syncTargets: selectedProject.syncTargets ?? [],
+          projectServices: workspaceIsolationTopologyForProject(selectedProject.id),
+        }),
       });
-      return;
+
+      if (result.canceled) {
+        return;
+      }
+      if (!result.success) {
+        showProjectConfigExportFailure(
+          appToast,
+          result.error ?? "Unable to write the project config file.",
+        );
+        return;
+      }
+      appToast.success({ title: "Project config exported" });
+    } catch (error) {
+      showProjectConfigExportFailure(
+        appToast,
+        error instanceof Error
+          ? error.message
+          : "Unable to write the project config file.",
+      );
     }
-    appToast.success({ title: "Project config exported" });
   }, [appToast, selectedProject, workspaceIsolationTopologyForProject]);
