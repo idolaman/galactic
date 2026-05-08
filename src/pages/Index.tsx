@@ -2,8 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ProjectList } from "@/components/ProjectList";
 import { ProjectDetail } from "@/components/ProjectDetail";
+import { ProjectConfigImportReviewDialog } from "@/components/ProjectConfigImportReviewDialog";
 import { useAppToast } from "@/hooks/use-app-toast";
 import { useBranchLoader } from "@/hooks/use-branch-loader";
+import { useProjectConfigTransfer } from "@/hooks/use-project-config-transfer";
 import { useWorkspaceIsolationManager } from "@/hooks/use-workspace-isolation-manager";
 import { chooseProjectDirectory } from "@/services/os";
 import {
@@ -85,7 +87,10 @@ const Index = () => {
     useEnvironmentManager();
   const {
     deleteWorkspaceIsolationForProject,
+    deleteWorkspaceIsolationProjectTopology,
     disableWorkspaceIsolationForWorkspace,
+    saveWorkspaceIsolationProjectTopology,
+    workspaceIsolationTopologyForProject,
   } =
     useWorkspaceIsolationManager();
   const { loadProjectBranches } = useBranchLoader({
@@ -550,6 +555,22 @@ const Index = () => {
     });
   };
 
+  const {
+    importReview,
+    isApplyingProjectConfigImport,
+    handleCancelProjectConfigImport,
+    handleConfirmProjectConfigImport,
+    handleExportProjectConfig,
+    handleImportProjectConfig,
+  } = useProjectConfigTransfer({
+    selectedProject,
+    appToast,
+    updateSelectedProject,
+    workspaceIsolationTopologyForProject,
+    saveWorkspaceIsolationProjectTopology,
+    deleteWorkspaceIsolationProjectTopology,
+  });
+
   const handleAddSyncTarget = (target: SyncTarget) => {
     if (!selectedProject) return;
     const normalizedPath = normalizeSyncTargetPath(target.path);
@@ -641,6 +662,8 @@ const Index = () => {
           syncTargets={selectedProject.syncTargets ?? []}
           syncTargetSearchResults={syncTargetSearchResults}
           isSearchingSyncTargets={isSearchingSyncTargets}
+          onExportProjectConfig={handleExportProjectConfig}
+          onImportProjectConfig={handleImportProjectConfig}
           onSearchSyncTargets={handleSearchProjectSyncTargets}
           onAddSyncTarget={handleAddSyncTarget}
           onRemoveSyncTarget={handleRemoveSyncTarget}
@@ -656,6 +679,12 @@ const Index = () => {
           onDeleteProject={handleDeleteProject}
         />
       )}
+      <ProjectConfigImportReviewDialog
+        review={importReview}
+        isApplying={isApplyingProjectConfigImport}
+        onCancel={handleCancelProjectConfigImport}
+        onConfirm={handleConfirmProjectConfigImport}
+      />
     </div>
   );
 };

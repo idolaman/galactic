@@ -1,4 +1,4 @@
-import type { SyncTarget } from "@/types/sync-target";
+import type { SyncTarget } from "../types/sync-target.js";
 
 export const normalizeSyncTargetPath = (value: string): string => {
   const normalized = value.trim().replace(/\\/g, "/").replace(/^\/+/, "");
