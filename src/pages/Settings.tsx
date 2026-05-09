@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { handleMcpInstallResult, MCP_INSTALL_NOTE } from "@/lib/mcp-installation";
 import { getMcpInstallationDetails, MCP_TOOL_NAMES, type McpToolName } from "@/lib/mcp-installation-details";
 import { useUpdate } from "@/hooks/use-update";
+import { trackSettingsEditorChanged, trackSettingsMcpInstalled } from "@/services/analytics";
 
 export default function Settings() {
   const toast = useAppToast();
@@ -108,6 +109,7 @@ export default function Settings() {
   const handleEditorChange = (value: string) => {
     const nextValue: EditorName = value === "VSCode" ? "VSCode" : "Cursor";
     setPreferredEditor(nextValue);
+    trackSettingsEditorChanged(nextValue);
   };
 
   const handleInstallMcp = async (tool: McpToolName) => {
@@ -117,6 +119,9 @@ export default function Settings() {
     try {
       const result = await window.electronAPI.installMcp(tool);
       await handleMcpInstallResult({ result, refreshStatus: checkMcpStatus, toast, tool });
+      if (result.success) {
+        trackSettingsMcpInstalled(tool);
+      }
     } catch (_caughtError) {
       showError({ title: "Error", description: "An unexpected error occurred." });
     } finally {

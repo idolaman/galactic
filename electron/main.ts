@@ -21,7 +21,7 @@ import { promises as fsPromises } from "node:fs";
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import type { ExecFileException } from "node:child_process";
-import { initAnalytics, analytics, isAnalyticsEvent, trackEvent } from "./analytics.js";
+import { initAnalytics, shutdownAnalytics, analytics, isAnalyticsEvent, trackEvent } from "./analytics.js";
 import { createEditorLaunchService, parseEditorName } from "./editor-launch/service.js";
 import type { SupportedEditorName } from "./editor-launch/types.js";
 import { registerEditorLaunchIpc } from "./ipc/register-editor-launch.js";
@@ -71,6 +71,7 @@ const QUICK_SIDEBAR_WIDTH = 420;
 const QUICK_SIDEBAR_MARGIN = 16;
 let lastDownloadedVersion: string | null = null;
 const UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
+const ANALYTICS_SHUTDOWN_TIMEOUT_MS = 6_000;
 let updateCheckTimer: NodeJS.Timeout | null = null;
 let updateCheckInFlight: Promise<UpdateCheckResult | null> | null = null;
 const isUpdateEnabled = () => getGalacticUpdateUrl().length > 0;
@@ -648,7 +649,7 @@ ipcMain.on("session/get-dismissed-sync", (event) => {
 
 app.whenReady().then(async () => {
   // Initialize analytics and track app launch
-   initAnalytics();
+  initAnalytics();
   analytics.appLaunched();
   setupAutoUpdater();
   if (app.isPackaged && isUpdateEnabled()) {
@@ -706,13 +707,51 @@ app.whenReady().then(async () => {
   });
 });
 
-app.on("before-quit", () => {
+const shutdownAnalyticsWithTimeout = async (): Promise<void> => {
+  let timeoutRef: NodeJS.Timeout | null = null;
+  const timeout = new Promise<void>((resolve) => {
+    timeoutRef = setTimeout(() => {
+      console.warn("[Analytics] Shutdown timed out; quitting anyway");
+      resolve();
+    }, ANALYTICS_SHUTDOWN_TIMEOUT_MS);
+  });
+
+  try {
+    await Promise.race([
+      shutdownAnalytics().catch((error: Error) => {
+        console.warn("[Analytics] Failed to shut down cleanly:", error);
+      }),
+      timeout,
+    ]);
+  } finally {
+    if (timeoutRef) {
+      clearTimeout(timeoutRef);
+    }
+  }
+};
+
+let appShutdownStarted = false;
+app.on("before-quit", (event) => {
+  if (appShutdownStarted) return;
+
+  appShutdownStarted = true;
+  event.preventDefault();
+
   if (updateCheckTimer) {
     clearInterval(updateCheckTimer);
     updateCheckTimer = null;
   }
-  stopMcpServer();
-  void workspaceIsolationManager.stop();
+
+  void shutdownAnalyticsWithTimeout()
+    .then(async () => {
+      stopMcpServer();
+      try {
+        await workspaceIsolationManager.stop();
+      } catch (error) {
+        console.warn("Failed to stop Workspace Isolation cleanly:", error);
+      }
+    })
+    .finally(() => app.quit());
 });
 
 app.on("will-quit", () => {
@@ -722,7 +761,6 @@ app.on("will-quit", () => {
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
-    stopMcpServer();
     app.quit();
   }
 });
