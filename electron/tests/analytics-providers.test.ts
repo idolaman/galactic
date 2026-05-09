@@ -5,6 +5,7 @@ import {
   capturePostHogClientEvent,
   captureTelemetryDeckClientEvent,
   type PostHogClient,
+  type TelemetryDeckClient,
 } from "../analytics-capture.js";
 
 const context = {
@@ -43,7 +44,7 @@ test("analytics provider capture failures do not throw", () => {
     },
     shutdown: async () => undefined,
   };
-  const throwingTelemetryDeck = {
+  const throwingTelemetryDeck: TelemetryDeckClient = {
     signal: () => {
       throw new Error("telemetrydeck failed");
     },

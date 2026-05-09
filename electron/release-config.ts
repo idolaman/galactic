@@ -14,6 +14,12 @@ interface EmbeddedReleaseConfig {
 let cachedEmbeddedConfig: EmbeddedReleaseConfig | null = null;
 let cachedDevEnv: Record<string, string> | null = null;
 
+const isMissingFileError = (error: unknown): boolean =>
+  typeof error === "object" &&
+  error !== null &&
+  "code" in error &&
+  (error as NodeJS.ErrnoException).code === "ENOENT";
+
 const getEmbeddedReleaseConfig = (): EmbeddedReleaseConfig => {
   if (cachedEmbeddedConfig) {
     return cachedEmbeddedConfig;
@@ -48,7 +54,10 @@ const getDevEnv = (): Record<string, string> => {
 
   try {
     cachedDevEnv = parseEnvFile(readFileSync(path.join(process.cwd(), ".env"), "utf-8"));
-  } catch {
+  } catch (error) {
+    if (!isMissingFileError(error)) {
+      console.warn("[ReleaseConfig] Failed to read dev .env file:", error);
+    }
     cachedDevEnv = {};
   }
 
