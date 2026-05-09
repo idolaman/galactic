@@ -19,10 +19,6 @@ import { EnvironmentProvider } from "@/hooks/use-environment-manager";
 import { WorkspaceIsolationManagerProvider } from "@/providers/WorkspaceIsolationManagerProvider";
 import { StarsBackground } from "@/components/StarsBackground";
 import { trackUserLoggedIn, trackUserLoggedOut } from "@/services/analytics";
-import {
-  startMaskedSessionRecording,
-  stopMaskedSessionRecording,
-} from "@/services/session-recording";
 
 const queryClient = new QueryClient();
 
@@ -40,12 +36,10 @@ const App = () => {
   const handleAuthSuccess = (userData: User) => {
     setUser(userData);
     trackUserLoggedIn();
-    void startMaskedSessionRecording({ hasEnteredApp: true, isQuickSidebar });
   };
 
   const handleLogout = () => {
     trackUserLoggedOut();
-    stopMaskedSessionRecording();
     setUser(null);
   };
 

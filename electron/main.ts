@@ -37,12 +37,7 @@ import {
   restartMcpServer,
   getMcpServerUrl,
 } from "./mcp-server.js";
-import {
-  getGalacticUpdateUrl,
-  getPostHogHost,
-  getPostHogProjectKey,
-  getPostHogSessionReplayEnabled,
-} from "./release-config.js";
+import { getGalacticUpdateUrl } from "./release-config.js";
 import {
   DEFAULT_APP_SETTINGS,
   loadAppSettings,
@@ -550,17 +545,6 @@ ipcMain.handle("ping", () => {
 
 ipcMain.handle("app/get-version", () => {
   return app.getVersion();
-});
-
-ipcMain.handle("analytics/get-posthog-session-recording-config", () => {
-  const projectKey = getPostHogProjectKey();
-  const host = getPostHogHost();
-
-  return {
-    enabled: getPostHogSessionReplayEnabled() && projectKey.length > 0,
-    host,
-    projectKey,
-  };
 });
 
 ipcMain.handle("quick-sidebar/toggle", async () => {
