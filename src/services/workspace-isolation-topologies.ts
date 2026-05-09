@@ -12,6 +12,31 @@ import type {
   WorkspaceIsolationStack,
 } from "@/types/workspace-isolation";
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const getStacksPayload = (value: unknown): unknown[] => {
+  if (Array.isArray(value)) return value;
+  if (isRecord(value) && value.success === true && Array.isArray(value.stacks)) {
+    return value.stacks;
+  }
+  if (isRecord(value) && value.success === false && typeof value.error === "string") {
+    console.warn(value.error);
+  }
+  return [];
+};
+
+const getTopologiesPayload = (value: unknown): unknown[] => {
+  if (Array.isArray(value)) return value;
+  if (isRecord(value) && value.success === true && Array.isArray(value.topologies)) {
+    return value.topologies;
+  }
+  if (isRecord(value) && value.success === false && typeof value.error === "string") {
+    console.warn(value.error);
+  }
+  return [];
+};
+
 export const getWorkspaceIsolationStacks =
   async (): Promise<WorkspaceIsolationStack[]> => {
     if (typeof window === "undefined") {
@@ -20,7 +45,7 @@ export const getWorkspaceIsolationStacks =
 
     try {
       return toWorkspaceIsolationStacks(
-        await window.electronAPI?.getWorkspaceIsolationStacks?.(),
+        getStacksPayload(await window.electronAPI?.getWorkspaceIsolationStacks?.()),
       );
     } catch (error) {
       console.warn("Failed to load Workspace Isolation stacks:", error);
@@ -36,7 +61,9 @@ export const getWorkspaceIsolationProjectTopologies =
 
     try {
       return toWorkspaceIsolationProjectTopologies(
-        await window.electronAPI?.getWorkspaceIsolationProjectTopologies?.(),
+        getTopologiesPayload(
+          await window.electronAPI?.getWorkspaceIsolationProjectTopologies?.(),
+        ),
       );
     } catch (error) {
       console.warn("Failed to load Workspace Isolation topologies:", error);

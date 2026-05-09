@@ -19,7 +19,7 @@ import { WorkspaceIsolationManagerProvider } from "@/providers/WorkspaceIsolatio
 import { StarsBackground } from "@/components/StarsBackground";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { useAuth } from "@/hooks/use-auth";
-import { trackUserLoggedIn, trackUserLoggedOut } from "@/services/analytics";
+import { GLOBAL_LOCAL_STORAGE_KEYS } from "@/services/local-storage-keys";
 
 const queryClient = new QueryClient();
 
@@ -29,54 +29,53 @@ const MainApp = () => {
   if (status !== "authenticated" || !user) {
     return <AuthSignIn />;
   }
-const App = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const isQuickSidebar = typeof window !== "undefined" && window.location.hash.includes("quick-sidebar");
-  // Subscribe to update events and show toasts at app level
-  useUpdateListener();
-
-  const handleAuthSuccess = (userData: User) => {
-    setUser(userData);
-    trackUserLoggedIn();
-  };
-
-  const handleLogout = () => {
-    trackUserLoggedOut();
-    setUser(null);
-  };
 
   return (
-    <HashRouter>
-      <SidebarProvider defaultOpen>
-        <div className="flex h-svh w-full bg-transparent">
-          <AppSidebar />
-          <SidebarInset>
-            <Header user={user} onLogout={() => void signOut()} />
-            <div className="flex-1 overflow-hidden">
-              <div className="h-full overflow-auto">
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/environments" element={<Environments />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </div>
+    <EnvironmentProvider key={user.id}>
+      <WorkspaceIsolationManagerProvider>
+        <HashRouter>
+          <SidebarProvider defaultOpen>
+            <div className="flex h-svh w-full bg-transparent">
+              <AppSidebar />
+              <SidebarInset>
+                <Header user={user} onLogout={() => void signOut()} />
+                <div className="flex-1 overflow-hidden">
+                  <div className="h-full overflow-auto">
+                    <Routes>
+                      <Route path="/" element={<Index />} />
+                      <Route path="/environments" element={<Environments />} />
+                      <Route path="/settings" element={<Settings />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </div>
+                </div>
+              </SidebarInset>
             </div>
-          </SidebarInset>
-        </div>
-      </SidebarProvider>
-    </HashRouter>
+          </SidebarProvider>
+        </HashRouter>
+      </WorkspaceIsolationManagerProvider>
+    </EnvironmentProvider>
   );
 };
 
-const QuickSidebarApp = () => (
-  <HashRouter>
-    <Routes>
-      <Route path="/quick-sidebar" element={<QuickSidebar />} />
-      <Route path="*" element={<QuickSidebar />} />
-    </Routes>
-  </HashRouter>
-);
+const QuickSidebarApp = () => {
+  const { status, user } = useAuth();
+
+  if (status !== "authenticated" || !user) {
+    return <AuthSignIn />;
+  }
+
+  return (
+    <EnvironmentProvider key={user.id}>
+      <HashRouter>
+        <Routes>
+          <Route path="/quick-sidebar" element={<QuickSidebar />} />
+          <Route path="*" element={<QuickSidebar />} />
+        </Routes>
+      </HashRouter>
+    </EnvironmentProvider>
+  );
+};
 
 const App = () => {
   const isQuickSidebar = typeof window !== "undefined" && window.location.hash.includes("quick-sidebar");
@@ -97,18 +96,14 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="dark" storageKey="galactic-ide-theme">
+      <ThemeProvider attribute="class" defaultTheme="dark" storageKey={GLOBAL_LOCAL_STORAGE_KEYS.theme}>
         <StarsBackground />
-        <EnvironmentProvider>
-          <WorkspaceIsolationManagerProvider>
-            <AuthProvider enabled={!isQuickSidebar}>
-              <TooltipProvider>
-                {toastLayers}
-                {content}
-              </TooltipProvider>
-            </AuthProvider>
-          </WorkspaceIsolationManagerProvider>
-        </EnvironmentProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            {toastLayers}
+            {content}
+          </TooltipProvider>
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

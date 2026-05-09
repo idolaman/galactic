@@ -14,7 +14,7 @@ import { useAppToast } from "@/hooks/use-app-toast";
 import vscodeIcon from "@/assets/vscode-icon.png";
 import cursorIcon from "@/assets/cursor.jpeg";
 import { Button } from "@/components/ui/button";
-import { type EditorName } from "@/services/editor";
+import { getPreferredEditor, savePreferredEditor, type EditorName } from "@/services/editor";
 import { cn } from "@/lib/utils";
 import { handleMcpInstallResult, MCP_INSTALL_NOTE } from "@/lib/mcp-installation";
 import { getMcpInstallationDetails, MCP_TOOL_NAMES, type McpToolName } from "@/lib/mcp-installation-details";
@@ -48,10 +48,7 @@ export default function Settings() {
     }
   }, [location.hash]);
 
-  const [preferredEditor, setPreferredEditor] = useState<EditorName>(() => {
-    const saved = typeof window !== "undefined" ? window.localStorage.getItem("preferredEditor") : null;
-    return (saved === "Cursor" || saved === "VSCode") ? saved : "Cursor";
-  });
+  const [preferredEditor, setPreferredEditor] = useState<EditorName>(() => getPreferredEditor());
   const [cursorInstalled, setCursorInstalled] = useState<boolean>(false);
   const [vscodeInstalled, setVscodeInstalled] = useState<boolean>(false);
 
@@ -66,7 +63,7 @@ export default function Settings() {
   const [appVersion, setAppVersion] = useState<string | null>(null);
 
   useEffect(() => {
-    window.localStorage.setItem("preferredEditor", preferredEditor);
+    savePreferredEditor(preferredEditor);
   }, [preferredEditor]);
 
   const checkEditors = useCallback(async () => {

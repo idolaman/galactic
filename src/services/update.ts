@@ -1,3 +1,6 @@
+import { GLOBAL_LOCAL_STORAGE_KEYS } from "@/services/local-storage-keys";
+import { getLocalStorage } from "@/services/local-storage-scope";
+
 // Types
 type UpdateStatus = "available" | "downloaded" | "not-available" | "error";
 
@@ -83,18 +86,29 @@ export function subscribeToUpdateEvents(
 }
 
 // Toast dismissal tracking (localStorage-based cooldown)
-const DISMISS_KEY = "galactic-ide:update-toast-dismissed";
 const COOLDOWN_MS = 6 * 60 * 60 * 1000; // 6 hours
 
 export function setUpdateToastDismissed(): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(DISMISS_KEY, Date.now().toString());
+  const storage = getLocalStorage();
+  if (!storage) return;
+
+  try {
+    storage.setItem(GLOBAL_LOCAL_STORAGE_KEYS.updateToastDismissed, Date.now().toString());
+  } catch (error) {
+    console.warn("Failed to save update toast dismissal:", error);
+  }
 }
 
 export function shouldShowUpdateToast(): boolean {
-  if (typeof window === "undefined") return false;
-  const stored = localStorage.getItem(DISMISS_KEY);
-  if (!stored) return true;
-  const lastDismissed = parseInt(stored, 10);
-  return Date.now() - lastDismissed > COOLDOWN_MS;
+  const storage = getLocalStorage();
+  if (!storage) return false;
+
+  try {
+    const stored = storage.getItem(GLOBAL_LOCAL_STORAGE_KEYS.updateToastDismissed);
+    if (!stored) return true;
+    const lastDismissed = Number.parseInt(stored, 10);
+    return Date.now() - lastDismissed > COOLDOWN_MS;
+  } catch {
+    return true;
+  }
 }

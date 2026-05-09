@@ -1,0 +1,44 @@
+import type { AuthProviderName, AuthStatus } from "../types/auth.js";
+
+export interface AuthProviderButtonViewState {
+  disabled: boolean;
+  label: string;
+}
+
+export interface AuthSignInViewState {
+  isRestoring: boolean;
+  providers: Record<AuthProviderName, AuthProviderButtonViewState>;
+}
+
+const providerIdleLabels: Record<AuthProviderName, string> = {
+  github: "Sign in with GitHub",
+  google: "Sign in with Google",
+};
+
+interface AuthSignInViewStateInput {
+  status: AuthStatus;
+}
+
+const buildProviderViewState = (
+  provider: AuthProviderName,
+  disabled: boolean,
+): AuthProviderButtonViewState => {
+  return {
+    disabled,
+    label: providerIdleLabels[provider],
+  };
+};
+
+export const getAuthSignInViewState = ({
+  status,
+}: AuthSignInViewStateInput): AuthSignInViewState => {
+  const isRestoring = status === "loading";
+
+  return {
+    isRestoring,
+    providers: {
+      github: buildProviderViewState("github", isRestoring),
+      google: buildProviderViewState("google", isRestoring),
+    },
+  };
+};

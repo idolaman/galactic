@@ -69,6 +69,25 @@ export interface WorkspaceIsolationProxyStatus {
   message?: string;
 }
 
+export interface WorkspaceIsolationStacksResult {
+  success: boolean;
+  stacks?: unknown[];
+  error?: string;
+}
+
+export interface WorkspaceIsolationTopologiesResult {
+  success: boolean;
+  topologies?: unknown[];
+  error?: string;
+}
+
+export interface CodeWorkspacePathResult {
+  success: boolean;
+  exists: boolean;
+  workspacePath: string;
+  error?: string;
+}
+
 export interface OpenProjectInEditorResult {
   success: boolean;
   error?: string;
@@ -127,12 +146,10 @@ export interface ElectronAPI {
     input: ProjectConfigFileExportInput
   ) => Promise<ProjectConfigFileExportResult>;
   importProjectConfigFile: () => Promise<ProjectConfigFileImportResult>;
-  initialWorkspaceIsolationStacks?: unknown[];
-  initialWorkspaceIsolationProjectTopologies?: unknown[];
   initialWorkspaceIsolationIntroSeen?: boolean;
   initialWorkspaceIsolationShellHookStatus?: unknown;
-  getWorkspaceIsolationStacks: () => Promise<unknown[]>;
-  getWorkspaceIsolationProjectTopologies: () => Promise<unknown[]>;
+  getWorkspaceIsolationStacks: () => Promise<WorkspaceIsolationStacksResult | unknown[]>;
+  getWorkspaceIsolationProjectTopologies: () => Promise<WorkspaceIsolationTopologiesResult | unknown[]>;
   saveWorkspaceIsolationProjectTopology: (
     input: unknown
   ) => Promise<{ success: boolean; error?: string; topology?: unknown }>;
@@ -147,6 +164,10 @@ export interface ElectronAPI {
   ) => Promise<{ success: boolean; error?: string }>;
   markWorkspaceIsolationIntroSeen: () => Promise<{ success: boolean; seen: boolean; error?: string }>;
   getWorkspaceIsolationProxyStatus: () => Promise<WorkspaceIsolationProxyStatus>;
+  setWorkspaceIsolationActiveUser: (
+    userId: string
+  ) => Promise<{ success: boolean; error?: string }>;
+  clearWorkspaceIsolationActiveUser: () => Promise<{ success: boolean; error?: string }>;
   configureEnvironmentInterface: (
     action: "add" | "remove",
     address: string
@@ -155,7 +176,7 @@ export interface ElectronAPI {
     targetPath: string,
     envConfig: WorkspaceEnvConfig | null
   ) => Promise<{ success: boolean; workspacePath?: string; error?: string }>;
-  getCodeWorkspacePath: (targetPath: string) => Promise<{ exists: boolean; workspacePath: string }>;
+  getCodeWorkspacePath: (targetPath: string) => Promise<CodeWorkspacePathResult>;
   deleteCodeWorkspace: (targetPath: string) => Promise<{ success: boolean; error?: string }>;
   checkMcpInstalled: (tool: string) => Promise<boolean>;
   installMcp: (tool: string) => Promise<{ success: boolean; error?: string }>;

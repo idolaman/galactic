@@ -17,7 +17,7 @@ import path from "node:path";
 import process from "node:process";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { promises as fsPromises } from "node:fs";
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
@@ -56,6 +56,10 @@ import { isWorktreeAlreadyRemovedError } from "./utils/git-worktree-remove.js";
 import { WorkspaceIsolationManager } from "./workspace-isolation/manager.js";
 import { createAuthStorage } from "./utils/auth-storage.js";
 import {
+  UserScopedWorkspaceCache,
+  WORKSPACE_CACHE_AUTH_REQUIRED_ERROR,
+} from "./utils/user-scoped-workspace-cache.js";
+import {
   buildAuthCallbackUrl,
   findAuthCallbackUrlInArgs,
   getAuthProtocolScheme,
@@ -86,6 +90,9 @@ let updateCheckInFlight: Promise<UpdateCheckResult | null> | null = null;
 const isUpdateEnabled = () => getGalacticUpdateUrl().length > 0;
 const editorLaunchService = createEditorLaunchService();
 const workspaceIsolationManager = new WorkspaceIsolationManager(app.getPath("userData"), process.platform);
+const workspaceCache = new UserScopedWorkspaceCache(
+  path.join(app.getPath("userData"), "galactic-workspaces"),
+);
 const macNotifierService = createMacNotifierService({
   isPackaged: app.isPackaged,
   resourcesPath: process.resourcesPath,
@@ -564,7 +571,7 @@ const getPreferredEditorFromSnapshot = (snapshot: SessionCacheSnapshot): Support
 
 const getWorkspaceOpenPath = (targetPath: string): string => {
   const workspacePath = getWorkspaceFilePath(targetPath);
-  return existsSync(workspacePath) ? workspacePath : targetPath;
+  return workspacePath && existsSync(workspacePath) ? workspacePath : targetPath;
 };
 
 const getMacNotifierLaunchTargets = async (
@@ -1134,6 +1141,27 @@ registerWorkspaceIsolationIpc({
     workspaceIsolationManager.disableWorkspace(workspaceRootPath),
   getShellHookStatus: () => workspaceIsolationManager.getShellHookStatus(),
   getProxyStatus: () => workspaceIsolationManager.getProxyStatus(),
+  setActiveUser: async (userId) => {
+    try {
+      await workspaceCache.setActiveUser(userId);
+      await workspaceIsolationManager.setActiveUser(
+        userId,
+        appSettings.workspaceIsolationShellHooksEnabled,
+      );
+    } catch (error) {
+      workspaceCache.clearActiveUser();
+      await workspaceIsolationManager.clearActiveUser(
+        appSettings.workspaceIsolationShellHooksEnabled,
+      );
+      throw error;
+    }
+  },
+  clearActiveUser: async () => {
+    workspaceCache.clearActiveUser();
+    await workspaceIsolationManager.clearActiveUser(
+      appSettings.workspaceIsolationShellHooksEnabled,
+    );
+  },
   markIntroSeen: async () => {
     appSettings = {
       ...appSettings,
@@ -1242,29 +1270,23 @@ ipcMain.handle(
   },
 );
 
-const WORKSPACES_CACHE_DIR = "galactic-workspaces";
-
 interface WorkspaceEnvConfig {
   address?: string;
   envVars?: Record<string, string>;
 }
 
-const getWorkspacesCacheDir = () => {
-  const cacheDir = path.join(app.getPath("userData"), WORKSPACES_CACHE_DIR);
-  if (!existsSync(cacheDir)) {
-    mkdirSync(cacheDir, { recursive: true });
-  }
-  return cacheDir;
-};
-
 const hashTargetPath = (targetPath: string): string => {
   return createHash("sha256").update(targetPath).digest("hex").slice(0, 16);
 };
 
-const getWorkspaceFilePath = (targetPath: string): string => {
+const getWorkspaceFilePath = (targetPath: string): string | null => {
+  const cacheDir = workspaceCache.getActiveCacheDir();
+  if (!cacheDir) {
+    return null;
+  }
   const hash = hashTargetPath(targetPath);
   const safeName = path.basename(targetPath).replace(/[^a-zA-Z0-9_-]/g, "_");
-  return path.join(getWorkspacesCacheDir(), `${safeName}-${hash}.code-workspace`);
+  return path.join(cacheDir, `${safeName}-${hash}.code-workspace`);
 };
 
 const buildWorkspaceContent = (targetPath: string, envConfig: WorkspaceEnvConfig | null) => {
@@ -1306,6 +1328,12 @@ ipcMain.handle(
     }
 
     const workspacePath = getWorkspaceFilePath(targetPath);
+    if (!workspacePath) {
+      return {
+        success: false,
+        error: WORKSPACE_CACHE_AUTH_REQUIRED_ERROR,
+      };
+    }
 
     try {
       const content = buildWorkspaceContent(targetPath, envConfig);
@@ -1323,9 +1351,26 @@ ipcMain.handle(
 
 ipcMain.handle(
   "workspace/get-code-workspace-path",
-  async (_event, targetPath: string): Promise<{ exists: boolean; workspacePath: string }> => {
+  async (
+    _event,
+    targetPath: string,
+  ): Promise<{
+    success: boolean;
+    exists: boolean;
+    workspacePath: string;
+    error?: string;
+  }> => {
     const workspacePath = getWorkspaceFilePath(targetPath);
+    if (!workspacePath) {
+      return {
+        success: false,
+        exists: false,
+        workspacePath: "",
+        error: WORKSPACE_CACHE_AUTH_REQUIRED_ERROR,
+      };
+    }
     return {
+      success: true,
       exists: existsSync(workspacePath),
       workspacePath,
     };
@@ -1339,6 +1384,12 @@ ipcMain.handle(
     }
 
     const workspacePath = getWorkspaceFilePath(targetPath);
+    if (!workspacePath) {
+      return {
+        success: false,
+        error: WORKSPACE_CACHE_AUTH_REQUIRED_ERROR,
+      };
+    }
 
     try {
       if (existsSync(workspacePath)) {

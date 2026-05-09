@@ -26,6 +26,8 @@ import type {
 } from "./types.js";
 
 const STORE_FILE_NAME = "stacks.json";
+const USER_STORES_DIR_NAME = "users";
+const MIGRATION_CLAIM_FILE_NAME = "migration-v1-claimed-by";
 const PROXY_PORT = 1355;
 type PortAllocator = (usedPorts: Set<number>) => Promise<number>;
 
@@ -41,6 +43,14 @@ const createEmptyStore = (): WorkspaceIsolationStore => ({
   topologies: [],
   enabledWorkspaces: [],
 });
+
+const normalizeUserId = (userId: string | null | undefined): string | null => {
+  const normalized = userId?.trim();
+  return normalized ? normalized : null;
+};
+
+const toUserStorageSegment = (userId: string): string =>
+  encodeURIComponent(userId);
 
 const getStableHash = (value: string): string => {
   let hash = 7;
@@ -66,6 +76,11 @@ const cloneEnabledWorkspace = (
 ): WorkspaceIsolationEnabledWorkspace => ({
   ...workspace,
   servicePorts: { ...workspace.servicePorts },
+});
+
+const cloneStore = (store: WorkspaceIsolationStore): WorkspaceIsolationStore => ({
+  topologies: store.topologies.map(cloneStack),
+  enabledWorkspaces: store.enabledWorkspaces.map(cloneEnabledWorkspace),
 });
 
 const getTopologyId = (projectId: string): string =>
@@ -250,8 +265,9 @@ const buildProjectTopology = (
   );
 
 export class WorkspaceIsolationManager {
-  private readonly stateDir: string;
-  private readonly storePath: string;
+  private readonly rootStateDir: string;
+  private stateDir: string;
+  private storePath: string;
   private readonly platform: NodeJS.Platform;
   private readonly allocatePort: PortAllocator;
   private readonly routes: WorkspaceIsolationRoute[] = [];
@@ -261,6 +277,7 @@ export class WorkspaceIsolationManager {
   );
   private store: WorkspaceIsolationStore = createEmptyStore();
   private stacks: WorkspaceIsolationStack[] = [];
+  private activeUserId: string | null = null;
   private shellHookStatus: WorkspaceIsolationShellHookStatus;
 
   constructor(
@@ -268,7 +285,8 @@ export class WorkspaceIsolationManager {
     platform: NodeJS.Platform,
     allocatePort: PortAllocator = getNextAvailableServicePort,
   ) {
-    this.stateDir = path.join(userDataPath, "workspace-isolation");
+    this.rootStateDir = path.join(userDataPath, "workspace-isolation");
+    this.stateDir = this.rootStateDir;
     this.storePath = path.join(this.stateDir, STORE_FILE_NAME);
     this.platform = platform;
     this.allocatePort = allocatePort;
@@ -281,9 +299,127 @@ export class WorkspaceIsolationManager {
     };
   }
 
-  async start(shellHooksEnabled: boolean): Promise<void> {
+  private getScopedStateDir(userId: string): string {
+    return path.join(
+      this.rootStateDir,
+      USER_STORES_DIR_NAME,
+      toUserStorageSegment(userId),
+    );
+  }
+
+  private useStateDir(stateDir: string): void {
+    this.stateDir = stateDir;
+    this.storePath = path.join(stateDir, STORE_FILE_NAME);
+  }
+
+  private getMigrationClaimPath(): string {
+    return path.join(this.rootStateDir, MIGRATION_CLAIM_FILE_NAME);
+  }
+
+  private async getMigrationClaimedBy(): Promise<string | null> {
+    try {
+      return normalizeUserId(
+        await fs.readFile(this.getMigrationClaimPath(), "utf-8"),
+      );
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        console.warn("Failed to read Workspace Isolation migration claim:", error);
+      }
+      return null;
+    }
+  }
+
+  private async writeStoreFile(
+    storePath: string,
+    store: WorkspaceIsolationStore,
+  ): Promise<void> {
+    await fs.mkdir(path.dirname(storePath), { recursive: true });
+    await fs.writeFile(
+      storePath,
+      JSON.stringify(cloneStore(store), null, 2),
+      "utf-8",
+    );
+  }
+
+  private async claimLegacyStoreMigration(userId: string): Promise<void> {
+    if (await this.getMigrationClaimedBy()) {
+      return;
+    }
+
+    await fs.mkdir(this.rootStateDir, { recursive: true });
+    const legacyStorePath = path.join(this.rootStateDir, STORE_FILE_NAME);
+    const scopedStorePath = path.join(
+      this.getScopedStateDir(userId),
+      STORE_FILE_NAME,
+    );
+
+    if (!existsSync(scopedStorePath) && existsSync(legacyStorePath)) {
+      await this.writeStoreFile(scopedStorePath, await readStore(legacyStorePath));
+    }
+
+    await fs.writeFile(this.getMigrationClaimPath(), userId, "utf-8");
+  }
+
+  private async loadCurrentStore(): Promise<void> {
     await fs.mkdir(this.stateDir, { recursive: true });
     this.store = await readStore(this.storePath);
+    await this.syncDerivedState();
+  }
+
+  private requireActiveUser(): string | null {
+    return this.activeUserId;
+  }
+
+  private getActiveUserRequiredError(): string {
+    return "Project Services storage requires an active signed-in user.";
+  }
+
+  private assertActiveUser(): void {
+    if (!this.requireActiveUser()) {
+      throw new Error(this.getActiveUserRequiredError());
+    }
+  }
+
+  async setActiveUser(
+    userId: string,
+    shellHooksEnabled = this.shellHookStatus.enabled,
+  ): Promise<void> {
+    const normalized = normalizeUserId(userId);
+    if (!normalized) {
+      throw new Error(this.getActiveUserRequiredError());
+    }
+
+    await this.claimLegacyStoreMigration(normalized);
+    this.activeUserId = normalized;
+    this.useStateDir(this.getScopedStateDir(normalized));
+    await this.loadCurrentStore();
+    this.shellHookStatus = await syncWorkspaceIsolationShellFiles(
+      this.rootStateDir,
+      this.stacks,
+      shellHooksEnabled,
+      this.platform,
+    );
+  }
+
+  async clearActiveUser(
+    shellHooksEnabled = this.shellHookStatus.enabled,
+  ): Promise<void> {
+    this.activeUserId = null;
+    this.useStateDir(this.rootStateDir);
+    this.store = createEmptyStore();
+    await this.syncDerivedState();
+    this.shellHookStatus = await syncWorkspaceIsolationShellFiles(
+      this.rootStateDir,
+      this.stacks,
+      shellHooksEnabled,
+      this.platform,
+    );
+  }
+
+  async start(shellHooksEnabled: boolean): Promise<void> {
+    await fs.mkdir(this.rootStateDir, { recursive: true });
+    this.activeUserId = null;
+    this.store = createEmptyStore();
     await this.syncDerivedState();
     await new Promise<void>((resolve, reject) => {
       this.server.once("error", reject);
@@ -293,7 +429,7 @@ export class WorkspaceIsolationManager {
       });
     });
     this.shellHookStatus = await syncWorkspaceIsolationShellFiles(
-      this.stateDir,
+      this.rootStateDir,
       this.stacks,
       shellHooksEnabled,
       this.platform,
@@ -308,10 +444,12 @@ export class WorkspaceIsolationManager {
   }
 
   getStacks(): WorkspaceIsolationStack[] {
+    this.assertActiveUser();
     return this.stacks.map(cloneStack);
   }
 
   getProjectTopologies(): WorkspaceIsolationProjectTopology[] {
+    this.assertActiveUser();
     return this.store.topologies.map(cloneStack);
   }
 
@@ -333,7 +471,7 @@ export class WorkspaceIsolationManager {
     enabled: boolean,
   ): Promise<WorkspaceIsolationShellHookStatus> {
     this.shellHookStatus = await syncWorkspaceIsolationShellFiles(
-      this.stateDir,
+      this.rootStateDir,
       this.stacks,
       enabled,
       this.platform,
@@ -344,6 +482,10 @@ export class WorkspaceIsolationManager {
   async saveProjectTopology(
     input: SaveWorkspaceIsolationInput,
   ): Promise<WorkspaceIsolationTopologyMutationResult> {
+    if (!this.requireActiveUser()) {
+      return { success: false, error: this.getActiveUserRequiredError() };
+    }
+
     try {
       const topologyId = getTopologyId(input.projectId);
       const existing = this.store.topologies.find(
@@ -375,6 +517,10 @@ export class WorkspaceIsolationManager {
   async deleteProjectTopology(
     topologyId: string,
   ): Promise<WorkspaceIsolationTopologyMutationResult> {
+    if (!this.requireActiveUser()) {
+      return { success: false, error: this.getActiveUserRequiredError() };
+    }
+
     const nextTopologies = this.store.topologies.filter(
       (topology) => topology.id !== topologyId,
     );
@@ -394,6 +540,10 @@ export class WorkspaceIsolationManager {
   async enableWorkspace(
     input: EnableWorkspaceIsolationInput,
   ): Promise<WorkspaceIsolationMutationResult> {
+    if (!this.requireActiveUser()) {
+      return { success: false, error: this.getActiveUserRequiredError() };
+    }
+
     const topologyId = getTopologyId(input.projectId);
     const topology = this.store.topologies.find(
       (item) => item.id === topologyId,
@@ -440,6 +590,10 @@ export class WorkspaceIsolationManager {
   async disableWorkspace(
     workspaceRootPath: string,
   ): Promise<WorkspaceIsolationMutationResult> {
+    if (!this.requireActiveUser()) {
+      return { success: false, error: this.getActiveUserRequiredError() };
+    }
+
     const normalizedPath = normalizeWorkspaceRootPath(workspaceRootPath);
     const nextEnabledWorkspaces = this.store.enabledWorkspaces.filter(
       (workspace) => workspace.workspaceRootPath !== normalizedPath,
@@ -456,6 +610,10 @@ export class WorkspaceIsolationManager {
   }
 
   async deleteProjectIsolationForProject(projectId: string): Promise<void> {
+    if (!this.requireActiveUser()) {
+      throw new Error(this.getActiveUserRequiredError());
+    }
+
     const topologyId = getTopologyId(projectId);
     this.store = {
       topologies: this.store.topologies.filter(
@@ -606,22 +764,9 @@ export class WorkspaceIsolationManager {
   private async persist(): Promise<void> {
     await fs.mkdir(this.stateDir, { recursive: true });
     await this.syncDerivedState();
-    await fs.writeFile(
-      this.storePath,
-      JSON.stringify(
-        {
-          topologies: this.store.topologies.map(cloneStack),
-          enabledWorkspaces: this.store.enabledWorkspaces.map(
-            cloneEnabledWorkspace,
-          ),
-        },
-        null,
-        2,
-      ),
-      "utf-8",
-    );
+    await this.writeStoreFile(this.storePath, this.store);
     this.shellHookStatus = await syncWorkspaceIsolationShellFiles(
-      this.stateDir,
+      this.rootStateDir,
       this.stacks,
       this.shellHookStatus.enabled,
       this.platform,

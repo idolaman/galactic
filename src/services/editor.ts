@@ -1,3 +1,6 @@
+import { GLOBAL_LOCAL_STORAGE_KEYS } from "@/services/local-storage-keys";
+import { getLocalStorage } from "@/services/local-storage-scope";
+
 export type EditorName = "Cursor" | "VSCode";
 
 export interface OpenEditorResult {
@@ -12,9 +15,27 @@ const isEditorName = (value: string): value is EditorName => {
 };
 
 export const getPreferredEditor = (): EditorName => {
-  if (typeof window === "undefined") return "Cursor";
-  const stored = window.localStorage.getItem("preferredEditor");
-  return stored === "VSCode" ? "VSCode" : "Cursor";
+  const storage = getLocalStorage();
+  if (!storage) return "Cursor";
+
+  try {
+    return storage.getItem(GLOBAL_LOCAL_STORAGE_KEYS.preferredEditor) === "VSCode"
+      ? "VSCode"
+      : "Cursor";
+  } catch {
+    return "Cursor";
+  }
+};
+
+export const savePreferredEditor = (editor: EditorName): void => {
+  const storage = getLocalStorage();
+  if (!storage) return;
+
+  try {
+    storage.setItem(GLOBAL_LOCAL_STORAGE_KEYS.preferredEditor, editor);
+  } catch (error) {
+    console.warn("Failed to save preferred editor:", error);
+  }
 };
 
 export const openProjectInEditor = async (
@@ -29,11 +50,7 @@ export const openProjectInEditor = async (
     const result =
       (await window.electronAPI?.openProjectInEditor?.(editor, projectPath)) ?? null;
     if (result?.success && result.fallbackApplied && result.usedEditor && isEditorName(result.usedEditor)) {
-      try {
-        window.localStorage.setItem("preferredEditor", result.usedEditor);
-      } catch (error) {
-        console.warn("Failed to persist fallback editor preference:", error);
-      }
+      savePreferredEditor(result.usedEditor);
     }
     return result ?? { success: false, error: "Open in editor is unavailable." };
   } catch (error) {

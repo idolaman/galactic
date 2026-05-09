@@ -1,7 +1,6 @@
 import type { PendingAuthState } from "@/lib/auth-callback";
 import { getAuthStorageItem, removeAuthStorageItem, setAuthStorageItem } from "@/services/auth-storage";
-
-const PENDING_AUTH_STATE_KEY = "galactic-ide:auth:pending-state";
+import { AUTH_STORAGE_KEYS } from "@/services/local-storage-keys";
 
 const isPendingAuthState = (value: unknown): value is PendingAuthState => {
   if (!value || typeof value !== "object") return false;
@@ -14,7 +13,7 @@ const isPendingAuthState = (value: unknown): value is PendingAuthState => {
 };
 
 export const loadPendingAuthState = async (): Promise<PendingAuthState | null> => {
-  const raw = await getAuthStorageItem(PENDING_AUTH_STATE_KEY);
+  const raw = await getAuthStorageItem(AUTH_STORAGE_KEYS.pendingState);
   if (!raw) return null;
 
   try {
@@ -28,9 +27,9 @@ export const loadPendingAuthState = async (): Promise<PendingAuthState | null> =
 export const savePendingAuthState = async (
   state: PendingAuthState,
 ): Promise<void> => {
-  await setAuthStorageItem(PENDING_AUTH_STATE_KEY, JSON.stringify(state));
+  await setAuthStorageItem(AUTH_STORAGE_KEYS.pendingState, JSON.stringify(state));
 };
 
 export const clearPendingAuthState = async (): Promise<void> => {
-  await removeAuthStorageItem(PENDING_AUTH_STATE_KEY);
+  await removeAuthStorageItem(AUTH_STORAGE_KEYS.pendingState);
 };

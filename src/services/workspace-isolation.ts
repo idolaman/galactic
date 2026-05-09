@@ -1,8 +1,6 @@
 export {
   getInitialWorkspaceIsolationIntroSeen,
-  getInitialWorkspaceIsolationProjectTopologies,
   getInitialWorkspaceIsolationShellHookStatus,
-  getInitialWorkspaceIsolationStacks,
 } from "@/services/workspace-isolation-initial-state";
 export {
   deleteWorkspaceIsolationProjectTopology,

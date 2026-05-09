@@ -1,13 +1,11 @@
 import type { Environment, EnvironmentBinding } from "@/types/environment";
+import {
+  PRODUCT_STORAGE_UNAVAILABLE_ERROR,
+  getLocalStorage,
+  getProductStorageKey,
+} from "@/services/local-storage-scope";
 
-const STORAGE_KEY = "galactic-ide:environments";
-
-const getStorage = (): Storage | null => {
-  if (typeof window === "undefined" || typeof window.localStorage === "undefined") {
-    return null;
-  }
-  return window.localStorage;
-};
+const STORAGE_DATASET = "environments";
 
 const safeParse = (raw: string | null): Environment[] => {
   if (!raw) return [];
@@ -21,16 +19,18 @@ const safeParse = (raw: string | null): Environment[] => {
 };
 
 const readAll = (): Environment[] => {
-  const storage = getStorage();
-  if (!storage) return [];
-  return safeParse(storage.getItem(STORAGE_KEY));
+  const storage = getLocalStorage();
+  const storageKey = getProductStorageKey(STORAGE_DATASET);
+  if (!storage) throw new Error(PRODUCT_STORAGE_UNAVAILABLE_ERROR);
+  return safeParse(storage.getItem(storageKey));
 };
 
 const writeAll = (environments: Environment[]): void => {
-  const storage = getStorage();
-  if (!storage) return;
+  const storage = getLocalStorage();
+  const storageKey = getProductStorageKey(STORAGE_DATASET);
+  if (!storage) throw new Error(PRODUCT_STORAGE_UNAVAILABLE_ERROR);
   try {
-    storage.setItem(STORAGE_KEY, JSON.stringify(environments));
+    storage.setItem(storageKey, JSON.stringify(environments));
   } catch (error) {
     console.warn("Failed to save environments:", error);
   }

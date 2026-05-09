@@ -7,6 +7,10 @@ import type {
   WorkspaceIsolationProjectTopology,
   WorkspaceIsolationStack,
 } from "../workspace-isolation/types.js";
+import {
+  mutateScopedState,
+  readScopedState,
+} from "./workspace-isolation-ipc-results.js";
 
 interface WorkspaceIsolationIpcDeps {
   ipcMain: Pick<IpcMain, "handle" | "on">;
@@ -21,6 +25,8 @@ interface WorkspaceIsolationIpcDeps {
   getProxyStatus: () => WorkspaceIsolationProxyStatus;
   markIntroSeen: () => Promise<boolean>;
   setShellHooksEnabled: (enabled: boolean) => Promise<WorkspaceIsolationShellHookStatus>;
+  setActiveUser: (userId: string) => Promise<void>;
+  clearActiveUser: () => Promise<void>;
 }
 
 export const registerWorkspaceIsolationIpc = ({
@@ -36,12 +42,20 @@ export const registerWorkspaceIsolationIpc = ({
   getProxyStatus,
   markIntroSeen,
   setShellHooksEnabled,
+  setActiveUser,
+  clearActiveUser,
 }: WorkspaceIsolationIpcDeps): void => {
   ipcMain.on("workspace-isolation/get-sync", (event) => {
-    event.returnValue = getStacks();
+    event.returnValue = readScopedState(
+      getStacks,
+      "Project Services are unavailable.",
+    );
   });
   ipcMain.on("workspace-isolation/get-topologies-sync", (event) => {
-    event.returnValue = getProjectTopologies();
+    event.returnValue = readScopedState(
+      getProjectTopologies,
+      "Project Services are unavailable.",
+    );
   });
   ipcMain.on("workspace-isolation/get-intro-seen-sync", (event) => {
     event.returnValue = getIntroSeen();
@@ -50,13 +64,55 @@ export const registerWorkspaceIsolationIpc = ({
     event.returnValue = getShellHookStatus();
   });
 
-  ipcMain.handle("workspace-isolation/list", () => getStacks());
-  ipcMain.handle("workspace-isolation/topologies", () => getProjectTopologies());
-  ipcMain.handle("workspace-isolation/save-topology", async (_event, input: SaveWorkspaceIsolationInput) => saveProjectTopology(input));
-  ipcMain.handle("workspace-isolation/delete-topology", async (_event, topologyId: string) => deleteProjectTopology(topologyId));
-  ipcMain.handle("workspace-isolation/enable-workspace", async (_event, input: EnableWorkspaceIsolationInput) => enableWorkspace(input));
-  ipcMain.handle("workspace-isolation/disable-workspace", async (_event, workspaceRootPath: string) => disableWorkspace(workspaceRootPath));
+  ipcMain.handle("workspace-isolation/list", () => {
+    return readScopedState(
+      () => ({ success: true, stacks: getStacks() }),
+      "Project Services are unavailable.",
+    );
+  });
+  ipcMain.handle("workspace-isolation/topologies", () => {
+    return readScopedState(
+      () => ({ success: true, topologies: getProjectTopologies() }),
+      "Project Services are unavailable.",
+    );
+  });
+  ipcMain.handle("workspace-isolation/save-topology", async (_event, input: SaveWorkspaceIsolationInput) => {
+    return await mutateScopedState(
+      () => saveProjectTopology(input),
+      "Failed to save Project Services.",
+    );
+  });
+  ipcMain.handle("workspace-isolation/delete-topology", async (_event, topologyId: string) => {
+    return await mutateScopedState(
+      () => deleteProjectTopology(topologyId),
+      "Failed to remove Project Services.",
+    );
+  });
+  ipcMain.handle("workspace-isolation/enable-workspace", async (_event, input: EnableWorkspaceIsolationInput) => {
+    return await mutateScopedState(
+      () => enableWorkspace(input),
+      "Failed to activate Project Services.",
+    );
+  });
+  ipcMain.handle("workspace-isolation/disable-workspace", async (_event, workspaceRootPath: string) => {
+    return await mutateScopedState(
+      () => disableWorkspace(workspaceRootPath),
+      "Failed to stop Project Services.",
+    );
+  });
   ipcMain.handle("workspace-isolation/proxy-status", () => getProxyStatus());
+  ipcMain.handle("workspace-isolation/set-active-user", async (_event, userId: string) => {
+    return await mutateScopedState(async () => {
+      await setActiveUser(userId);
+      return { success: true };
+    }, "Failed to set Project Services storage scope.");
+  });
+  ipcMain.handle("workspace-isolation/clear-active-user", async () => {
+    return await mutateScopedState(async () => {
+      await clearActiveUser();
+      return { success: true };
+    }, "Failed to clear Project Services storage scope.");
+  });
   ipcMain.handle("workspace-isolation/mark-intro-seen", async () => ({
     success: await markIntroSeen(),
     seen: true,

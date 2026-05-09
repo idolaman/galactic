@@ -1,5 +1,10 @@
 import { useState, useEffect } from "react";
 import { projectStorage, type StoredProject } from "@/services/projects";
+import {
+  LOCAL_STORAGE_SCOPE_UPDATED_EVENT,
+  isActiveLocalStorageDatasetKey,
+  isLocalStorageScopeKey,
+} from "@/services/local-storage-scope";
 
 export function useProjects() {
   const [projects, setProjects] = useState<StoredProject[]>(() => projectStorage.load());
@@ -8,22 +13,25 @@ export function useProjects() {
     const handleUpdate = () => {
       setProjects(projectStorage.load());
     };
-
-    window.addEventListener("galactic-projects-updated", handleUpdate);
-    // Also listen to storage events for multi-tab sync if needed, 
-    // though projectStorage writes to localStorage which triggers 'storage' event in OTHER tabs only.
-    window.addEventListener("storage", (e) => {
-      if (e.key === "galactic-ide:projects") {
+    const handleStorage = (event: StorageEvent) => {
+      if (
+        isLocalStorageScopeKey(event.key) ||
+        isActiveLocalStorageDatasetKey(event.key, "projects")
+      ) {
         handleUpdate();
       }
-    });
+    };
+
+    window.addEventListener("galactic-projects-updated", handleUpdate);
+    window.addEventListener(LOCAL_STORAGE_SCOPE_UPDATED_EVENT, handleUpdate);
+    window.addEventListener("storage", handleStorage);
 
     return () => {
       window.removeEventListener("galactic-projects-updated", handleUpdate);
-      window.removeEventListener("storage", handleUpdate); // storage listener needs exact handler reference if possible or wrapper
+      window.removeEventListener(LOCAL_STORAGE_SCOPE_UPDATED_EVENT, handleUpdate);
+      window.removeEventListener("storage", handleStorage);
     };
   }, []);
 
   return projects;
 }
-

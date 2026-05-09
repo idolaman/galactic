@@ -1,32 +1,15 @@
-import type { Workspace } from "@/types/workspace";
 import { trackProjectAdded, trackProjectRemoved } from "@/services/analytics";
 import {
-  normalizeSyncTargets,
-  sanitizeSyncTarget,
-  toFileSyncTargets,
-} from "@/services/sync-targets";
-import type { SyncTarget } from "@/types/sync-target";
+  PRODUCT_STORAGE_UNAVAILABLE_ERROR,
+  getLocalStorage,
+  getProductStorageKey,
+} from "@/services/local-storage-scope";
+import { normalizeProjects } from "@/services/project-storage-normalization";
+import type { StoredProject } from "@/types/project";
 
-export interface StoredProject {
-  id: string;
-  name: string;
-  path: string;
-  isGitRepo: boolean;
-  worktrees: number;
-  workspaces?: Workspace[];
-  syncTargets?: SyncTarget[];
-  // Legacy persisted field kept for compatibility with older app versions.
-  configFiles?: string[];
-}
+export type { StoredProject } from "@/types/project";
 
-const STORAGE_KEY = "galactic-ide:projects";
-
-const getStorage = (): Storage | null => {
-  if (typeof window === "undefined" || typeof window.localStorage === "undefined") {
-    return null;
-  }
-  return window.localStorage;
-};
+const STORAGE_DATASET = "projects";
 
 const safeParse = (raw: string | null): StoredProject[] => {
   if (!raw) return [];
@@ -39,56 +22,19 @@ const safeParse = (raw: string | null): StoredProject[] => {
   }
 };
 
-const toValidSyncTargets = (project: StoredProject): SyncTarget[] => {
-  if (Array.isArray(project.syncTargets)) {
-    const cleanedTargets = project.syncTargets
-      .map((target) => sanitizeSyncTarget(target))
-      .filter((target): target is SyncTarget => Boolean(target));
-    return normalizeSyncTargets(cleanedTargets);
-  }
-
-  return normalizeSyncTargets(toFileSyncTargets(project.configFiles));
-};
-
-const normalizeProject = (project: StoredProject): StoredProject | null => {
-  if (!project || typeof project !== "object") {
-    return null;
-  }
-  if (typeof project.id !== "string" || typeof project.name !== "string" || typeof project.path !== "string") {
-    return null;
-  }
-
-  const worktreesValue = Number.isFinite(project.worktrees) ? Number(project.worktrees) : 0;
-  const normalized: StoredProject = {
-    id: project.id,
-    name: project.name,
-    path: project.path,
-    isGitRepo: Boolean(project.isGitRepo),
-    worktrees: Math.max(0, worktreesValue),
-    workspaces: project.workspaces,
-    syncTargets: toValidSyncTargets(project),
-  };
-
-  return normalized;
-};
-
-const normalizeProjects = (projects: StoredProject[]): StoredProject[] => {
-  return projects
-    .map((project) => normalizeProject(project))
-    .filter((project): project is StoredProject => Boolean(project));
-};
-
 const readAll = (): StoredProject[] => {
-  const storage = getStorage();
-  if (!storage) return [];
-  return normalizeProjects(safeParse(storage.getItem(STORAGE_KEY)));
+  const storage = getLocalStorage();
+  const storageKey = getProductStorageKey(STORAGE_DATASET);
+  if (!storage) throw new Error(PRODUCT_STORAGE_UNAVAILABLE_ERROR);
+  return normalizeProjects(safeParse(storage.getItem(storageKey)));
 };
 
 const writeAll = (projects: StoredProject[]): void => {
-  const storage = getStorage();
-  if (!storage) return;
+  const storage = getLocalStorage();
+  const storageKey = getProductStorageKey(STORAGE_DATASET);
+  if (!storage) throw new Error(PRODUCT_STORAGE_UNAVAILABLE_ERROR);
   try {
-    storage.setItem(STORAGE_KEY, JSON.stringify(normalizeProjects(projects)));
+    storage.setItem(storageKey, JSON.stringify(normalizeProjects(projects)));
   } catch (error) {
     console.warn("Failed to save projects:", error);
   }

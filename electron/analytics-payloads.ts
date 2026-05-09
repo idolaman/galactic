@@ -30,6 +30,7 @@ const ANALYTICS_SAFE_KEYS = new Set([
   "operation",
   "openingStep",
   "platform",
+  "provider",
   "reason",
   "reassigned",
   "serviceCount",

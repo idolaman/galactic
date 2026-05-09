@@ -3,51 +3,10 @@ import { app } from "electron";
 import { getAnalyticsDistinctId } from "./analytics-identity.js";
 import { initPostHog, capturePostHogEvent, shutdownPostHog } from "./analytics-posthog.js";
 import { captureTelemetryDeckEvent, initTelemetryDeck } from "./analytics-telemetrydeck.js";
-import { type AnalyticsEvent, isAnalyticsEvent } from "./analytics-events.js";
+import type { AnalyticsEvent } from "./analytics-events.js";
 import type { AnalyticsPayload } from "./analytics-payloads.js";
 
 export { ANALYTICS_EVENTS, isAnalyticsEvent } from "./analytics-events.js";
-
-export const ANALYTICS_EVENTS = [
-  "App.launched",
-  "Auth.completed",
-  "Auth.failed",
-  "Auth.signedOut",
-  "Auth.started",
-  "Error.gitFailed",
-  "Workspace.created",
-  "Workspace.deleted",
-  "Workspace.configFileAdded",
-  "Workspace.filesCopied",
-  "Project.added",
-  "Project.removed",
-  "MCP.connected",
-  "MCP.sessionFocused",
-  "MCP.sessionStatusChanged",
-  "Environment.created",
-  "Environment.deleted",
-  "Environment.attached",
-  "Environment.detached",
-  "Environment.updated",
-  "Editor.launched",
-  "QuickLauncher.toggled",
-  "QuickLauncher.navigated",
-  "QuickLauncher.workspaceOpened",
-  "WorkspaceIsolation.dialogOpened",
-  "WorkspaceIsolation.infoDialogOpened",
-  "WorkspaceIsolation.introContinued",
-  "WorkspaceIsolation.autoEnvEnableAttempted",
-  "WorkspaceIsolation.autoEnvEnableCompleted",
-  "WorkspaceIsolation.configurationAdvanced",
-  "WorkspaceIsolation.saved",
-  "WorkspaceIsolation.deleted",
-  "Update.completed",
-] as const;
-
-export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[number];
-
-export const isAnalyticsEvent = (value: string): value is AnalyticsEvent =>
-  ANALYTICS_EVENTS.includes(value as AnalyticsEvent);
 
 const analyticsDistinctId = getAnalyticsDistinctId();
 

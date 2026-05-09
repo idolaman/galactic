@@ -2,10 +2,6 @@ import { contextBridge, ipcRenderer } from "electron";
 
 const initialSessionCache = ipcRenderer.sendSync("session/get-cache-sync");
 const initialDismissedSessions = ipcRenderer.sendSync("session/get-dismissed-sync");
-const initialWorkspaceIsolationStacks = ipcRenderer.sendSync("workspace-isolation/get-sync");
-const initialWorkspaceIsolationProjectTopologies = ipcRenderer.sendSync(
-  "workspace-isolation/get-topologies-sync",
-);
 const initialWorkspaceIsolationIntroSeen = ipcRenderer.sendSync(
   "workspace-isolation/get-intro-seen-sync",
 );
@@ -52,14 +48,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   importProjectConfigFile: () => ipcRenderer.invoke("project-config/import-file"),
   configureEnvironmentInterface: (action: "add" | "remove", address: string) =>
     ipcRenderer.invoke("network/configure-environment-interface", action, address),
-  initialWorkspaceIsolationStacks: Array.isArray(initialWorkspaceIsolationStacks)
-    ? initialWorkspaceIsolationStacks
-    : [],
-  initialWorkspaceIsolationProjectTopologies: Array.isArray(
-    initialWorkspaceIsolationProjectTopologies,
-  )
-    ? initialWorkspaceIsolationProjectTopologies
-    : [],
   initialWorkspaceIsolationIntroSeen:
     typeof initialWorkspaceIsolationIntroSeen === "boolean"
       ? initialWorkspaceIsolationIntroSeen
@@ -84,6 +72,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("workspace-isolation/mark-intro-seen"),
   getWorkspaceIsolationProxyStatus: () =>
     ipcRenderer.invoke("workspace-isolation/proxy-status"),
+  setWorkspaceIsolationActiveUser: (userId: string) =>
+    ipcRenderer.invoke("workspace-isolation/set-active-user", userId),
+  clearWorkspaceIsolationActiveUser: () =>
+    ipcRenderer.invoke("workspace-isolation/clear-active-user"),
   writeCodeWorkspace: (
     targetPath: string,
     envConfig: { address?: string; envVars?: Record<string, string> } | null,
