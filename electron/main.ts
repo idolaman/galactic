@@ -5,6 +5,7 @@ import {
   globalShortcut,
   ipcMain,
   type OpenDialogOptions,
+  safeStorage,
   screen,
   shell,
 } from "electron";
@@ -21,6 +22,7 @@ import { promises as fsPromises } from "node:fs";
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import type { ExecFileException } from "node:child_process";
+import http from "node:http";
 import { initAnalytics, analytics, isAnalyticsEvent, trackEvent } from "./analytics.js";
 import { createEditorLaunchService, parseEditorName } from "./editor-launch/service.js";
 import type { SupportedEditorName } from "./editor-launch/types.js";
@@ -51,6 +53,13 @@ import { fetchGitBranchesWithReason } from "./utils/git-fetch-branches.js";
 import { listGitBranches } from "./utils/git-list-branches.js";
 import { isWorktreeAlreadyRemovedError } from "./utils/git-worktree-remove.js";
 import { WorkspaceIsolationManager } from "./workspace-isolation/manager.js";
+import { createAuthStorage } from "./utils/auth-storage.js";
+import {
+  buildAuthCallbackUrl,
+  findAuthCallbackUrlInArgs,
+  getAuthProtocolScheme,
+  isAuthCallbackUrl,
+} from "./utils/auth-callback.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const execFileAsync = promisify(execFile);
@@ -97,10 +106,22 @@ interface EventNotificationStatus {
 }
 
 const APP_SETTINGS_FILE = "settings.json";
+const AUTH_STORAGE_FILE = "auth-storage.enc";
+const AUTH_CALLBACK_PORT = 17891;
+const AUTH_PROTOCOL_SCHEME = getAuthProtocolScheme(app.isPackaged);
+const AUTH_CALLBACK_URL = buildAuthCallbackUrl(AUTH_PROTOCOL_SCHEME);
+const AUTH_LOCAL_CALLBACK_URL = `http://127.0.0.1:${AUTH_CALLBACK_PORT}/auth/callback`;
 let appSettings: AppSettings = { ...DEFAULT_APP_SETTINGS };
+let pendingAuthCallbackUrl: string | null = null;
+let authCallbackServer: http.Server | null = null;
 
 const getAppSettingsPath = () => path.join(app.getPath("userData"), APP_SETTINGS_FILE);
+const getAuthStoragePath = () => path.join(app.getPath("userData"), AUTH_STORAGE_FILE);
 const persistAppSettings = async () => saveAppSettings(getAppSettingsPath(), appSettings);
+const authStorage = createAuthStorage({
+  safeStorage,
+  storagePath: getAuthStoragePath(),
+});
 
 type UpdateEvent =
   | "available"
@@ -431,6 +452,89 @@ const createWindow = async () => {
   }
 };
 
+const registerAuthProtocolClient = () => {
+  if (process.defaultApp && process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient(AUTH_PROTOCOL_SCHEME, process.execPath, [
+      path.resolve(process.argv[1]),
+    ]);
+    return;
+  }
+
+  app.setAsDefaultProtocolClient(AUTH_PROTOCOL_SCHEME);
+};
+
+const broadcastAuthCallbackUrl = (url: string) => {
+  [mainWindow, quickSidebarWindow].forEach((windowRef) => {
+    if (windowRef && !windowRef.isDestroyed()) {
+      windowRef.webContents.send("auth/callback-url", url);
+    }
+  });
+};
+
+const processAuthCallbackUrl = (url: string): boolean => {
+  const isLocalCallback = url.startsWith(AUTH_LOCAL_CALLBACK_URL);
+  if (!isLocalCallback && !isAuthCallbackUrl(url, AUTH_PROTOCOL_SCHEME)) {
+    return false;
+  }
+
+  pendingAuthCallbackUrl = url;
+  broadcastAuthCallbackUrl(url);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.show();
+    mainWindow.focus();
+  }
+  return true;
+};
+
+const getPreferredAuthCallbackUrl = () =>
+  process.platform === "linux" && authCallbackServer?.listening
+    ? AUTH_LOCAL_CALLBACK_URL
+    : AUTH_CALLBACK_URL;
+
+const startAuthCallbackServer = () => {
+  if (process.platform !== "linux") return;
+  if (authCallbackServer) return;
+
+  authCallbackServer = http.createServer((req, res) => {
+    const requestUrl = new URL(req.url ?? "/", AUTH_LOCAL_CALLBACK_URL);
+    if (requestUrl.pathname !== "/auth/callback") {
+      res.writeHead(404, { "content-type": "text/plain" });
+      res.end("Not found");
+      return;
+    }
+
+    processAuthCallbackUrl(requestUrl.toString());
+    res.writeHead(200, { "content-type": "text/html" });
+    res.end("<!doctype html><title>Galactic</title><p>Signed in. You can close this tab.</p>");
+  });
+
+  authCallbackServer.on("error", (error) => {
+    console.warn("[Auth] Local callback server unavailable:", error);
+  });
+  authCallbackServer.listen(AUTH_CALLBACK_PORT, "127.0.0.1");
+};
+
+registerAuthProtocolClient();
+
+const singleInstanceLock = app.requestSingleInstanceLock();
+if (!singleInstanceLock) {
+  app.quit();
+}
+
+app.on("second-instance", (_event, argv) => {
+  const authUrl = findAuthCallbackUrlInArgs(argv, AUTH_PROTOCOL_SCHEME);
+  if (authUrl && processAuthCallbackUrl(authUrl)) {
+    return;
+  }
+  mainWindow?.show();
+  mainWindow?.focus();
+});
+
+app.on("open-url", (event, url) => {
+  event.preventDefault();
+  processAuthCallbackUrl(url);
+});
+
 const normalizeSessionCacheSnapshot = (payload: unknown): SessionCacheSnapshot => {
   if (Array.isArray(payload)) {
     return { sessions: payload };
@@ -606,6 +710,42 @@ ipcMain.handle("settings/set-event-notifications", async (_event, enabled: boole
   return { success: true, enabled: true };
 });
 
+ipcMain.handle("auth/get-callback-url", () => getPreferredAuthCallbackUrl());
+
+ipcMain.handle("auth/consume-callback-url", () => {
+  const url = pendingAuthCallbackUrl;
+  pendingAuthCallbackUrl = null;
+  return url;
+});
+
+ipcMain.handle("auth/open-external-url", async (_event, url: string) => {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+      return { success: false, error: "Unsupported auth URL." };
+    }
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to open auth URL.",
+    };
+  }
+});
+
+ipcMain.handle("auth/storage-get", async (_event, key: string) => authStorage.getItem(key));
+
+ipcMain.handle("auth/storage-set", async (_event, key: string, value: string) => {
+  await authStorage.setItem(key, value);
+  return { success: true };
+});
+
+ipcMain.handle("auth/storage-remove", async (_event, key: string) => {
+  await authStorage.removeItem(key);
+  return { success: true };
+});
+
 // Session sync between windows - broadcast dismissal to all windows except sender
 ipcMain.handle("session/broadcast-dismiss", (event, sessionId: string, signature: string) => {
   const senderWebContentsId = event.sender.id;
@@ -649,6 +789,7 @@ app.whenReady().then(async () => {
   // Initialize analytics and track app launch
    initAnalytics();
   analytics.appLaunched();
+  startAuthCallbackServer();
   setupAutoUpdater();
   if (app.isPackaged && isUpdateEnabled()) {
     performUpdateCheck().catch((error: Error) => {
@@ -710,6 +851,8 @@ app.on("before-quit", () => {
     clearInterval(updateCheckTimer);
     updateCheckTimer = null;
   }
+  authCallbackServer?.close();
+  authCallbackServer = null;
   stopMcpServer();
   void workspaceIsolationManager.stop();
 });

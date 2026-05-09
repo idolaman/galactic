@@ -31,6 +31,10 @@ mac:
   gatekeeperAssess: false
   extendInfo:
     NSUserNotificationAlertStyle: alert
+    CFBundleURLTypes:
+      - CFBundleURLName: Galactic Auth
+        CFBundleURLSchemes:
+          - galactic
 
 dmg:
   contents:

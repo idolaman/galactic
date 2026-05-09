@@ -5,12 +5,10 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { LogOut } from "lucide-react";
 import { ModeToggle } from "@/components/ModeToggle";
 import Logo from "@/assets/logo.svg";
+import type { AuthUser } from "@/types/auth";
 
 interface HeaderProps {
-  user: {
-    name: string;
-    avatar: string;
-  };
+  user: AuthUser;
   onLogout: () => void;
 }
 
@@ -31,8 +29,8 @@ export const Header = ({ user, onLogout }: HeaderProps) => (
           <ModeToggle />
           <div className="flex items-center gap-3 rounded-full border border-border/70 bg-background/60 px-3 py-1">
             <Avatar className="h-8 w-8 border border-border">
-              <AvatarImage src={user.avatar} alt={user.name} />
-              <AvatarFallback>{user.name[0]}</AvatarFallback>
+              <AvatarImage src={user.avatarUrl ?? ""} alt={user.name} />
+              <AvatarFallback>{user.name[0]?.toUpperCase() ?? "G"}</AvatarFallback>
             </Avatar>
             <span className="text-sm font-medium hidden sm:block">{user.name}</span>
           </div>

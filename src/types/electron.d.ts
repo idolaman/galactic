@@ -149,6 +149,14 @@ export interface ElectronAPI {
   onUpdateEvent: (
     callback: (status: string, payload: Record<string, unknown>) => void
   ) => () => void;
+  // Auth
+  getAuthCallbackUrl: () => Promise<string>;
+  consumeAuthCallbackUrl: () => Promise<string | null>;
+  onAuthCallbackUrl: (callback: (url: string) => void) => () => void;
+  openExternalAuthUrl: (url: string) => Promise<{ success: boolean; error?: string }>;
+  getAuthStorageItem: (key: string) => Promise<string | null>;
+  setAuthStorageItem: (key: string, value: string) => Promise<{ success: boolean; error?: string }>;
+  removeAuthStorageItem: (key: string) => Promise<{ success: boolean; error?: string }>;
   // Session sync between windows
   initialSessionCache?: unknown[];
   initialDismissedSessions?: Array<[string, string]>;

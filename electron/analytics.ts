@@ -14,6 +14,10 @@ const getUserId = (): string => {
 
 export const ANALYTICS_EVENTS = [
   "App.launched",
+  "Auth.completed",
+  "Auth.failed",
+  "Auth.signedOut",
+  "Auth.started",
   "Error.gitFailed",
   "Workspace.created",
   "Workspace.deleted",
@@ -98,6 +102,17 @@ export const trackEvent = (event: AnalyticsEvent, payload?: EventPayload): void 
 // Convenience functions for each event type
 export const analytics = {
   appLaunched: () => trackEvent("App.launched"),
+
+  authCompleted: (provider?: string) =>
+    trackEvent("Auth.completed", provider ? { provider } : undefined),
+
+  authFailed: (provider?: string, reason?: string) =>
+    trackEvent("Auth.failed", { provider: provider ?? "unknown", reason: reason ?? "unknown" }),
+
+  authSignedOut: () => trackEvent("Auth.signedOut"),
+
+  authStarted: (provider: string) =>
+    trackEvent("Auth.started", { provider }),
 
   gitFailed: (operation: string, error: string) =>
     trackEvent("Error.gitFailed", { operation, error: error.slice(0, 200) }),

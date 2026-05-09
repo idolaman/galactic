@@ -116,6 +116,20 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("update/event", handler);
     return () => ipcRenderer.removeListener("update/event", handler);
   },
+  getAuthCallbackUrl: () => ipcRenderer.invoke("auth/get-callback-url"),
+  consumeAuthCallbackUrl: () => ipcRenderer.invoke("auth/consume-callback-url"),
+  onAuthCallbackUrl: (callback: (url: string) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, url: string) => {
+      callback(url);
+    };
+    ipcRenderer.on("auth/callback-url", handler);
+    return () => ipcRenderer.removeListener("auth/callback-url", handler);
+  },
+  openExternalAuthUrl: (url: string) => ipcRenderer.invoke("auth/open-external-url", url),
+  getAuthStorageItem: (key: string) => ipcRenderer.invoke("auth/storage-get", key),
+  setAuthStorageItem: (key: string, value: string) =>
+    ipcRenderer.invoke("auth/storage-set", key, value),
+  removeAuthStorageItem: (key: string) => ipcRenderer.invoke("auth/storage-remove", key),
   // Session sync between windows
   initialSessionCache: Array.isArray(initialSessionCache) ? initialSessionCache : [],
   initialDismissedSessions: Array.isArray(initialDismissedSessions) ? initialDismissedSessions : [],
