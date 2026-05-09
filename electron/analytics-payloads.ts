@@ -7,7 +7,7 @@ export interface AnalyticsContext {
   platform: NodeJS.Platform;
 }
 
-const POSTHOG_SAFE_KEYS = new Set([
+const ANALYTICS_SAFE_KEYS = new Set([
   "appVersion",
   "autoEnvState",
   "bindings",
@@ -47,17 +47,7 @@ const POSTHOG_SAFE_KEYS = new Set([
   "worktrees",
 ]);
 
-export const buildTelemetryDeckPayload = (
-  payload: AnalyticsPayload | undefined,
-  context: AnalyticsContext,
-): Record<string, string> => ({
-  appVersion: context.appVersion,
-  platform: context.platform,
-  ...Object.fromEntries(Object.entries(payload ?? {}).map(([key, value]) => [key, String(value)])),
-});
-
-export const buildPostHogProperties = (
-  _event: AnalyticsEvent,
+const buildSafeAnalyticsPayload = (
   payload: AnalyticsPayload | undefined,
   context: AnalyticsContext,
 ): AnalyticsPayload => {
@@ -67,10 +57,27 @@ export const buildPostHogProperties = (
   };
 
   for (const [key, value] of Object.entries(payload ?? {})) {
-    if (POSTHOG_SAFE_KEYS.has(key)) {
+    if (ANALYTICS_SAFE_KEYS.has(key)) {
       properties[key] = value;
     }
   }
 
   return properties;
 };
+
+export const buildTelemetryDeckPayload = (
+  payload: AnalyticsPayload | undefined,
+  context: AnalyticsContext,
+): Record<string, string> =>
+  Object.fromEntries(
+    Object.entries(buildSafeAnalyticsPayload(payload, context)).map(([key, value]) => [
+      key,
+      String(value),
+    ]),
+  );
+
+export const buildPostHogProperties = (
+  _event: AnalyticsEvent,
+  payload: AnalyticsPayload | undefined,
+  context: AnalyticsContext,
+): AnalyticsPayload => buildSafeAnalyticsPayload(payload, context);

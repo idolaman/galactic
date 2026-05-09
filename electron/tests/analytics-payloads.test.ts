@@ -31,8 +31,11 @@ test("PostHog properties keep product fields and strip sensitive fields", () => 
   });
 });
 
-test("TelemetryDeck payload preserves existing stringified payload behavior", () => {
+test("TelemetryDeck payload keeps safe fields and strips sensitive fields", () => {
   const payload = buildTelemetryDeckPayload({
+    address: "127.0.0.1",
+    branch: "feature/private-ticket",
+    error: "fatal: private repo path /Users/tester/project",
     success: false,
     worktrees: 2,
   }, context);
