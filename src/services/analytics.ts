@@ -53,6 +53,14 @@ export const trackProjectRemoved = (worktrees: number, configCount: number): voi
   trackAnalyticsEvent("Project.removed", { worktrees, configCount });
 };
 
+export const trackUserLoggedIn = (): void => {
+  trackAnalyticsEvent("User.loggedIn");
+};
+
+export const trackUserLoggedOut = (): void => {
+  trackAnalyticsEvent("User.loggedOut");
+};
+
 export const trackConfigFileAdded = (
   targetPath: string,
   kind: "file" | "directory" = "file",
@@ -85,6 +93,14 @@ export const trackEnvironmentDetached = (targetKind: string): void => {
 
 export const trackEnvironmentUpdated = (envVarsCount: number): void => {
   trackAnalyticsEvent("Environment.updated", { envVars: envVarsCount });
+};
+
+export const trackSettingsEditorChanged = (editor: string): void => {
+  trackAnalyticsEvent("Settings.editorChanged", { editor });
+};
+
+export const trackSettingsMcpInstalled = (tool: string): void => {
+  trackAnalyticsEvent("Settings.mcpInstalled", { tool });
 };
 
 export const trackQuickLauncherNavigation = (direction: "up" | "down"): void => {

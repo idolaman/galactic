@@ -2,19 +2,23 @@ import { app } from "electron";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
+import { asTrimmedString, getFirstEnvValue, parseEnvFile } from "./release-config-env.js";
+
 interface EmbeddedReleaseConfig {
   galacticUpdateUrl?: unknown;
+  posthogHost?: unknown;
+  posthogProjectKey?: unknown;
   telemetrydeckAppId?: unknown;
 }
 
 let cachedEmbeddedConfig: EmbeddedReleaseConfig | null = null;
+let cachedDevEnv: Record<string, string> | null = null;
 
-const asTrimmedString = (value: unknown): string => {
-  if (typeof value !== "string") {
-    return "";
-  }
-  return value.trim();
-};
+const isMissingFileError = (error: unknown): boolean =>
+  typeof error === "object" &&
+  error !== null &&
+  "code" in error &&
+  (error as NodeJS.ErrnoException).code === "ENOENT";
 
 const getEmbeddedReleaseConfig = (): EmbeddedReleaseConfig => {
   if (cachedEmbeddedConfig) {
@@ -38,10 +42,40 @@ const getEmbeddedReleaseConfig = (): EmbeddedReleaseConfig => {
   return cachedEmbeddedConfig;
 };
 
+const getDevEnv = (): Record<string, string> => {
+  if (cachedDevEnv) {
+    return cachedDevEnv;
+  }
+
+  if (app.isPackaged) {
+    cachedDevEnv = {};
+    return cachedDevEnv;
+  }
+
+  try {
+    cachedDevEnv = parseEnvFile(readFileSync(path.join(process.cwd(), ".env"), "utf-8"));
+  } catch (error) {
+    if (!isMissingFileError(error)) {
+      console.warn("[ReleaseConfig] Failed to read dev .env file:", error);
+    }
+    cachedDevEnv = {};
+  }
+
+  return cachedDevEnv;
+};
+
+const getDevEnvValue = (...keys: string[]): string => {
+  return getFirstEnvValue(getDevEnv(), ...keys);
+};
+
 export const getGalacticUpdateUrl = (): string => {
   const envValue = asTrimmedString(process.env.GALACTIC_UPDATE_URL);
   if (envValue) {
     return envValue;
+  }
+  const devEnvValue = getDevEnvValue("GALACTIC_UPDATE_URL");
+  if (devEnvValue) {
+    return devEnvValue;
   }
   return asTrimmedString(getEmbeddedReleaseConfig().galacticUpdateUrl);
 };
@@ -51,5 +85,33 @@ export const getTelemetryDeckAppId = (): string => {
   if (envValue) {
     return envValue;
   }
+  const devEnvValue = getDevEnvValue("TELEMETRYDECK_APP_ID");
+  if (devEnvValue) {
+    return devEnvValue;
+  }
   return asTrimmedString(getEmbeddedReleaseConfig().telemetrydeckAppId);
+};
+
+export const getPostHogProjectKey = (): string => {
+  const envValue = asTrimmedString(process.env.POSTHOG_PROJECT_KEY);
+  if (envValue) {
+    return envValue;
+  }
+  const devEnvValue = getDevEnvValue("POSTHOG_PROJECT_KEY", "VITE_PUBLIC_POSTHOG_KEY");
+  if (devEnvValue) {
+    return devEnvValue;
+  }
+  return asTrimmedString(getEmbeddedReleaseConfig().posthogProjectKey);
+};
+
+export const getPostHogHost = (): string => {
+  const envValue = asTrimmedString(process.env.POSTHOG_HOST);
+  if (envValue) {
+    return envValue;
+  }
+  const devEnvValue = getDevEnvValue("POSTHOG_HOST", "VITE_PUBLIC_POSTHOG_HOST");
+  if (devEnvValue) {
+    return devEnvValue;
+  }
+  return asTrimmedString(getEmbeddedReleaseConfig().posthogHost) || "https://us.i.posthog.com";
 };

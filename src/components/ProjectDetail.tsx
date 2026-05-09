@@ -26,6 +26,8 @@ interface ProjectDetailProps {
   syncTargets: SyncTarget[];
   syncTargetSearchResults: SyncTarget[];
   isSearchingSyncTargets: boolean;
+  onExportProjectConfig: () => void;
+  onImportProjectConfig: () => void;
   onSearchSyncTargets: (query: string) => void;
   onAddSyncTarget: (target: SyncTarget) => void;
   onRemoveSyncTarget: (target: SyncTarget) => void;
@@ -51,6 +53,8 @@ export const ProjectDetail = ({
   syncTargets,
   syncTargetSearchResults,
   isSearchingSyncTargets,
+  onExportProjectConfig,
+  onImportProjectConfig,
   onSearchSyncTargets,
   onAddSyncTarget,
   onRemoveSyncTarget,
@@ -60,9 +64,12 @@ export const ProjectDetail = ({
 }: ProjectDetailProps) => (
   <div className="space-y-6">
     <ProjectDetailHeader
+      isGitRepo={project.isGitRepo}
       name={project.name}
       path={project.path}
       onBack={onBack}
+      onExportProjectConfig={onExportProjectConfig}
+      onImportProjectConfig={onImportProjectConfig}
     />
 
     <ProjectWorkspacesSection

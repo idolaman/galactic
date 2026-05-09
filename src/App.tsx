@@ -19,6 +19,7 @@ import { WorkspaceIsolationManagerProvider } from "@/providers/WorkspaceIsolatio
 import { StarsBackground } from "@/components/StarsBackground";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { useAuth } from "@/hooks/use-auth";
+import { trackUserLoggedIn, trackUserLoggedOut } from "@/services/analytics";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,21 @@ const MainApp = () => {
   if (status !== "authenticated" || !user) {
     return <AuthSignIn />;
   }
+const App = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const isQuickSidebar = typeof window !== "undefined" && window.location.hash.includes("quick-sidebar");
+  // Subscribe to update events and show toasts at app level
+  useUpdateListener();
+
+  const handleAuthSuccess = (userData: User) => {
+    setUser(userData);
+    trackUserLoggedIn();
+  };
+
+  const handleLogout = () => {
+    trackUserLoggedOut();
+    setUser(null);
+  };
 
   return (
     <HashRouter>

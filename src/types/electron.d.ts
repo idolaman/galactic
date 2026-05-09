@@ -1,5 +1,6 @@
 import type { CopySyncTargetsResult, SyncTarget } from "@/types/sync-target";
 import type { GitFetchBranchesResult } from "@/types/git";
+import type { AnalyticsEvent } from "@/types/analytics";
 
 export interface GitInfo {
   isGitRepo: boolean;
@@ -80,6 +81,26 @@ export interface SessionCacheSnapshot {
   preferredEditor: PreferredEditorName;
 }
 
+export interface ProjectConfigFileExportInput {
+  defaultFileName: string;
+  payload: unknown;
+}
+
+export interface ProjectConfigFileExportResult {
+  canceled: boolean;
+  success?: boolean;
+  filePath?: string;
+  error?: string;
+}
+
+export interface ProjectConfigFileImportResult {
+  canceled: boolean;
+  success?: boolean;
+  payload?: unknown;
+  filePath?: string;
+  error?: string;
+}
+
 export interface ElectronAPI {
   ping: () => Promise<string>;
   getAppVersion: () => Promise<string>;
@@ -102,6 +123,10 @@ export interface ElectronAPI {
     worktreePath: string,
     targets: SyncTarget[]
   ) => Promise<CopySyncTargetsResult>;
+  exportProjectConfigFile: (
+    input: ProjectConfigFileExportInput
+  ) => Promise<ProjectConfigFileExportResult>;
+  importProjectConfigFile: () => Promise<ProjectConfigFileImportResult>;
   initialWorkspaceIsolationStacks?: unknown[];
   initialWorkspaceIsolationProjectTopologies?: unknown[];
   initialWorkspaceIsolationIntroSeen?: boolean;
@@ -167,7 +192,7 @@ export interface ElectronAPI {
   onSessionDismissed: (callback: (sessionId: string, signature: string) => void) => () => void;
   // Analytics
   trackAnalyticsEvent: (
-    event: string,
+    event: AnalyticsEvent,
     payload?: Record<string, string | number | boolean>
   ) => Promise<{ success: boolean }>;
   trackEnvironmentCreated: (address: string) => Promise<{ success: boolean }>;
