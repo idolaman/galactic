@@ -29,7 +29,7 @@ const normalizeProject = (project: StoredProject): StoredProject | null => {
     return null;
   }
 
-  const worktreesValue = Number.isFinite(project.worktrees) ? Number(project.worktrees) : 0;
+  const worktreesValue = Number.isFinite(project.worktrees) ? project.worktrees : 0;
   return {
     id: project.id,
     name: project.name,

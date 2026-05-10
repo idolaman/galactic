@@ -40,6 +40,7 @@ export const startOAuthSignIn = async (
     const { data, error } = await client.auth.signInWithOAuth({
       provider,
       options: {
+        queryParams: { state: pendingState.state },
         redirectTo: buildAuthRedirectUrl(callbackUrl),
         skipBrowserRedirect: true,
       },
@@ -68,7 +69,13 @@ export const startOAuthSignIn = async (
 
 export const finishOAuthCallback = async (url: string): Promise<AuthFlowResult> => {
   const callback = parseAuthCallbackUrl(url);
-  const pendingState = await loadPendingAuthState();
+  let pendingState: Awaited<ReturnType<typeof loadPendingAuthState>>;
+  try {
+    pendingState = await loadPendingAuthState();
+  } catch {
+    trackAuthFailed(undefined, "unknown");
+    return toAuthFlowError("unknown", "Unable to read sign-in state. Please try again.");
+  }
   const provider = pendingState?.provider;
 
   if (!callback) {
@@ -76,7 +83,7 @@ export const finishOAuthCallback = async (url: string): Promise<AuthFlowResult> 
     return toAuthFlowError("callback_error");
   }
 
-  const stateError = validatePendingAuthState(pendingState);
+  const stateError = validatePendingAuthState(pendingState, Date.now(), callback.state);
   if (stateError) {
     await clearPendingAuthState();
     trackAuthFailed(provider, stateError);

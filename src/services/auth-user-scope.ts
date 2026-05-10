@@ -19,6 +19,23 @@ const normalizeUserId = (userId: string): string | null => {
   return normalized ? normalized : null;
 };
 
+const clearLocalStorageScope = (): AuthUserScopeResult => {
+  try {
+    clearActiveLocalStorageUserId();
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unable to clear local product storage.",
+    };
+  }
+
+  if (getActiveLocalStorageUserId() !== null) {
+    return { success: false, error: "Unable to clear local product storage." };
+  }
+
+  return { success: true };
+};
+
 export const activateAuthenticatedUserScope = async (
   userId: string,
 ): Promise<AuthUserScopeResult> => {
@@ -42,11 +59,14 @@ export const activateAuthenticatedUserScope = async (
 
   const electronScope = await setWorkspaceIsolationActiveUser(normalized);
   if (!electronScope.success) {
-    clearActiveLocalStorageUserId();
+    const localScope = clearLocalStorageScope();
     await clearWorkspaceIsolationActiveUser();
     return {
       success: false,
-      error: electronScope.error ?? "Unable to activate Project Services storage.",
+      error:
+        localScope.error ??
+        electronScope.error ??
+        "Unable to activate Project Services storage.",
     };
   }
 
@@ -55,12 +75,13 @@ export const activateAuthenticatedUserScope = async (
 
 export const clearAuthenticatedUserScope =
   async (): Promise<AuthUserScopeResult> => {
-    clearActiveLocalStorageUserId();
     const electronScope = await clearWorkspaceIsolationActiveUser();
-    return electronScope.success
-      ? { success: true }
-      : {
-          success: false,
-          error: electronScope.error ?? "Unable to clear Project Services storage.",
-        };
+    if (!electronScope.success) {
+      return {
+        success: false,
+        error: electronScope.error ?? "Unable to clear Project Services storage.",
+      };
+    }
+
+    return clearLocalStorageScope();
   };

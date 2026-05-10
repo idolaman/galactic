@@ -24,6 +24,7 @@ export interface ParsedAuthCallback {
   code: string | null;
   error: string | null;
   errorDescription: string | null;
+  state: string | null;
 }
 
 export const createPendingAuthState = (
@@ -43,6 +44,7 @@ export const parseAuthCallbackUrl = (url: string): ParsedAuthCallback | null => 
       code: parsed.searchParams.get("code"),
       error: parsed.searchParams.get("error"),
       errorDescription: parsed.searchParams.get("error_description"),
+      state: parsed.searchParams.get("state"),
     };
   } catch {
     return null;
@@ -52,12 +54,21 @@ export const parseAuthCallbackUrl = (url: string): ParsedAuthCallback | null => 
 export const validatePendingAuthState = (
   pendingState: PendingAuthState | null,
   now = Date.now(),
+  callbackState?: string | null,
 ): AuthCallbackFailureReason | null => {
   if (!pendingState) {
     return "invalid_state";
   }
 
+  if (!Number.isFinite(pendingState.createdAt) || pendingState.createdAt <= 0) {
+    return "invalid_state";
+  }
+
   if (now - pendingState.createdAt > AUTH_STATE_TTL_MS) {
+    return "invalid_state";
+  }
+
+  if (callbackState !== undefined && callbackState !== pendingState.state) {
     return "invalid_state";
   }
 

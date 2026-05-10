@@ -31,7 +31,9 @@ export const getSupabaseClient = (): SupabaseClient => {
 
   const config = getSupabaseAuthConfig();
   if (!config.configured) {
-    throw new Error("Supabase auth is not configured.");
+    throw new Error(
+      "Supabase auth is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.",
+    );
   }
 
   supabaseClient = createClient(config.url, config.publishableKey, {

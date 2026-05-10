@@ -148,8 +148,8 @@ export interface ElectronAPI {
   importProjectConfigFile: () => Promise<ProjectConfigFileImportResult>;
   initialWorkspaceIsolationIntroSeen?: boolean;
   initialWorkspaceIsolationShellHookStatus?: unknown;
-  getWorkspaceIsolationStacks: () => Promise<WorkspaceIsolationStacksResult | unknown[]>;
-  getWorkspaceIsolationProjectTopologies: () => Promise<WorkspaceIsolationTopologiesResult | unknown[]>;
+  getWorkspaceIsolationStacks: () => Promise<WorkspaceIsolationStacksResult>;
+  getWorkspaceIsolationProjectTopologies: () => Promise<WorkspaceIsolationTopologiesResult>;
   saveWorkspaceIsolationProjectTopology: (
     input: unknown
   ) => Promise<{ success: boolean; error?: string; topology?: unknown }>;

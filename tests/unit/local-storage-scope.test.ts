@@ -44,8 +44,19 @@ class MemoryStorage implements Storage {
   }
 }
 
-const installWindow = (): MemoryStorage => {
-  const storage = new MemoryStorage();
+class RemoveFailingMemoryStorage extends MemoryStorage {
+  removeItem(): void {
+    throw new Error("remove failed");
+  }
+}
+
+class SetFailingMemoryStorage extends MemoryStorage {
+  setItem(): void {
+    throw new Error("set failed");
+  }
+}
+
+const installWindow = (storage = new MemoryStorage()): MemoryStorage => {
   Object.defineProperty(globalThis, "window", {
     configurable: true,
     value: { dispatchEvent: () => true, localStorage: storage },
@@ -108,6 +119,16 @@ test("product storage keys require an active signed-in user", () => {
   );
 });
 
+test("setting active user reports storage write failures", () => {
+  installWindow(new SetFailingMemoryStorage());
+
+  assert.throws(
+    () => setActiveLocalStorageUserId("user-1"),
+    /Unable to set active local storage user/,
+  );
+  assert.equal(getActiveLocalStorageUserId(), null);
+});
+
 test("runtime storage events only match the active user's scoped keys", () => {
   installWindow();
   setActiveLocalStorageUserId("user-1");
@@ -165,4 +186,15 @@ test("sign-out clears active user and stops reading legacy keys after claim", ()
     () => getProductStorageKey("projects"),
     /Product storage requires an active signed-in user/,
   );
+});
+
+test("sign-out reports a stuck active user id when storage remove fails", () => {
+  const storage = installWindow(new RemoveFailingMemoryStorage());
+  storage.setItem(ACTIVE_USER_ID_STORAGE_KEY, "user-1");
+
+  assert.throws(
+    () => clearActiveLocalStorageUserId(),
+    /Unable to clear active local storage user/,
+  );
+  assert.equal(getActiveLocalStorageUserId(), "user-1");
 });

@@ -17,18 +17,19 @@ const pendingState: PendingAuthState = {
 
 test("parseAuthCallbackUrl reads code and provider errors", () => {
   const parsed = parseAuthCallbackUrl(
-    "galactic://auth/callback?code=code-1&error=access_denied&error_description=Nope",
+    "galactic://auth/callback?code=code-1&error=access_denied&error_description=Nope&state=state-1",
   );
 
   assert.deepEqual(parsed, {
     code: "code-1",
     error: "access_denied",
     errorDescription: "Nope",
+    state: "state-1",
   });
 });
 
 test("validatePendingAuthState accepts a matching unexpired state", () => {
-  const result = validatePendingAuthState(pendingState, 1_500);
+  const result = validatePendingAuthState(pendingState, 1_500, "state-1");
 
   assert.equal(result, null);
 });
@@ -37,6 +38,27 @@ test("validatePendingAuthState rejects missing and expired state", () => {
   assert.equal(validatePendingAuthState(null, 1_500), "invalid_state");
   assert.equal(
     validatePendingAuthState(pendingState, 1_000 + AUTH_STATE_TTL_MS + 1),
+    "invalid_state",
+  );
+});
+
+test("validatePendingAuthState rejects mismatched callback state", () => {
+  assert.equal(
+    validatePendingAuthState(pendingState, 1_500, "different-state"),
+    "invalid_state",
+  );
+});
+
+test("validatePendingAuthState rejects invalid creation timestamps", () => {
+  assert.equal(
+    validatePendingAuthState({ ...pendingState, createdAt: 0 }, 1_500),
+    "invalid_state",
+  );
+  assert.equal(
+    validatePendingAuthState(
+      { ...pendingState, createdAt: Number.NaN },
+      1_500,
+    ),
     "invalid_state",
   );
 });

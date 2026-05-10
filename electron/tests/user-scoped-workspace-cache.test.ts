@@ -47,6 +47,7 @@ test("first active user claims legacy workspace cache files", async () => {
       existsSync(path.join(cacheDir, "users", "user-1", "notes.txt")),
       false,
     );
+    assert.equal(existsSync(path.join(cacheDir, legacyFileName)), true);
 
     await cache.setActiveUser("user-2");
     assert.equal(

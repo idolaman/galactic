@@ -59,6 +59,25 @@ test("auth storage ignores corrupt encrypted files", async () => {
   }
 });
 
+test("auth storage ignores array-shaped encrypted files", async () => {
+  const tempDir = await createTempDir();
+  const storagePath = path.join(tempDir, "auth-storage.enc");
+
+  try {
+    const safeStorage = createSafeStorage();
+    await writeFile(
+      storagePath,
+      safeStorage.encryptString(JSON.stringify(["token"])).toString("base64"),
+      "utf-8",
+    );
+    const storage = createAuthStorage({ safeStorage, storagePath });
+
+    assert.equal(await storage.getItem("0"), null);
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
+  }
+});
+
 test("auth storage falls back to memory when encryption is unavailable", async () => {
   const tempDir = await createTempDir();
   const storagePath = path.join(tempDir, "auth-storage.enc");

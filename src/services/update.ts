@@ -101,7 +101,7 @@ export function setUpdateToastDismissed(): void {
 
 export function shouldShowUpdateToast(): boolean {
   const storage = getLocalStorage();
-  if (!storage) return false;
+  if (!storage) return true;
 
   try {
     const stored = storage.getItem(GLOBAL_LOCAL_STORAGE_KEYS.updateToastDismissed);

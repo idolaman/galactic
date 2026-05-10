@@ -891,8 +891,6 @@ app.on("before-quit", (event) => {
   }
   authCallbackServer?.close();
   authCallbackServer = null;
-  stopMcpServer();
-  void workspaceIsolationManager.stop();
 
   void shutdownAnalyticsWithTimeout()
     .then(async () => {

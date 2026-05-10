@@ -16,7 +16,7 @@ interface AuthStorageOptions {
 const memoryStorage = new Map<string, string>();
 
 const isRecord = (value: unknown): value is Record<string, string> => {
-  if (!value || typeof value !== "object") return false;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   return Object.values(value).every((entry) => typeof entry === "string");
 };
 

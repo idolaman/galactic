@@ -7,6 +7,8 @@ const isPendingAuthState = (value: unknown): value is PendingAuthState => {
   const candidate = value as Record<string, unknown>;
   return (
     typeof candidate.createdAt === "number" &&
+    Number.isFinite(candidate.createdAt) &&
+    candidate.createdAt > 0 &&
     (candidate.provider === "github" || candidate.provider === "google") &&
     typeof candidate.state === "string"
   );

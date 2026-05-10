@@ -4,15 +4,16 @@ const getElectronAPI = () =>
   typeof window === "undefined" ? undefined : window.electronAPI;
 
 export const getAuthStorageItem = async (key: string): Promise<string | null> => {
+  const api = getElectronAPI();
+  if (!api?.getAuthStorageItem) {
+    return memoryStorage.get(key) ?? null;
+  }
+
   try {
-    const api = getElectronAPI();
-    if (!api?.getAuthStorageItem) {
-      return memoryStorage.get(key) ?? null;
-    }
     return await api.getAuthStorageItem(key);
   } catch (error) {
     console.warn("[Auth] Failed to read auth storage", error);
-    return null;
+    throw error;
   }
 };
 
@@ -20,28 +21,33 @@ export const setAuthStorageItem = async (
   key: string,
   value: string,
 ): Promise<void> => {
+  const api = getElectronAPI();
+  if (!api?.setAuthStorageItem) {
+    memoryStorage.set(key, value);
+    return;
+  }
+
   try {
-    const api = getElectronAPI();
-    if (!api?.setAuthStorageItem) {
-      memoryStorage.set(key, value);
-      return;
-    }
     await api.setAuthStorageItem(key, value);
   } catch (error) {
     console.warn("[Auth] Failed to write auth storage", error);
-    memoryStorage.set(key, value);
+    throw error;
   }
 };
 
 export const removeAuthStorageItem = async (key: string): Promise<void> => {
-  try {
-    const api = getElectronAPI();
+  const api = getElectronAPI();
+  if (!api?.removeAuthStorageItem) {
     memoryStorage.delete(key);
-    if (api?.removeAuthStorageItem) {
-      await api.removeAuthStorageItem(key);
-    }
+    return;
+  }
+
+  try {
+    await api.removeAuthStorageItem(key);
+    memoryStorage.delete(key);
   } catch (error) {
     console.warn("[Auth] Failed to remove auth storage", error);
+    throw error;
   }
 };
 

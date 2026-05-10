@@ -72,19 +72,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const client = getSupabaseClient();
     let cancelled = false;
 
-    client.auth.getSession()
-      .then(async ({ data }) => {
-        if (!cancelled) await applySession(data.session);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setError("Unable to restore your session.");
-          setStatus("unauthenticated");
-        }
-      });
-
     const { data } = client.auth.onAuthStateChange((_event, session) => {
-      void applySession(session);
+      if (!cancelled) {
+        void applySession(session);
+      }
     });
 
     return () => {
@@ -112,12 +103,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const signOut = useCallback(async () => {
     const clearResult = await clearAuthenticatedUserScope();
-    const result = await signOutOfSupabase();
-    await applySession(null);
     if (!clearResult.success) {
       setError(clearResult.error ?? "Unable to clear signed-in storage.");
       return;
     }
+
+    const result = await signOutOfSupabase();
+    await applySession(null);
     if (!result.success) {
       setError(result.error ?? "Unable to sign out.");
     }

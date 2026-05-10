@@ -10,6 +10,8 @@ import type { StoredProject } from "@/types/project";
 export type { StoredProject } from "@/types/project";
 
 const STORAGE_DATASET = "projects";
+const serializeProjects = (projects: StoredProject[]): string =>
+  JSON.stringify(normalizeProjects(projects));
 
 const safeParse = (raw: string | null): StoredProject[] => {
   if (!raw) return [];
@@ -34,9 +36,10 @@ const writeAll = (projects: StoredProject[]): void => {
   const storageKey = getProductStorageKey(STORAGE_DATASET);
   if (!storage) throw new Error(PRODUCT_STORAGE_UNAVAILABLE_ERROR);
   try {
-    storage.setItem(storageKey, JSON.stringify(normalizeProjects(projects)));
+    storage.setItem(storageKey, serializeProjects(projects));
   } catch (error) {
     console.warn("Failed to save projects:", error);
+    throw error;
   }
 };
 
@@ -48,8 +51,15 @@ const dispatchChange = () => {
 
 export const projectStorage = {
   load(): StoredProject[] {
-    const projects = readAll();
-    writeAll(projects);
+    const storage = getLocalStorage();
+    const storageKey = getProductStorageKey(STORAGE_DATASET);
+    if (!storage) throw new Error(PRODUCT_STORAGE_UNAVAILABLE_ERROR);
+    const raw = storage.getItem(storageKey);
+    const projects = normalizeProjects(safeParse(raw));
+    const normalized = serializeProjects(projects);
+    if (raw !== normalized) {
+      storage.setItem(storageKey, normalized);
+    }
     return projects;
   },
   save(projects: StoredProject[]): void {
@@ -63,10 +73,12 @@ export const projectStorage = {
       nextProjects[existingIndex] = project;
     } else {
       nextProjects.unshift(project);
-      trackProjectAdded(project.isGitRepo, project.worktrees ?? 0);
     }
     writeAll(nextProjects);
     dispatchChange();
+    if (existingIndex < 0) {
+      trackProjectAdded(project.isGitRepo, project.worktrees ?? 0);
+    }
     return nextProjects;
   },
   remove(projectId: string): StoredProject[] {

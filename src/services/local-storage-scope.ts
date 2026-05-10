@@ -80,6 +80,11 @@ export const setActiveLocalStorageUserId = (userId: string): void => {
     dispatchScopeUpdated();
   } catch (error) {
     console.warn("Failed to set active local storage user:", error);
+    throw new Error("Unable to set active local storage user.");
+  }
+
+  if (getActiveLocalStorageUserId() !== normalized) {
+    throw new Error("Unable to set active local storage user.");
   }
 };
 
@@ -92,6 +97,11 @@ export const clearActiveLocalStorageUserId = (): void => {
     dispatchScopeUpdated();
   } catch (error) {
     console.warn("Failed to clear active local storage user:", error);
+    throw new Error("Unable to clear active local storage user.");
+  }
+
+  if (getActiveLocalStorageUserId() !== null) {
+    throw new Error("Unable to clear active local storage user.");
   }
 };
 
