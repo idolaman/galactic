@@ -8,6 +8,8 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { GitHubAuth } from "@/components/GitHubAuth";
 import { Header } from "@/components/Header";
+import { WorkspaceConsoleDock } from "@/components/WorkspaceConsole/WorkspaceConsoleDock";
+import { WorkspaceConsoleProvider } from "@/components/WorkspaceConsole/WorkspaceConsoleProvider";
 import Index from "./pages/Index";
 import { QuickSidebar } from "@/pages/QuickSidebar";
 import Environments from "./pages/Environments";
@@ -58,25 +60,28 @@ const App = () => {
     <GitHubAuth onAuthSuccess={handleAuthSuccess} />
   ) : (
     <HashRouter>
-      <SidebarProvider defaultOpen>
-        <div className="flex h-svh w-full bg-transparent">
-          <AppSidebar />
-          <SidebarInset>
-            <Header user={user} onLogout={handleLogout} />
-            <div className="flex-1 overflow-hidden">
-              <div className="h-full overflow-auto">
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/environments" element={<Environments />} />
-                  <Route path="/settings" element={<Settings />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
+      <WorkspaceConsoleProvider>
+        <SidebarProvider defaultOpen>
+          <div className="flex h-svh w-full bg-transparent">
+            <AppSidebar />
+            <SidebarInset>
+              <Header user={user} onLogout={handleLogout} />
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <div className="min-h-0 flex-1 overflow-auto">
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/environments" element={<Environments />} />
+                    <Route path="/settings" element={<Settings />} />
+                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </div>
+                <WorkspaceConsoleDock />
               </div>
-            </div>
-          </SidebarInset>
-        </div>
-      </SidebarProvider>
+            </SidebarInset>
+          </div>
+        </SidebarProvider>
+      </WorkspaceConsoleProvider>
     </HashRouter>
   );
 

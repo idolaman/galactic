@@ -92,6 +92,23 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("workspace/get-code-workspace-path", targetPath),
   deleteCodeWorkspace: (targetPath: string) =>
     ipcRenderer.invoke("workspace/delete-code-workspace", targetPath),
+  createWorkspaceConsoleSession: (input: unknown) =>
+    ipcRenderer.invoke("workspace-console/create-session", input),
+  listWorkspaceConsoleSessions: () =>
+    ipcRenderer.invoke("workspace-console/list-sessions"),
+  writeWorkspaceConsoleInput: (sessionId: string, data: string) =>
+    ipcRenderer.invoke("workspace-console/write-input", sessionId, data),
+  resizeWorkspaceConsoleSession: (sessionId: string, cols: number, rows: number) =>
+    ipcRenderer.invoke("workspace-console/resize", sessionId, cols, rows),
+  killWorkspaceConsoleSession: (sessionId: string) =>
+    ipcRenderer.invoke("workspace-console/kill-session", sessionId),
+  onWorkspaceConsoleEvent: (callback: (event: unknown) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, event: unknown) => {
+      callback(event);
+    };
+    ipcRenderer.on("workspace-console/event", handler);
+    return () => ipcRenderer.removeListener("workspace-console/event", handler);
+  },
   checkMcpInstalled: (tool: string) => ipcRenderer.invoke("mcp/check-installed", tool),
   installMcp: (tool: string) => ipcRenderer.invoke("mcp/install", tool),
   getMcpServerStatus: () => ipcRenderer.invoke("mcp/server-status"),

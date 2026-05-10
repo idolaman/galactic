@@ -21,6 +21,7 @@
     "utils/**/*",
     "editor-launch/**/*",
     "ipc/**/*",
+    "workspace-console/**/*",
     "project-sync/**/*",
     "tests/**/*"
   ]

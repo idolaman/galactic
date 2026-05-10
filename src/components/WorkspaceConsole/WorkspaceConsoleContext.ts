@@ -1,0 +1,30 @@
+import { createContext, useContext } from "react";
+import type { WorkspaceConsoleSession } from "@/types/workspace-console";
+
+export interface OpenWorkspaceConsoleInput {
+  workspaceLabel: string;
+  workspacePath: string;
+}
+
+export interface WorkspaceConsoleContextValue {
+  activeSession: WorkspaceConsoleSession | null;
+  canCreateShell: boolean;
+  closeSession: (sessionId: string) => Promise<void>;
+  createShell: () => Promise<void>;
+  focusSession: (sessionId: string) => void;
+  hideDock: () => void;
+  isOpen: boolean;
+  openConsoleForWorkspace: (input: OpenWorkspaceConsoleInput) => Promise<void>;
+  sessions: WorkspaceConsoleSession[];
+}
+
+export const WorkspaceConsoleContext =
+  createContext<WorkspaceConsoleContextValue | null>(null);
+
+export const useWorkspaceConsole = () => {
+  const value = useContext(WorkspaceConsoleContext);
+  if (!value) {
+    throw new Error("useWorkspaceConsole must be used inside WorkspaceConsoleProvider.");
+  }
+  return value;
+};

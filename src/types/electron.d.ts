@@ -1,5 +1,12 @@
 import type { CopySyncTargetsResult, SyncTarget } from "@/types/sync-target";
 import type { GitFetchBranchesResult } from "@/types/git";
+import type {
+  CreateWorkspaceConsoleSessionInput,
+  CreateWorkspaceConsoleSessionResult,
+  WorkspaceConsoleActionResult,
+  WorkspaceConsoleEvent,
+  WorkspaceConsoleSession,
+} from "@/types/workspace-console";
 
 export interface GitInfo {
   isGitRepo: boolean;
@@ -156,6 +163,23 @@ export interface ElectronAPI {
   ) => Promise<{ success: boolean; workspacePath?: string; error?: string }>;
   getCodeWorkspacePath: (targetPath: string) => Promise<{ exists: boolean; workspacePath: string }>;
   deleteCodeWorkspace: (targetPath: string) => Promise<{ success: boolean; error?: string }>;
+  createWorkspaceConsoleSession: (
+    input: CreateWorkspaceConsoleSessionInput
+  ) => Promise<CreateWorkspaceConsoleSessionResult>;
+  listWorkspaceConsoleSessions: () => Promise<WorkspaceConsoleSession[]>;
+  writeWorkspaceConsoleInput: (
+    sessionId: string,
+    data: string
+  ) => Promise<WorkspaceConsoleActionResult>;
+  resizeWorkspaceConsoleSession: (
+    sessionId: string,
+    cols: number,
+    rows: number
+  ) => Promise<WorkspaceConsoleActionResult>;
+  killWorkspaceConsoleSession: (sessionId: string) => Promise<WorkspaceConsoleActionResult>;
+  onWorkspaceConsoleEvent: (
+    callback: (event: WorkspaceConsoleEvent) => void
+  ) => () => void;
   checkMcpInstalled: (tool: string) => Promise<boolean>;
   installMcp: (tool: string) => Promise<{ success: boolean; error?: string }>;
   getMcpServerStatus: () => Promise<{ running: boolean; url: string; port: number }>;
