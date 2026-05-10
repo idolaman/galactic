@@ -45,13 +45,13 @@ class MemoryStorage implements Storage {
 }
 
 class RemoveFailingMemoryStorage extends MemoryStorage {
-  removeItem(): void {
+  removeItem(_key: string): void {
     throw new Error("remove failed");
   }
 }
 
 class SetFailingMemoryStorage extends MemoryStorage {
-  setItem(): void {
+  setItem(_key: string, _value: string): void {
     throw new Error("set failed");
   }
 }
