@@ -10,7 +10,10 @@ import { WorkspaceConsoleCloseDialog } from "@/components/WorkspaceConsole/Works
 import { useWorkspaceConsole } from "@/components/WorkspaceConsole/WorkspaceConsoleContext";
 import { WorkspaceConsoleTabRow } from "@/components/WorkspaceConsole/WorkspaceConsoleTabRow";
 import { WorkspaceConsoleTerminalView } from "@/components/WorkspaceConsole/WorkspaceConsoleTerminalView";
-import { shouldConfirmWorkspaceConsoleClose } from "@/lib/workspace-console";
+import {
+  shouldConfirmWorkspaceConsoleClose,
+  shouldShowWorkspaceConsoleDock,
+} from "@/lib/workspace-console";
 import { cn } from "@/lib/utils";
 import type { WorkspaceConsoleSession } from "@/types/workspace-console";
 
@@ -24,6 +27,11 @@ export const WorkspaceConsoleDock = ({
   const consoleState = useWorkspaceConsole();
   const [pendingCloseSession, setPendingCloseSession] =
     useState<WorkspaceConsoleSession | null>(null);
+  const showDock = shouldShowWorkspaceConsoleDock({
+    isOpen: consoleState.isOpen,
+    routeVisible,
+    sessionCount: consoleState.sessions.length,
+  });
 
   const handleCloseSession = (session: WorkspaceConsoleSession) => {
     if (shouldConfirmWorkspaceConsoleClose(session)) {
@@ -44,7 +52,7 @@ export const WorkspaceConsoleDock = ({
     <section
       className={cn(
         "flex h-80 min-h-48 max-h-[60svh] shrink-0 flex-col overflow-hidden border-t border-border bg-background shadow-2xl",
-        (!consoleState.isOpen || !routeVisible) && "hidden",
+        !showDock && "hidden",
       )}
     >
       <div className="flex min-h-12 items-center justify-between gap-3 px-4">

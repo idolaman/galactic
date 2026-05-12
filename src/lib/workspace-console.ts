@@ -19,3 +19,13 @@ export const shouldShowWorkspaceConsoleRestoreBar = ({
   routeVisible: boolean;
   sessionCount: number;
 }): boolean => routeVisible && !isOpen && sessionCount > 0;
+
+export const shouldShowWorkspaceConsoleDock = ({
+  isOpen,
+  routeVisible,
+  sessionCount,
+}: {
+  isOpen: boolean;
+  routeVisible: boolean;
+  sessionCount: number;
+}): boolean => routeVisible && isOpen && sessionCount > 0;

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useAppToast } from "@/hooks/use-app-toast";
 import { useWorkspaceConsoleSessionState } from "@/hooks/use-workspace-console-session-state";
 import { findWorkspaceConsoleSessionForWorkspace } from "@/lib/workspace-console";
@@ -82,6 +82,12 @@ export const WorkspaceConsoleProvider = ({
     },
     [toast],
   );
+
+  useEffect(() => {
+    if (sessions.length === 0) {
+      setIsOpen(false);
+    }
+  }, [sessions.length]);
 
   const value = {
     activeSession,

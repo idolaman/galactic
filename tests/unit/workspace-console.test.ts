@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   findWorkspaceConsoleSessionForWorkspace,
+  shouldShowWorkspaceConsoleDock,
   shouldShowWorkspaceConsoleRestoreBar,
   shouldConfirmWorkspaceConsoleClose,
 } from "../../src/lib/workspace-console.js";
@@ -107,6 +108,41 @@ test("workspace console restore bar only appears for hidden project-route sessio
       isOpen: false,
       routeVisible: true,
       sessionCount: 0,
+    }),
+    false,
+  );
+});
+
+test("workspace console dock only appears for open project-route sessions", () => {
+  assert.equal(
+    shouldShowWorkspaceConsoleDock({
+      isOpen: true,
+      routeVisible: true,
+      sessionCount: 1,
+    }),
+    true,
+  );
+  assert.equal(
+    shouldShowWorkspaceConsoleDock({
+      isOpen: true,
+      routeVisible: true,
+      sessionCount: 0,
+    }),
+    false,
+  );
+  assert.equal(
+    shouldShowWorkspaceConsoleDock({
+      isOpen: true,
+      routeVisible: false,
+      sessionCount: 1,
+    }),
+    false,
+  );
+  assert.equal(
+    shouldShowWorkspaceConsoleDock({
+      isOpen: false,
+      routeVisible: true,
+      sessionCount: 1,
     }),
     false,
   );
