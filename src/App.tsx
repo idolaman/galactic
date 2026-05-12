@@ -20,6 +20,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { EnvironmentProvider } from "@/hooks/use-environment-manager";
 import { WorkspaceIsolationManagerProvider } from "@/providers/WorkspaceIsolationManagerProvider";
 import { StarsBackground } from "@/components/StarsBackground";
+import { trackUserLoggedIn, trackUserLoggedOut } from "@/services/analytics";
 
 const queryClient = new QueryClient();
 
@@ -36,9 +37,11 @@ const App = () => {
 
   const handleAuthSuccess = (userData: User) => {
     setUser(userData);
+    trackUserLoggedIn();
   };
 
   const handleLogout = () => {
+    trackUserLoggedOut();
     setUser(null);
   };
 
