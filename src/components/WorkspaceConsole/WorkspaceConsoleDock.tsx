@@ -1,37 +1,30 @@
 import { useState } from "react";
-import { EyeOff, Plus, SquareTerminal } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { WorkspaceConsoleCloseDialog } from "@/components/WorkspaceConsole/WorkspaceConsoleCloseDialog";
 import { useWorkspaceConsole } from "@/components/WorkspaceConsole/WorkspaceConsoleContext";
+import { WorkspaceConsoleDockHeader } from "@/components/WorkspaceConsole/WorkspaceConsoleDockHeader";
 import { WorkspaceConsoleTabRow } from "@/components/WorkspaceConsole/WorkspaceConsoleTabRow";
 import { WorkspaceConsoleTerminalView } from "@/components/WorkspaceConsole/WorkspaceConsoleTerminalView";
 import {
   shouldConfirmWorkspaceConsoleClose,
-  shouldShowWorkspaceConsoleDock,
+  type WorkspaceConsolePresentation,
 } from "@/lib/workspace-console";
 import { cn } from "@/lib/utils";
 import type { WorkspaceConsoleSession } from "@/types/workspace-console";
 
+type WorkspaceConsoleDockPresentation = Extract<
+  WorkspaceConsolePresentation,
+  "dock" | "expanded"
+>;
+
 interface WorkspaceConsoleDockProps {
-  routeVisible?: boolean;
+  presentation: WorkspaceConsoleDockPresentation;
 }
 
-export const WorkspaceConsoleDock = ({
-  routeVisible = true,
-}: WorkspaceConsoleDockProps) => {
+export const WorkspaceConsoleDock = ({ presentation }: WorkspaceConsoleDockProps) => {
   const consoleState = useWorkspaceConsole();
   const [pendingCloseSession, setPendingCloseSession] =
     useState<WorkspaceConsoleSession | null>(null);
-  const showDock = shouldShowWorkspaceConsoleDock({
-    isOpen: consoleState.isOpen,
-    routeVisible,
-    sessionCount: consoleState.sessions.length,
-  });
+  const expanded = presentation === "expanded";
 
   const handleCloseSession = (session: WorkspaceConsoleSession) => {
     if (shouldConfirmWorkspaceConsoleClose(session)) {
@@ -51,42 +44,13 @@ export const WorkspaceConsoleDock = ({
   return (
     <section
       className={cn(
-        "flex h-80 min-h-48 max-h-[60svh] shrink-0 flex-col overflow-hidden border-t border-border bg-background shadow-2xl",
-        !showDock && "hidden",
+        "flex flex-col overflow-hidden border-t border-border bg-background shadow-2xl",
+        expanded
+          ? "min-h-0 flex-1"
+          : "h-80 min-h-48 max-h-[60svh] shrink-0",
       )}
     >
-      <div className="flex min-h-12 items-center justify-between gap-3 px-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <SquareTerminal className="h-4 w-4 shrink-0 text-primary" />
-          <div className="min-w-0">
-            <div className="text-sm font-semibold">Workspace Console</div>
-            <div className="truncate text-xs text-muted-foreground">
-              {consoleState.activeSession?.workspaceLabel ?? "No active workspace"}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            disabled={!consoleState.canCreateShell}
-            onClick={() => void consoleState.createShell()}
-          >
-            <Plus className="h-4 w-4" />
-            New Shell
-          </Button>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={consoleState.hideDock}>
-                <EyeOff className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Hide console</TooltipContent>
-          </Tooltip>
-        </div>
-      </div>
+      <WorkspaceConsoleDockHeader expanded={expanded} />
 
       <WorkspaceConsoleTabRow
         activeSessionId={consoleState.activeSession?.sessionId ?? null}

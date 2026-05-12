@@ -21,6 +21,7 @@ export const WorkspaceConsoleProvider = ({
   const toast = useAppToast();
   const { activeSession, sessions, setActiveSessionId } =
     useWorkspaceConsoleSessionState();
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [lastWorkspace, setLastWorkspace] =
     useState<OpenWorkspaceConsoleInput | null>(null);
@@ -85,6 +86,7 @@ export const WorkspaceConsoleProvider = ({
 
   useEffect(() => {
     if (sessions.length === 0) {
+      setIsExpanded(false);
       setIsOpen(false);
     }
   }, [sessions.length]);
@@ -93,9 +95,12 @@ export const WorkspaceConsoleProvider = ({
     activeSession,
     canCreateShell: Boolean(activeWorkspace),
     closeSession,
+    collapseConsole: () => setIsExpanded(false),
     createShell: () => createShellForWorkspace(activeWorkspace),
+    expandConsole: () => setIsExpanded(true),
     focusSession: setActiveSessionId,
     hideDock: () => setIsOpen(false),
+    isExpanded,
     isOpen,
     openConsoleForWorkspace,
     showDock: () => setIsOpen(true),

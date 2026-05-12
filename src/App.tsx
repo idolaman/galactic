@@ -9,7 +9,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { GitHubAuth } from "@/components/GitHubAuth";
 import { Header } from "@/components/Header";
 import { WorkspaceConsoleProvider } from "@/components/WorkspaceConsole/WorkspaceConsoleProvider";
-import { WorkspaceConsoleRouteDock } from "@/components/WorkspaceConsole/WorkspaceConsoleRouteDock";
+import { WorkspaceConsoleProjectsLayout } from "@/components/WorkspaceConsole/WorkspaceConsoleProjectsLayout";
 import Index from "./pages/Index";
 import { QuickSidebar } from "@/pages/QuickSidebar";
 import Environments from "./pages/Environments";
@@ -66,18 +66,15 @@ const App = () => {
             <AppSidebar />
             <SidebarInset className="h-svh min-h-0 overflow-hidden">
               <Header user={user} onLogout={handleLogout} />
-              <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/environments" element={<Environments />} />
-                    <Route path="/settings" element={<Settings />} />
-                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </div>
-                <WorkspaceConsoleRouteDock />
-              </div>
+              <WorkspaceConsoleProjectsLayout>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/environments" element={<Environments />} />
+                  <Route path="/settings" element={<Settings />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </WorkspaceConsoleProjectsLayout>
             </SidebarInset>
           </div>
         </SidebarProvider>

@@ -10,9 +10,12 @@ export interface WorkspaceConsoleContextValue {
   activeSession: WorkspaceConsoleSession | null;
   canCreateShell: boolean;
   closeSession: (sessionId: string) => Promise<void>;
+  collapseConsole: () => void;
   createShell: () => Promise<void>;
+  expandConsole: () => void;
   focusSession: (sessionId: string) => void;
   hideDock: () => void;
+  isExpanded: boolean;
   isOpen: boolean;
   openConsoleForWorkspace: (input: OpenWorkspaceConsoleInput) => Promise<void>;
   showDock: () => void;
