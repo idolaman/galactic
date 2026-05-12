@@ -5,7 +5,10 @@ import {
   resolveWorkspaceConsoleShell,
 } from "./shell.js";
 import { getWorkspaceConsoleLabel } from "./workspace-paths.js";
-import { createWorkspaceConsoleSummary } from "./session-lifecycle.js";
+import {
+  createWorkspaceConsoleSummary,
+  toWorkspaceConsoleErrorMessage,
+} from "./session-lifecycle.js";
 import type {
   WorkspaceConsolePty,
   WorkspaceConsolePtyAdapter,
@@ -44,14 +47,22 @@ export const createWorkspaceConsoleSessionRecord = ({
     input.workspacePath,
     input.workspaceLabel,
   );
-  const pty = adapter.spawn({
-    cols: input.cols ?? 80,
-    cwd,
-    env: process.env,
-    rows: input.rows ?? 24,
-    shell,
-    shellArgs: getWorkspaceConsoleShellArgs(),
-  });
+  let pty: WorkspaceConsolePty;
+  try {
+    pty = adapter.spawn({
+      cols: input.cols ?? 80,
+      cwd,
+      env: { ...process.env },
+      rows: input.rows ?? 24,
+      shell,
+      shellArgs: getWorkspaceConsoleShellArgs(),
+    });
+  } catch (error) {
+    return {
+      success: false,
+      error: toWorkspaceConsoleErrorMessage(error),
+    };
+  }
 
   return {
     success: true,

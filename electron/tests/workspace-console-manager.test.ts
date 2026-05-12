@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import process from "node:process";
 import test from "node:test";
 import { WorkspaceConsoleSessionManager } from "../workspace-console/manager.js";
 import type {
@@ -77,7 +78,8 @@ test("WorkspaceConsoleSessionManager emits PTY lifecycle events", () => {
 
   const result = manager.createSession({ workspaceLabel: "API", workspacePath: "/tmp/api" });
   assert.equal(result.success, true);
-  const sessionId = result.value?.sessionId ?? "";
+  assert.ok(result.value?.sessionId);
+  const { sessionId } = result.value;
   adapter.ptys[0].emitData("ready\x1b]0;npm dev\x07");
   adapter.ptys[0].emitExit({ exitCode: 0 });
   adapter.ptys[0].emitError(new Error("pty failed"));
@@ -99,7 +101,9 @@ test("WorkspaceConsoleSessionManager routes write resize and dispose to PTY", ()
   const adapter = new FakePtyAdapter();
   const manager = new WorkspaceConsoleSessionManager(adapter);
   const result = manager.createSession({ workspacePath: "/tmp/app" });
-  const sessionId = result.value?.sessionId ?? "";
+  assert.equal(result.success, true);
+  assert.ok(result.value?.sessionId);
+  const { sessionId } = result.value;
 
   assert.deepEqual(manager.writeInput(sessionId, "pwd\r"), { success: true });
   assert.deepEqual(manager.resize(sessionId, 120, 40), { success: true });
@@ -107,6 +111,20 @@ test("WorkspaceConsoleSessionManager routes write resize and dispose to PTY", ()
 
   assert.deepEqual(adapter.ptys[0].written, ["pwd\r"]);
   assert.deepEqual(adapter.ptys[0].resized, [[120, 40]]);
+  assert.notEqual(adapter.spawnOptions[0].env, process.env);
   assert.equal(adapter.ptys[0].killed, true);
   assert.deepEqual(manager.listSessions(), []);
+});
+
+test("WorkspaceConsoleSessionManager reports PTY spawn failures", () => {
+  const manager = new WorkspaceConsoleSessionManager({
+    spawn: () => {
+      throw new Error("shell missing");
+    },
+  });
+
+  assert.deepEqual(manager.createSession({ workspacePath: "/tmp/app" }), {
+    success: false,
+    error: "shell missing",
+  });
 });

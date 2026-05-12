@@ -47,8 +47,13 @@ export const WorkspaceConsoleTerminalView = ({
             terminal.rows,
           );
         }
-      } catch {
-        return;
+      } catch (error) {
+        console.error("WorkspaceConsoleTerminalView fit/resize failed", {
+          cols: terminal.cols,
+          error,
+          rows: terminal.rows,
+          sessionId: session.sessionId,
+        });
       }
     };
 

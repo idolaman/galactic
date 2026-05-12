@@ -58,6 +58,7 @@ export const WorkspaceConsoleTabRow = ({
             <Button
               variant="ghost"
               size="icon"
+              aria-label={`Close terminal ${session.title}`}
               className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
               onClick={() => onCloseSession(session)}
             >

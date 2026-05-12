@@ -134,6 +134,12 @@ export class WorkspaceConsoleSessionManager {
   }
 
   private emit(event: WorkspaceConsoleEvent): void {
-    this.listeners.forEach((listener) => listener(event));
+    this.listeners.forEach((listener) => {
+      try {
+        listener(event);
+      } catch (error) {
+        console.error("Workspace Console event listener failed:", error);
+      }
+    });
   }
 }

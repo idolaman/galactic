@@ -84,6 +84,7 @@ export const ProjectWorkspaceCard = ({
               <Button
                 variant="ghost"
                 size="icon"
+                aria-label="Delete workspace"
                 className="h-8 w-8 text-muted-foreground opacity-0 transition-all duration-200 hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
                 onClick={onDeleteWorkspace}
                 title="Delete Workspace"
@@ -96,6 +97,7 @@ export const ProjectWorkspaceCard = ({
                 <Button
                   variant="outline"
                   size="icon"
+                  aria-label="Open workspace console"
                   className="h-9 w-9 shrink-0"
                   onClick={() => void openConsoleForWorkspace({ workspaceLabel, workspacePath })}
                 >

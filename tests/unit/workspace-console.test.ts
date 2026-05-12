@@ -31,16 +31,20 @@ const createSession = (
 });
 
 test("workspace console service falls back when desktop bridge is unavailable", async () => {
-  delete (globalThis as { window?: unknown }).window;
-
-  const result = await createWorkspaceConsoleSession({ workspacePath: "/repo" });
-
-  assert.deepEqual(result, {
-    success: false,
-    error: "Workspace Console is available in the desktop app.",
-  });
+  const globalWithWindow = globalThis as { window?: unknown };
+  const hadWindow = Object.prototype.hasOwnProperty.call(globalWithWindow, "window");
+  const previousWindow = globalWithWindow.window;
+  delete globalWithWindow.window;
+  try {
+    assert.deepEqual(await createWorkspaceConsoleSession({ workspacePath: "/repo" }), {
+      success: false,
+      error: "Workspace Console is available in the desktop app.",
+    });
+  } finally {
+    if (hadWindow) globalWithWindow.window = previousWindow;
+    else delete globalWithWindow.window;
+  }
 });
-
 test("workspace console event guard accepts valid events and rejects malformed ones", () => {
   assert.equal(
     isWorkspaceConsoleEvent({ type: "data", sessionId: "s1", data: "ok" }),

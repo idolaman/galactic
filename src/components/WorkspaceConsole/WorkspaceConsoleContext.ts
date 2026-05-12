@@ -25,7 +25,7 @@ export interface WorkspaceConsoleContextValue {
 export const WorkspaceConsoleContext =
   createContext<WorkspaceConsoleContextValue | null>(null);
 
-export const useWorkspaceConsole = () => {
+export const useWorkspaceConsole = (): WorkspaceConsoleContextValue => {
   const value = useContext(WorkspaceConsoleContext);
   if (!value) {
     throw new Error("useWorkspaceConsole must be used inside WorkspaceConsoleProvider.");

@@ -27,13 +27,23 @@ export interface WorkspaceConsolePtyAdapter {
   spawn: (options: WorkspaceConsolePtySpawnOptions) => WorkspaceConsolePty;
 }
 
+const getPtySpawnErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : "Unknown PTY spawn error.";
+
 export const nodePtyWorkspaceConsoleAdapter: WorkspaceConsolePtyAdapter = {
-  spawn: ({ cols, cwd, env, rows, shell, shellArgs }) =>
-    pty.spawn(shell, shellArgs, {
-      cols,
-      cwd,
-      env: { ...process.env, ...env, TERM: "xterm-256color" },
-      name: "xterm-256color",
-      rows,
-    }),
+  spawn: ({ cols, cwd, env, rows, shell, shellArgs }) => {
+    try {
+      return pty.spawn(shell, shellArgs, {
+        cols,
+        cwd,
+        env: { ...process.env, ...env, TERM: "xterm-256color" },
+        name: "xterm-256color",
+        rows,
+      });
+    } catch (error) {
+      throw new Error(
+        `Failed to start workspace terminal shell "${shell}": ${getPtySpawnErrorMessage(error)}`,
+      );
+    }
+  },
 };

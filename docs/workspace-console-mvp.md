@@ -105,15 +105,15 @@ Minimum IPC surface:
 - `workspace-console/write-input`
 - `workspace-console/resize`
 - `workspace-console/kill-session`
-- `workspace-console/events`
+- `workspace-console/event`
 
 Minimum renderer service API:
 - `createWorkspaceConsoleSession(input)`
-- `listWorkspaceConsoleSessions(workspacePath?)`
+- `listWorkspaceConsoleSessions()`
 - `writeWorkspaceConsoleInput(sessionId, data)`
-- `resizeWorkspaceConsole(sessionId, cols, rows)`
+- `resizeWorkspaceConsoleSession(sessionId, cols, rows)`
 - `killWorkspaceConsoleSession(sessionId)`
-- `subscribeWorkspaceConsoleEvents(callback)`
+- `onWorkspaceConsoleEvent(callback)`
 
 Session event types:
 - `created`: a session was created.

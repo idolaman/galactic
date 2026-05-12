@@ -52,7 +52,12 @@ export const WorkspaceConsoleDockHeader = ({
         </Button>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={handleToggleSize}>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={sizeLabel}
+              onClick={handleToggleSize}
+            >
               <SizeIcon className="h-4 w-4" />
               <span className="sr-only">{sizeLabel}</span>
             </Button>
@@ -61,7 +66,12 @@ export const WorkspaceConsoleDockHeader = ({
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={consoleState.hideDock}>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Hide console"
+              onClick={consoleState.hideDock}
+            >
               <EyeOff className="h-4 w-4" />
               <span className="sr-only">Hide console</span>
             </Button>
