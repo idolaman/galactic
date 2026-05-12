@@ -40,7 +40,6 @@ export const startOAuthSignIn = async (
     const { data, error } = await client.auth.signInWithOAuth({
       provider,
       options: {
-        queryParams: { state: pendingState.state },
         redirectTo: buildAuthRedirectUrl(callbackUrl),
         skipBrowserRedirect: true,
       },
@@ -83,7 +82,9 @@ export const finishOAuthCallback = async (url: string): Promise<AuthFlowResult> 
     return toAuthFlowError("callback_error");
   }
 
-  const stateError = validatePendingAuthState(pendingState, Date.now(), callback.state);
+  const stateError = pendingState
+    ? validatePendingAuthState(pendingState, Date.now())
+    : null;
   if (stateError) {
     await clearPendingAuthState();
     trackAuthFailed(provider, stateError);

@@ -5,7 +5,6 @@ import {
   globalShortcut,
   ipcMain,
   type OpenDialogOptions,
-  safeStorage,
   screen,
   shell,
 } from "electron";
@@ -116,6 +115,7 @@ interface EventNotificationStatus {
 
 const APP_SETTINGS_FILE = "settings.json";
 const AUTH_STORAGE_FILE = "auth-storage.enc";
+const AUTH_STORAGE_KEY_FILE = "auth-storage.key";
 const AUTH_CALLBACK_PORT = 17891;
 const AUTH_PROTOCOL_SCHEME = getAuthProtocolScheme(app.isPackaged);
 const AUTH_CALLBACK_URL = buildAuthCallbackUrl(AUTH_PROTOCOL_SCHEME);
@@ -126,9 +126,10 @@ let authCallbackServer: http.Server | null = null;
 
 const getAppSettingsPath = () => path.join(app.getPath("userData"), APP_SETTINGS_FILE);
 const getAuthStoragePath = () => path.join(app.getPath("userData"), AUTH_STORAGE_FILE);
+const getAuthStorageKeyPath = () => path.join(app.getPath("userData"), AUTH_STORAGE_KEY_FILE);
 const persistAppSettings = async () => saveAppSettings(getAppSettingsPath(), appSettings);
 const authStorage = createAuthStorage({
-  safeStorage,
+  keyPath: getAuthStorageKeyPath(),
   storagePath: getAuthStoragePath(),
 });
 

@@ -6,7 +6,6 @@ export interface AuthProviderButtonViewState {
 }
 
 export interface AuthSignInViewState {
-  isRestoring: boolean;
   providers: Record<AuthProviderName, AuthProviderButtonViewState>;
 }
 
@@ -32,13 +31,12 @@ const buildProviderViewState = (
 export const getAuthSignInViewState = ({
   status,
 }: AuthSignInViewStateInput): AuthSignInViewState => {
-  const isRestoring = status === "loading";
+  const isLoading = status === "loading";
 
   return {
-    isRestoring,
     providers: {
-      github: buildProviderViewState("github", isRestoring),
-      google: buildProviderViewState("google", isRestoring),
+      github: buildProviderViewState("github", isLoading),
+      google: buildProviderViewState("google", isLoading),
     },
   };
 };

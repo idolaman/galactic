@@ -34,6 +34,12 @@ test("validatePendingAuthState accepts a matching unexpired state", () => {
   assert.equal(result, null);
 });
 
+test("validatePendingAuthState accepts unexpired state without callback state", () => {
+  const result = validatePendingAuthState(pendingState, 1_500);
+
+  assert.equal(result, null);
+});
+
 test("validatePendingAuthState rejects missing and expired state", () => {
   assert.equal(validatePendingAuthState(null, 1_500), "invalid_state");
   assert.equal(
