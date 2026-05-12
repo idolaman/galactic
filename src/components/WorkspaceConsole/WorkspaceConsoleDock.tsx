@@ -14,7 +14,13 @@ import { shouldConfirmWorkspaceConsoleClose } from "@/lib/workspace-console";
 import { cn } from "@/lib/utils";
 import type { WorkspaceConsoleSession } from "@/types/workspace-console";
 
-export const WorkspaceConsoleDock = () => {
+interface WorkspaceConsoleDockProps {
+  routeVisible?: boolean;
+}
+
+export const WorkspaceConsoleDock = ({
+  routeVisible = true,
+}: WorkspaceConsoleDockProps) => {
   const consoleState = useWorkspaceConsole();
   const [pendingCloseSession, setPendingCloseSession] =
     useState<WorkspaceConsoleSession | null>(null);
@@ -38,7 +44,7 @@ export const WorkspaceConsoleDock = () => {
     <section
       className={cn(
         "flex h-80 min-h-48 max-h-[60svh] shrink-0 flex-col overflow-hidden border-t border-border bg-background shadow-2xl",
-        !consoleState.isOpen && "hidden",
+        (!consoleState.isOpen || !routeVisible) && "hidden",
       )}
     >
       <div className="flex min-h-12 items-center justify-between gap-3 px-4">

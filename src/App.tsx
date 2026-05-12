@@ -8,8 +8,8 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { GitHubAuth } from "@/components/GitHubAuth";
 import { Header } from "@/components/Header";
-import { WorkspaceConsoleDock } from "@/components/WorkspaceConsole/WorkspaceConsoleDock";
 import { WorkspaceConsoleProvider } from "@/components/WorkspaceConsole/WorkspaceConsoleProvider";
+import { WorkspaceConsoleRouteDock } from "@/components/WorkspaceConsole/WorkspaceConsoleRouteDock";
 import Index from "./pages/Index";
 import { QuickSidebar } from "@/pages/QuickSidebar";
 import Environments from "./pages/Environments";
@@ -76,7 +76,7 @@ const App = () => {
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </div>
-                <WorkspaceConsoleDock />
+                <WorkspaceConsoleRouteDock />
               </div>
             </SidebarInset>
           </div>
