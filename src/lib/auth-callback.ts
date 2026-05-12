@@ -27,6 +27,14 @@ export interface ParsedAuthCallback {
   state: string | null;
 }
 
+export interface OAuthSignInOptions {
+  queryParams: {
+    state: string;
+  };
+  redirectTo: string;
+  skipBrowserRedirect: true;
+}
+
 export const createPendingAuthState = (
   provider: AuthProviderName,
   now = Date.now(),
@@ -54,7 +62,7 @@ export const parseAuthCallbackUrl = (url: string): ParsedAuthCallback | null => 
 export const validatePendingAuthState = (
   pendingState: PendingAuthState | null,
   now = Date.now(),
-  callbackState?: string | null,
+  callbackState: string | null,
 ): AuthCallbackFailureReason | null => {
   if (!pendingState) {
     return "invalid_state";
@@ -68,7 +76,7 @@ export const validatePendingAuthState = (
     return "invalid_state";
   }
 
-  if (callbackState !== undefined && callbackState !== pendingState.state) {
+  if (callbackState !== pendingState.state) {
     return "invalid_state";
   }
 
@@ -76,3 +84,14 @@ export const validatePendingAuthState = (
 };
 
 export const buildAuthRedirectUrl = (callbackUrl: string): string => callbackUrl;
+
+export const buildOAuthSignInOptions = (
+  callbackUrl: string,
+  pendingState: PendingAuthState,
+): OAuthSignInOptions => ({
+  queryParams: {
+    state: pendingState.state,
+  },
+  redirectTo: buildAuthRedirectUrl(callbackUrl),
+  skipBrowserRedirect: true,
+});
