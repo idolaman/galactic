@@ -9,3 +9,13 @@ export const findWorkspaceConsoleSessionForWorkspace = (
   workspacePath: string,
 ): WorkspaceConsoleSession | null =>
   sessions.find((session) => session.workspacePath === workspacePath) ?? null;
+
+export const shouldShowWorkspaceConsoleRestoreBar = ({
+  isOpen,
+  routeVisible,
+  sessionCount,
+}: {
+  isOpen: boolean;
+  routeVisible: boolean;
+  sessionCount: number;
+}): boolean => routeVisible && !isOpen && sessionCount > 0;

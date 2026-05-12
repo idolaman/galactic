@@ -15,6 +15,7 @@ export interface WorkspaceConsoleContextValue {
   hideDock: () => void;
   isOpen: boolean;
   openConsoleForWorkspace: (input: OpenWorkspaceConsoleInput) => Promise<void>;
+  showDock: () => void;
   sessions: WorkspaceConsoleSession[];
 }
 

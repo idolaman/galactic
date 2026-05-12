@@ -92,6 +92,7 @@ export const WorkspaceConsoleProvider = ({
     hideDock: () => setIsOpen(false),
     isOpen,
     openConsoleForWorkspace,
+    showDock: () => setIsOpen(true),
     sessions,
   };
 

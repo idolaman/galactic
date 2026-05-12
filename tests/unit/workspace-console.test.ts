@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   findWorkspaceConsoleSessionForWorkspace,
+  shouldShowWorkspaceConsoleRestoreBar,
   shouldConfirmWorkspaceConsoleClose,
 } from "../../src/lib/workspace-console.js";
 import {
@@ -74,4 +75,39 @@ test("workspace console chooses an existing session for a workspace", () => {
     "s2",
   );
   assert.equal(findWorkspaceConsoleSessionForWorkspace(sessions, "/missing"), null);
+});
+
+test("workspace console restore bar only appears for hidden project-route sessions", () => {
+  assert.equal(
+    shouldShowWorkspaceConsoleRestoreBar({
+      isOpen: false,
+      routeVisible: true,
+      sessionCount: 1,
+    }),
+    true,
+  );
+  assert.equal(
+    shouldShowWorkspaceConsoleRestoreBar({
+      isOpen: true,
+      routeVisible: true,
+      sessionCount: 1,
+    }),
+    false,
+  );
+  assert.equal(
+    shouldShowWorkspaceConsoleRestoreBar({
+      isOpen: false,
+      routeVisible: false,
+      sessionCount: 1,
+    }),
+    false,
+  );
+  assert.equal(
+    shouldShowWorkspaceConsoleRestoreBar({
+      isOpen: false,
+      routeVisible: true,
+      sessionCount: 0,
+    }),
+    false,
+  );
 });
