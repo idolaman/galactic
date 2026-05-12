@@ -37,7 +37,7 @@ export const WorkspaceConsoleDock = () => {
   return (
     <section
       className={cn(
-        "flex h-80 min-h-48 max-h-[60svh] resize-y flex-col border-t border-border bg-background shadow-2xl",
+        "flex h-80 min-h-48 max-h-[60svh] shrink-0 flex-col overflow-hidden border-t border-border bg-background shadow-2xl",
         !consoleState.isOpen && "hidden",
       )}
     >
@@ -81,7 +81,7 @@ export const WorkspaceConsoleDock = () => {
         sessions={consoleState.sessions}
       />
 
-      <div className="min-h-0 flex-1 bg-black">
+      <div className="min-h-0 flex-1 overflow-hidden bg-black">
         {consoleState.sessions.length === 0 ? (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
             No terminal sessions

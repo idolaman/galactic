@@ -28,7 +28,7 @@ export const WorkspaceConsoleTabRow = ({
   onFocusSession,
   sessions,
 }: WorkspaceConsoleTabRowProps) => (
-  <div className="flex min-h-10 items-center gap-2 overflow-x-auto border-t border-border bg-muted/20 px-3 py-1">
+  <div className="workspace-console-tabs flex min-h-10 items-center gap-2 overflow-x-auto border-t border-border bg-muted/20 px-3 py-1">
     {sessions.map((session) => (
       <div
         key={session.sessionId}

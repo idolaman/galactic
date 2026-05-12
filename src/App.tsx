@@ -62,12 +62,12 @@ const App = () => {
     <HashRouter>
       <WorkspaceConsoleProvider>
         <SidebarProvider defaultOpen>
-          <div className="flex h-svh w-full bg-transparent">
+          <div className="flex h-svh w-full overflow-hidden bg-transparent">
             <AppSidebar />
-            <SidebarInset>
+            <SidebarInset className="h-svh min-h-0 overflow-hidden">
               <Header user={user} onLogout={handleLogout} />
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                <div className="min-h-0 flex-1 overflow-auto">
+                <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
                   <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/environments" element={<Environments />} />
