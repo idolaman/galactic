@@ -85,9 +85,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [applySession]);
 
   useEffect(() => {
-    window.electronAPI?.consumeAuthCallbackUrl?.().then(handleCallbackUrl);
-    const cleanup = window.electronAPI?.onAuthCallbackUrl?.((url) => {
-      void handleCallbackUrl(url);
+    const consumeCallbackUrl = () => {
+      void window.electronAPI?.consumeAuthCallbackUrl?.().then(handleCallbackUrl);
+    };
+
+    consumeCallbackUrl();
+    const cleanup = window.electronAPI?.onAuthCallbackUrl?.(() => {
+      consumeCallbackUrl();
     });
 
     return () => cleanup?.();

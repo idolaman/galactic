@@ -82,9 +82,7 @@ export const finishOAuthCallback = async (url: string): Promise<AuthFlowResult> 
     return toAuthFlowError("callback_error");
   }
 
-  const stateError = pendingState
-    ? validatePendingAuthState(pendingState, Date.now())
-    : null;
+  const stateError = validatePendingAuthState(pendingState, Date.now());
   if (stateError) {
     await clearPendingAuthState();
     trackAuthFailed(provider, stateError);
