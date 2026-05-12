@@ -1,7 +1,10 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAppToast } from "@/hooks/use-app-toast";
 import { useWorkspaceConsoleSessionState } from "@/hooks/use-workspace-console-session-state";
-import { findWorkspaceConsoleSessionForWorkspace } from "@/lib/workspace-console";
+import {
+  findWorkspaceConsoleSessionForWorkspace,
+  runWorkspaceConsoleOpenRequest,
+} from "@/lib/workspace-console";
 import {
   createWorkspaceConsoleSession,
   killWorkspaceConsoleSession,
@@ -25,6 +28,7 @@ export const WorkspaceConsoleProvider = ({
   const [isOpen, setIsOpen] = useState(false);
   const [lastWorkspace, setLastWorkspace] =
     useState<OpenWorkspaceConsoleInput | null>(null);
+  const pendingWorkspaceOpens = useRef(new Map<string, Promise<void>>());
 
   const activeWorkspace = useMemo<OpenWorkspaceConsoleInput | null>(() => {
     if (activeSession) {
@@ -66,7 +70,11 @@ export const WorkspaceConsoleProvider = ({
         setActiveSessionId(existingSession.sessionId);
         return;
       }
-      await createShellForWorkspace(workspace);
+      await runWorkspaceConsoleOpenRequest({
+        createSession: () => createShellForWorkspace(workspace),
+        pendingOpens: pendingWorkspaceOpens.current,
+        workspacePath: workspace.workspacePath,
+      });
     },
     [createShellForWorkspace, sessions, setActiveSessionId],
   );

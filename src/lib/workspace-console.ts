@@ -9,6 +9,12 @@ interface WorkspaceConsolePresentationInput {
   sessionCount: number;
 }
 
+interface WorkspaceConsoleOpenRequestOptions {
+  createSession: () => Promise<void>;
+  pendingOpens: Map<string, Promise<void>>;
+  workspacePath: string;
+}
+
 export const shouldConfirmWorkspaceConsoleClose = (
   session: Pick<WorkspaceConsoleSession, "status">,
 ): boolean => session.status === "running" || session.status === "starting";
@@ -18,6 +24,26 @@ export const findWorkspaceConsoleSessionForWorkspace = (
   workspacePath: string,
 ): WorkspaceConsoleSession | null =>
   sessions.find((session) => session.workspacePath === workspacePath) ?? null;
+
+export const runWorkspaceConsoleOpenRequest = async ({
+  createSession,
+  pendingOpens,
+  workspacePath,
+}: WorkspaceConsoleOpenRequestOptions): Promise<void> => {
+  const pendingOpen = pendingOpens.get(workspacePath);
+  if (pendingOpen) {
+    await pendingOpen;
+    return;
+  }
+
+  const nextOpen = createSession();
+  pendingOpens.set(workspacePath, nextOpen);
+  try {
+    await nextOpen;
+  } finally {
+    pendingOpens.delete(workspacePath);
+  }
+};
 
 export const getWorkspaceConsolePresentation = ({
   isExpanded,

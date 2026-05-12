@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   findWorkspaceConsoleSessionForWorkspace,
   getWorkspaceConsolePresentation,
+  runWorkspaceConsoleOpenRequest,
   shouldShowWorkspaceConsoleDock,
   shouldShowWorkspaceConsoleRestoreBar,
   shouldConfirmWorkspaceConsoleClose,
@@ -15,6 +16,14 @@ import type { WorkspaceConsoleSession } from "../../src/types/workspace-console.
 
 type PresentationInput = Parameters<typeof getWorkspaceConsolePresentation>[0];
 type DockVisibilityInput = Parameters<typeof shouldShowWorkspaceConsoleDock>[0];
+
+const createDeferred = (): { promise: Promise<void>; resolve: () => void } => {
+  let resolveDeferred!: () => void;
+  const promise = new Promise<void>((resolve) => {
+    resolveDeferred = resolve;
+  });
+  return { promise, resolve: resolveDeferred };
+};
 
 const createSession = (
   sessionId: string,
@@ -87,6 +96,57 @@ test("workspace console chooses an existing session for a workspace", () => {
     "s2",
   );
   assert.equal(findWorkspaceConsoleSessionForWorkspace(sessions, "/missing"), null);
+});
+
+test("workspace console open request dedupes in-flight creates per workspace", async () => {
+  const pendingOpens = new Map<string, Promise<void>>();
+  const deferredCreate = createDeferred();
+  let createCount = 0;
+  const createSession = async () => {
+    createCount += 1;
+    await deferredCreate.promise;
+  };
+
+  const firstOpen = runWorkspaceConsoleOpenRequest({
+    createSession,
+    pendingOpens,
+    workspacePath: "/repo",
+  });
+  const secondOpen = runWorkspaceConsoleOpenRequest({
+    createSession,
+    pendingOpens,
+    workspacePath: "/repo",
+  });
+
+  assert.equal(createCount, 1);
+  assert.equal(pendingOpens.has("/repo"), true);
+  deferredCreate.resolve();
+  await Promise.all([firstOpen, secondOpen]);
+  assert.equal(pendingOpens.has("/repo"), false);
+});
+
+test("workspace console open request keeps different workspaces independent", async () => {
+  const pendingOpens = new Map<string, Promise<void>>();
+  let createCount = 0;
+  const createSession = async () => {
+    createCount += 1;
+  };
+
+  await Promise.all([
+    runWorkspaceConsoleOpenRequest({
+      createSession,
+      pendingOpens,
+      workspacePath: "/repo",
+    }),
+    runWorkspaceConsoleOpenRequest({
+      createSession,
+      pendingOpens,
+      workspacePath: "/repo/app",
+    }),
+  ]);
+
+  assert.equal(createCount, 2);
+  assert.equal(pendingOpens.size, 0);
 });
 
 test("workspace console restore bar only appears for hidden project-route sessions", () => {
