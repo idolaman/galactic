@@ -2,6 +2,7 @@ import { createContext, useContext } from "react";
 import type { WorkspaceConsoleSession } from "@/types/workspace-console";
 
 export interface OpenWorkspaceConsoleInput {
+  targetKind?: "base" | "workspace";
   workspaceLabel: string;
   workspacePath: string;
 }

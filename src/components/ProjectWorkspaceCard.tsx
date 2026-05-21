@@ -99,7 +99,13 @@ export const ProjectWorkspaceCard = ({
                   size="icon"
                   aria-label="Open workspace console"
                   className="h-9 w-9 shrink-0"
-                  onClick={() => void openConsoleForWorkspace({ workspaceLabel, workspacePath })}
+                  onClick={() =>
+                    void openConsoleForWorkspace({
+                      targetKind,
+                      workspaceLabel,
+                      workspacePath,
+                    })
+                  }
                 >
                   <SquareTerminal className="h-4 w-4" />
                 </Button>
