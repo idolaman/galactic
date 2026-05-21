@@ -1,6 +1,6 @@
 {
   "name": "galactic-ide",
-  "version": "1.0.30",
+  "version": "1.0.31",
   "description": "The command center for developers who juggle multiple projects, branches, and environments.",
   "author": "Galactic Dev <hello@galactic-dev.com>",
   "license": "AGPL-3.0",
@@ -34,6 +34,7 @@
     "start:electron": "wait-on http://${VITE_HOST:-127.0.0.1}:${VITE_PORT:-8080} && ELECTRON_START_URL=http://${VITE_HOST:-127.0.0.1}:${VITE_PORT:-8080} electron .",
     "build:ui": "vite build",
     "build:main": "node scripts/clean-dist-electron.mjs && tsc -p electron/tsconfig.json && tsc -p electron/tsconfig.preload.json",
+    "rebuild:native": "electron-rebuild -f -w node-pty",
     "build:mcp-server": "bash scripts/build-mcp-server.sh",
     "build:mac-notifier": "bash scripts/build-mac-notifier.sh",
     "build:electron": "npm run build:ui && npm run build:main && npm run build:mcp-server && npm run build:mac-notifier && electron-builder --mac dmg zip",
@@ -76,6 +77,9 @@
     "@radix-ui/react-tooltip": "^1.2.7",
     "@tanstack/react-query": "^5.83.0",
     "@telemetrydeck/sdk": "^2.0.4",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/addon-search": "^0.16.0",
+    "@xterm/xterm": "^6.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -85,6 +89,7 @@
     "input-otp": "^1.4.2",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
+    "node-pty": "^1.1.0",
     "posthog-node": "^4.17.0",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
@@ -102,6 +107,7 @@
     "zustand": "^5.0.9"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.4",
     "@eslint/js": "^9.32.0",
     "@tailwindcss/typography": "^0.5.16",
     "@types/electron": "^1.6.12",

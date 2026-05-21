@@ -1,4 +1,10 @@
 import { contextBridge, ipcRenderer } from "electron";
+import type {
+  CreateWorkspaceConsoleSessionInput,
+  WorkspaceConsoleEvent,
+  WorkspaceConsoleResult,
+  WorkspaceConsoleSessionSummary,
+} from "./workspace-console/types.js";
 
 const initialSessionCache = ipcRenderer.sendSync("session/get-cache-sync");
 const initialDismissedSessions = ipcRenderer.sendSync("session/get-dismissed-sync");
@@ -16,6 +22,12 @@ const initialWorkspaceIsolationShellHookStatus = ipcRenderer.sendSync(
 interface SessionCacheSnapshot {
   sessions: unknown[];
   preferredEditor: "Cursor" | "VSCode";
+}
+
+interface CreateWorkspaceConsoleSessionBridgeResult {
+  success: boolean;
+  error?: string;
+  session?: WorkspaceConsoleSessionSummary;
 }
 
 contextBridge.exposeInMainWorld("electronAPI", {
@@ -92,6 +104,43 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("workspace/get-code-workspace-path", targetPath),
   deleteCodeWorkspace: (targetPath: string) =>
     ipcRenderer.invoke("workspace/delete-code-workspace", targetPath),
+  createWorkspaceConsoleSession: (input: CreateWorkspaceConsoleSessionInput) =>
+    ipcRenderer.invoke(
+      "workspace-console/create-session",
+      input,
+    ) as Promise<CreateWorkspaceConsoleSessionBridgeResult>,
+  listWorkspaceConsoleSessions: () =>
+    ipcRenderer.invoke(
+      "workspace-console/list-sessions",
+    ) as Promise<WorkspaceConsoleSessionSummary[]>,
+  writeWorkspaceConsoleInput: (sessionId: string, data: string) =>
+    ipcRenderer.invoke(
+      "workspace-console/write-input",
+      sessionId,
+      data,
+    ) as Promise<WorkspaceConsoleResult>,
+  resizeWorkspaceConsoleSession: (sessionId: string, cols: number, rows: number) =>
+    ipcRenderer.invoke(
+      "workspace-console/resize",
+      sessionId,
+      cols,
+      rows,
+    ) as Promise<WorkspaceConsoleResult>,
+  killWorkspaceConsoleSession: (sessionId: string) =>
+    ipcRenderer.invoke(
+      "workspace-console/kill-session",
+      sessionId,
+    ) as Promise<WorkspaceConsoleResult>,
+  onWorkspaceConsoleEvent: (callback: (event: WorkspaceConsoleEvent) => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      event: WorkspaceConsoleEvent,
+    ) => {
+      callback(event);
+    };
+    ipcRenderer.on("workspace-console/event", handler);
+    return () => ipcRenderer.removeListener("workspace-console/event", handler);
+  },
   checkMcpInstalled: (tool: string) => ipcRenderer.invoke("mcp/check-installed", tool),
   installMcp: (tool: string) => ipcRenderer.invoke("mcp/install", tool),
   getMcpServerStatus: () => ipcRenderer.invoke("mcp/server-status"),

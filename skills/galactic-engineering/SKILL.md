@@ -22,6 +22,15 @@ Apply these conventions when working on code in the `galactic-ide` repository.
 
 ---
 
+## Repository-Wide Analytics Requirement (GLOBAL)
+
+- For every new user-facing feature or meaningful workflow change, add or update product analytics that answer adoption, usage, success, and failure questions for that feature.
+- Keep analytics privacy-safe and low-cardinality: never capture secrets, filesystem paths, terminal input/output, raw commands, raw errors, tokens, or user-authored content.
+- Prefer typed analytics event names and small wrapper helpers that mirror existing Galactic patterns; add tests for new analytics wrappers and payload-shaping helpers.
+- If PostHog dashboards or insights are requested, create them only after the relevant events exist in the PostHog schema; do not create empty placeholder dashboards.
+
+---
+
 ## Repository-Wide Versioning Requirement (GLOBAL)
 
 - For a given feature branch, bump the app version only once for the same feature.

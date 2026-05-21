@@ -5,6 +5,10 @@
     "moduleResolution": "NodeNext",
     "outDir": ".mcp-build-cache/unit-tests",
     "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*.ts", "./src/*"]
+    },
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
@@ -15,6 +19,7 @@
   "include": [
     "tests/unit/**/*.ts",
     "src/lib/app-toast.ts",
+    "src/lib/workspace-console.ts",
     "src/lib/create-workspace-toast.ts",
     "src/lib/create-workspace-flow.ts",
     "src/lib/load-project-branches.ts",
@@ -23,6 +28,8 @@
     "src/lib/toast-defaults.ts",
     "src/lib/mcp-installation.ts",
     "src/lib/mcp-installation-details.ts",
-    "src/lib/workspace-session-display.ts"
+    "src/lib/workspace-session-display.ts",
+    "src/services/workspace-console.ts",
+    "src/types/workspace-console.ts"
   ]
 }

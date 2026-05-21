@@ -8,6 +8,8 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { GitHubAuth } from "@/components/GitHubAuth";
 import { Header } from "@/components/Header";
+import { WorkspaceConsoleProvider } from "@/components/WorkspaceConsole/WorkspaceConsoleProvider";
+import { WorkspaceConsoleProjectsLayout } from "@/components/WorkspaceConsole/WorkspaceConsoleProjectsLayout";
 import Index from "./pages/Index";
 import { QuickSidebar } from "@/pages/QuickSidebar";
 import Environments from "./pages/Environments";
@@ -61,13 +63,13 @@ const App = () => {
     <GitHubAuth onAuthSuccess={handleAuthSuccess} />
   ) : (
     <HashRouter>
-      <SidebarProvider defaultOpen>
-        <div className="flex h-svh w-full bg-transparent">
-          <AppSidebar />
-          <SidebarInset>
-            <Header user={user} onLogout={handleLogout} />
-            <div className="flex-1 overflow-hidden">
-              <div className="h-full overflow-auto">
+      <WorkspaceConsoleProvider>
+        <SidebarProvider defaultOpen>
+          <div className="flex h-svh w-full overflow-hidden bg-transparent">
+            <AppSidebar />
+            <SidebarInset className="h-svh min-h-0 overflow-hidden">
+              <Header user={user} onLogout={handleLogout} />
+              <WorkspaceConsoleProjectsLayout>
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/environments" element={<Environments />} />
@@ -75,11 +77,11 @@ const App = () => {
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
-              </div>
-            </div>
-          </SidebarInset>
-        </div>
-      </SidebarProvider>
+              </WorkspaceConsoleProjectsLayout>
+            </SidebarInset>
+          </div>
+        </SidebarProvider>
+      </WorkspaceConsoleProvider>
     </HashRouter>
   );
 
