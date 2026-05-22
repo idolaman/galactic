@@ -19,14 +19,11 @@ export function McpInstallBanner({ open }: McpInstallBannerProps) {
     <SidebarGroup className="mt-auto px-2">
       <SidebarGroupContent>
         {open ? (
-          <div className="relative overflow-hidden rounded-xl border border-border/70 bg-gradient-to-br from-violet-950/30 via-slate-950/50 to-slate-950/80 text-white shadow-sm">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,hsl(var(--primary)/0.25),transparent_45%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_0%,hsl(var(--primary)/0.15),transparent_40%)]" />
-
+          <div className="relative overflow-hidden rounded-md border border-sidebar-border bg-sidebar-accent/50 text-sidebar-foreground">
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-2 top-2 z-10 h-6 w-6 text-white/40 hover:bg-white/10 hover:text-white"
+              className="absolute right-2 top-2 z-10 h-6 w-6 text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               onClick={() => setVisible(false)}
             >
               <X className="h-4 w-4" />
@@ -36,7 +33,7 @@ export function McpInstallBanner({ open }: McpInstallBannerProps) {
               <div className="flex items-start gap-3">
                 <div className="space-y-1 pr-6">
                   <p className="text-sm font-semibold leading-tight">Install Galactic MCP</p>
-                  <p className="text-xs text-white/80">
+                  <p className="text-xs text-muted-foreground">
                     Monitor AI agent statuses automatically with the Galactic MCP
                     running beside your workspace.
                   </p>
@@ -45,8 +42,8 @@ export function McpInstallBanner({ open }: McpInstallBannerProps) {
               <NavLink to="/settings#mcp-installation" className="w-full">
                 <Button
                   type="button"
-                  variant="secondary"
-                  className="w-full bg-white text-slate-900 shadow-none transition-colors hover:bg-white/90"
+                  variant="outline"
+                  className="w-full border-sidebar-border bg-sidebar text-sidebar-foreground hover:bg-sidebar-accent"
                 >
                   Install now
                 </Button>

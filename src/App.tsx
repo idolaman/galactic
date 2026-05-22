@@ -1,25 +1,25 @@
 import { useState } from "react";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { HashRouter, Routes, Route } from "react-router-dom";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { HashRouter, Route, Routes } from "react-router-dom";
+
+import { AppShell } from "@/components/app/AppShell";
+import { AppToolbar } from "@/components/app/AppToolbar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { GitHubAuth } from "@/components/GitHubAuth";
-import { Header } from "@/components/Header";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { WorkspaceConsoleProvider } from "@/components/WorkspaceConsole/WorkspaceConsoleProvider";
 import { WorkspaceConsoleProjectsLayout } from "@/components/WorkspaceConsole/WorkspaceConsoleProjectsLayout";
-import Index from "./pages/Index";
-import { QuickSidebar } from "@/pages/QuickSidebar";
-import Environments from "./pages/Environments";
-import Settings from "./pages/Settings";
-import NotFound from "./pages/NotFound";
-import { useUpdateListener } from "@/hooks/use-update";
-import { ThemeProvider } from "@/components/theme-provider";
 import { EnvironmentProvider } from "@/hooks/use-environment-manager";
+import { useUpdateListener } from "@/hooks/use-update";
+import Environments from "@/pages/Environments";
+import Index from "@/pages/Index";
+import NotFound from "@/pages/NotFound";
+import { QuickSidebar } from "@/pages/QuickSidebar";
+import Settings from "@/pages/Settings";
 import { WorkspaceIsolationManagerProvider } from "@/providers/WorkspaceIsolationManagerProvider";
-import { StarsBackground } from "@/components/StarsBackground";
 import { trackUserLoggedIn, trackUserLoggedOut } from "@/services/analytics";
 
 const queryClient = new QueryClient();
@@ -64,23 +64,20 @@ const App = () => {
   ) : (
     <HashRouter>
       <WorkspaceConsoleProvider>
-        <SidebarProvider defaultOpen>
-          <div className="flex h-svh w-full overflow-hidden bg-transparent">
-            <AppSidebar />
-            <SidebarInset className="h-svh min-h-0 overflow-hidden">
-              <Header user={user} onLogout={handleLogout} />
-              <WorkspaceConsoleProjectsLayout>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/environments" element={<Environments />} />
-                  <Route path="/settings" element={<Settings />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </WorkspaceConsoleProjectsLayout>
-            </SidebarInset>
-          </div>
-        </SidebarProvider>
+        <AppShell
+          sidebar={<AppSidebar />}
+          toolbar={<AppToolbar user={user} onLogout={handleLogout} />}
+        >
+          <WorkspaceConsoleProjectsLayout>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/environments" element={<Environments />} />
+              <Route path="/settings" element={<Settings />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </WorkspaceConsoleProjectsLayout>
+        </AppShell>
       </WorkspaceConsoleProvider>
     </HashRouter>
   );
@@ -88,7 +85,6 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="dark" storageKey="galactic-ide-theme">
-        <StarsBackground />
         <EnvironmentProvider>
           <WorkspaceIsolationManagerProvider>
             <TooltipProvider>

@@ -22,7 +22,7 @@ export function AppSidebar() {
   }, [startPolling, stopPolling]);
 
   return (
-    <Sidebar className="border-r border-border bg-background/80 pt-12 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <Sidebar className="border-r border-sidebar-border bg-sidebar pt-12 text-sidebar-foreground">
       <SidebarContent>
         <SidebarNavigation />
         <WorkspaceSidebarGroup projects={projects} sessionsByPath={sessionsByPath} />

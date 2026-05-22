@@ -2,129 +2,105 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
+/* Galactic design system tokens. All colors must remain HSL. */
 @layer base {
   :root {
-    --background: 210 33% 99%;
-    --foreground: 222 44% 11%;
-
+    --background: 220 20% 98%;
+    --foreground: 222 28% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 222 44% 11%;
-
+    --card-foreground: 222 28% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 44% 11%;
-
-    --primary: 199 89% 48%;
-    --primary-foreground: 210 40% 98%;
-    --primary-glow: 199 94% 60%;
-
-    --secondary: 210 32% 96%;
-    --secondary-foreground: 222 44% 11%;
-
-    --muted: 210 32% 96%;
-    --muted-foreground: 215 16% 46%;
-
-    --accent: 210 32% 93%;
-    --accent-foreground: 222 44% 11%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 199 89% 48%;
-
-    --radius: 0.25rem;
-
-    --success: 142 70% 42%;
+    --popover-foreground: 222 28% 11%;
+    --primary: 214 84% 47%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 92%;
+    --secondary-foreground: 222 28% 11%;
+    --muted: 220 14% 94%;
+    --muted-foreground: 220 9% 40%;
+    --accent: 217 18% 90%;
+    --accent-foreground: 222 28% 11%;
+    --destructive: 0 72% 48%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 87%;
+    --input: 220 13% 82%;
+    --ring: 214 84% 47%;
+    --radius: 0.375rem;
+    --success: 142 61% 36%;
     --warning: 38 92% 45%;
-    
-    --gradient-primary: linear-gradient(135deg, hsl(199 89% 48%) 0%, hsl(262 83% 72%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 40% 96%) 100%);
-    
-    --shadow-glow: 0 0 30px hsl(199 89% 48% / 0.18);
-    --shadow-card: 0 1px 3px hsl(215 30% 80% / 0.5);
-    
-    --transition-smooth: all 0.15s ease-in-out;
+    --sidebar: 220 18% 96%;
+    --sidebar-foreground: 222 28% 15%;
+    --sidebar-accent: 220 16% 91%;
+    --sidebar-accent-foreground: 222 28% 11%;
+    --sidebar-border: 220 13% 84%;
+    --sidebar-ring: 214 84% 47%;
   }
 
   .dark {
-    --background: 240 17% 2%;
-    --foreground: 0 0% 100%;
-
-    --card: 240 29% 5%;
-    --card-foreground: 0 0% 100%;
-
-    --popover: 240 29% 5%;
-    --popover-foreground: 0 0% 100%;
-
-    --primary: 262 83% 58%;
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 258 90% 66%;
-
-    --secondary: 221 83% 53%;
-    --secondary-foreground: 0 0% 100%;
-
-    --muted: 240 20% 10%;
-    --muted-foreground: 215 16% 65%;
-
-    --accent: 240 20% 10%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 62% 30%;
+    --background: 222 18% 9%;
+    --foreground: 210 18% 94%;
+    --card: 222 16% 12%;
+    --card-foreground: 210 18% 94%;
+    --popover: 222 16% 12%;
+    --popover-foreground: 210 18% 94%;
+    --primary: 213 90% 62%;
+    --primary-foreground: 222 28% 8%;
+    --secondary: 222 14% 15%;
+    --secondary-foreground: 210 18% 94%;
+    --muted: 222 14% 16%;
+    --muted-foreground: 218 10% 66%;
+    --accent: 220 14% 20%;
+    --accent-foreground: 210 18% 94%;
+    --destructive: 0 72% 56%;
     --destructive-foreground: 0 0% 100%;
-
-    --border: 240 20% 12%;
-    --input: 240 20% 12%;
-    --ring: 262 83% 58%;
-
-    --radius: 0.5rem;
-
-    --success: 142 70% 50%;
+    --border: 220 12% 22%;
+    --input: 220 12% 24%;
+    --ring: 213 90% 62%;
+    --radius: 0.375rem;
+    --success: 142 60% 45%;
     --warning: 38 92% 55%;
-    
-    --gradient-primary: linear-gradient(135deg, hsl(262 83% 58%) 0%, hsl(221 83% 53%) 100%);
-    --gradient-card: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
-    
-    --shadow-glow: 0 0 20px hsl(262 83% 58% / 0.5);
-    --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.5);
-    
-    --transition-smooth: all 0.3s ease-in-out;
+    --sidebar: 225 16% 11%;
+    --sidebar-foreground: 210 18% 92%;
+    --sidebar-accent: 222 14% 17%;
+    --sidebar-accent-foreground: 210 18% 96%;
+    --sidebar-border: 222 12% 20%;
+    --sidebar-ring: 213 90% 62%;
   }
 }
 
 @layer base {
-  html,
-  body,
-  #root {
+  html, body, #root {
     height: 100%;
+    width: 100%;
   }
 
-  html,
-  body {
+  html, body {
+    margin: 0;
     overflow: hidden;
   }
 
   * {
     @apply border-border;
+    box-sizing: border-box;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
     font-size: 14px;
   }
-  
+
+  button,
+  [role="button"] {
+    cursor: pointer;
+  }
+
   code, pre {
     font-family: 'JetBrains Mono', 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
   }
-  
+
   h1, h2, h3, h4, h5, h6 {
     font-weight: 600;
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
   }
 }
 
@@ -133,28 +109,23 @@ All colors MUST be HSL.
     scrollbar-color: hsl(var(--muted-foreground) / 0.22) transparent;
     scrollbar-width: thin;
   }
-
   .workspace-console-terminal .xterm-viewport:hover {
     scrollbar-color: hsl(var(--muted-foreground) / 0.5) transparent;
   }
-
   .workspace-console-terminal .xterm-viewport::-webkit-scrollbar,
   .workspace-console-tabs::-webkit-scrollbar {
     height: 0.375rem;
     width: 0.375rem;
   }
-
   .workspace-console-terminal .xterm-viewport::-webkit-scrollbar-track,
   .workspace-console-tabs::-webkit-scrollbar-track {
     background: transparent;
   }
-
   .workspace-console-terminal .xterm-viewport::-webkit-scrollbar-thumb,
   .workspace-console-tabs::-webkit-scrollbar-thumb {
     background-color: hsl(var(--muted-foreground) / 0.18);
     border-radius: 9999px;
   }
-
   .workspace-console-terminal .xterm-viewport:hover::-webkit-scrollbar-thumb,
   .workspace-console-tabs:hover::-webkit-scrollbar-thumb {
     background-color: hsl(var(--muted-foreground) / 0.46);
