@@ -50,7 +50,7 @@ export function ProjectWorkspaceRow({
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <div className="group border-b border-border last:border-b-0">
+      <div className="group overflow-hidden rounded-md border border-border bg-card">
         <div className="grid min-h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 hover:bg-muted/35">
           <div className="flex min-w-0 items-center gap-3">
             <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-md border bg-background", targetKind === "base" ? "text-primary" : "text-muted-foreground")}>
@@ -110,7 +110,7 @@ export function ProjectWorkspaceRow({
             </LaunchButton>
             <CollapsibleTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Toggle workspace details">
-                <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />
+                <ChevronDown className={cn("h-4 w-4 transition-transform duration-200 ease-out", open && "rotate-180")} />
               </Button>
             </CollapsibleTrigger>
           </div>

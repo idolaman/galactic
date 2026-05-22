@@ -28,7 +28,7 @@ export function ProjectWorkspacesList({
   workspaces,
 }: ProjectWorkspacesListProps) {
   return (
-    <div className="overflow-hidden rounded-md border border-border bg-card">
+    <div className="flex flex-col gap-2">
       <ProjectWorkspaceRow
         environments={environments}
         localEnvironmentId={getEnvironmentIdForTarget(projectPath)}
