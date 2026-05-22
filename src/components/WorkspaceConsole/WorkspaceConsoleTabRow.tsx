@@ -1,73 +1,82 @@
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { WorkspaceConsoleWindowControls } from "@/components/WorkspaceConsole/WorkspaceConsoleWindowControls";
+import { getWorkspaceConsoleStatusLabel } from "@/lib/workspace-console";
 import { cn } from "@/lib/utils";
 import type { WorkspaceConsoleSession } from "@/types/workspace-console";
 
 interface WorkspaceConsoleTabRowProps {
   activeSessionId: string | null;
+  expanded: boolean;
   onCloseSession: (session: WorkspaceConsoleSession) => void;
   onFocusSession: (sessionId: string) => void;
+  onHide: () => void;
+  onToggleSize: () => void;
   sessions: WorkspaceConsoleSession[];
 }
 
-const statusClassNames = {
-  error: "bg-destructive",
-  exited: "bg-muted-foreground",
-  running: "bg-emerald-500",
-  starting: "bg-amber-400",
-} as const;
+const getSessionTabTitle = (session: WorkspaceConsoleSession): string =>
+  `${session.title} - ${getWorkspaceConsoleStatusLabel(session.status)} - ${session.cwd}`;
 
 export const WorkspaceConsoleTabRow = ({
   activeSessionId,
+  expanded,
   onCloseSession,
   onFocusSession,
+  onHide,
+  onToggleSize,
   sessions,
 }: WorkspaceConsoleTabRowProps) => (
-  <div className="workspace-console-tabs flex min-h-10 items-center gap-2 overflow-x-auto border-t border-border bg-muted/20 px-3 py-1">
-    {sessions.map((session) => (
-      <div
-        key={session.sessionId}
-        className={cn(
-          "flex h-8 max-w-64 shrink-0 items-center gap-2 rounded-md border px-2 text-xs",
-          activeSessionId === session.sessionId
-            ? "border-primary/50 bg-background text-foreground"
-            : "border-border/60 bg-background/60 text-muted-foreground",
-        )}
-      >
-        <button
-          type="button"
-          className="flex min-w-0 flex-1 items-center gap-2"
-          onClick={() => onFocusSession(session.sessionId)}
-        >
-          <span
-            className={cn(
-              "h-2 w-2 shrink-0 rounded-full",
-              statusClassNames[session.status],
-            )}
-          />
-          <span className="truncate font-mono">{session.title}</span>
-        </button>
+  <div className="flex min-h-9 items-end gap-2 bg-muted/20 px-2 pt-1">
+    <div className="workspace-console-tabs flex min-w-0 flex-1 items-end gap-1 overflow-x-auto">
+      {sessions.map((session) => {
+        const active = activeSessionId === session.sessionId;
 
-        <Tooltip>
-          <TooltipTrigger asChild>
+        return (
+          <div
+            key={session.sessionId}
+            className={cn(
+              "group flex h-8 w-52 max-w-52 shrink-0 items-center gap-2 rounded-t-md border border-b-0 px-2 text-xs",
+              active
+                ? "border-border bg-zinc-950 text-zinc-50"
+                : "border-border/70 bg-background text-muted-foreground",
+            )}
+          >
+            <button
+              type="button"
+              aria-label={`Focus terminal ${session.title}`}
+              title={getSessionTabTitle(session)}
+              className="min-w-0 flex-1 text-left"
+              onClick={() => onFocusSession(session.sessionId)}
+            >
+              <span className="block max-w-full truncate font-mono font-medium">
+                {session.title}
+              </span>
+            </button>
+
             <Button
               variant="ghost"
               size="icon"
               aria-label={`Close terminal ${session.title}`}
-              className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
+              className={cn(
+                "pointer-events-none h-6 w-6 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus:pointer-events-auto focus:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100",
+                active &&
+                  "pointer-events-auto text-zinc-400 opacity-100 hover:bg-zinc-800 hover:text-zinc-50",
+              )}
               onClick={() => onCloseSession(session)}
             >
               <X className="h-3.5 w-3.5" />
             </Button>
-          </TooltipTrigger>
-          <TooltipContent>Close terminal</TooltipContent>
-        </Tooltip>
-      </div>
-    ))}
+          </div>
+        );
+      })}
+    </div>
+    <div className="pb-1">
+      <WorkspaceConsoleWindowControls
+        expanded={expanded}
+        onHide={onHide}
+        onToggleSize={onToggleSize}
+      />
+    </div>
   </div>
 );

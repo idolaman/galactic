@@ -4,7 +4,6 @@ import { useAppToast } from "@/hooks/use-app-toast";
 import { useWorkspaceConsoleLifecycleAnalytics } from "@/hooks/use-workspace-console-lifecycle-analytics";
 import { useWorkspaceConsoleOpenActions } from "@/hooks/use-workspace-console-open-actions";
 import { useWorkspaceConsoleVisibility } from "@/hooks/use-workspace-console-visibility";
-import { shouldConfirmWorkspaceConsoleClose } from "@/lib/workspace-console";
 import {
   trackWorkspaceConsoleSessionCloseFailed,
   trackWorkspaceConsoleSessionClosed,
@@ -56,7 +55,7 @@ export const useWorkspaceConsoleController = (): WorkspaceConsoleContextValue =>
   const closeSession = useCallback(
     async (sessionId: string) => {
       const session = sessions.find((item) => item.sessionId === sessionId);
-      const confirmRequired = session ? shouldConfirmWorkspaceConsoleClose(session) : false;
+      const confirmRequired = false;
       const result = await killWorkspaceConsoleSession(sessionId);
       if (!result.success) {
         trackWorkspaceConsoleSessionCloseFailed({

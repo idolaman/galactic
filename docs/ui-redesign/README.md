@@ -32,9 +32,10 @@ Implement in this order:
 2. [Shell And Theme](./01-shell-and-theme.md)
 3. [Sidebar Navigation](./02-sidebar-navigation.md)
 4. [Projects And Workspaces](./03-projects-and-workspaces.md)
-5. [Configuration And Dialogs](./04-configuration-and-dialogs.md)
-6. [Quick Launcher And Settings](./05-quick-launcher-and-settings.md)
-7. [Visual QA And Release Criteria](./06-visual-qa-and-release.md)
+5. [Terminals And Console Dock](./04-terminals-and-console-dock.md)
+6. [Configuration And Dialogs](./05-configuration-and-dialogs.md)
+7. [Quick Launcher And Settings](./06-quick-launcher-and-settings.md)
+8. [Visual QA And Release Criteria](./07-visual-qa-and-release.md)
 
 Each step should be a separate implementation pass. Later steps may refine earlier work, but should not reopen the whole app design unless a validation issue proves the foundation is wrong.
 

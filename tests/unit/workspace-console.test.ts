@@ -6,7 +6,6 @@ import {
   runWorkspaceConsoleOpenRequest,
   shouldShowWorkspaceConsoleDock,
   shouldShowWorkspaceConsoleRestoreBar,
-  shouldConfirmWorkspaceConsoleClose,
 } from "../../src/lib/workspace-console.js";
 import {
   createWorkspaceConsoleSession,
@@ -71,21 +70,6 @@ test("workspace console event guard accepts valid events and rejects malformed o
     }),
     false,
   );
-});
-
-test("workspace console close confirmation is only required for live sessions", () => {
-  const cases: Array<[WorkspaceConsoleSession["status"], boolean]> = [
-    ["running", true],
-    ["starting", true],
-    ["exited", false],
-  ];
-
-  for (const [status, expected] of cases) {
-    assert.equal(
-      shouldConfirmWorkspaceConsoleClose(createSession("s1", "/repo", status)),
-      expected,
-    );
-  }
 });
 
 test("workspace console chooses an existing session for a workspace", () => {

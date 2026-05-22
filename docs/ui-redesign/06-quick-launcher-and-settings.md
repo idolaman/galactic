@@ -1,4 +1,4 @@
-# Step 5: Quick Launcher And Settings
+# Step 6: Quick Launcher And Settings
 
 ## Goal
 

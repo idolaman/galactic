@@ -2,6 +2,11 @@ import type { WorkspaceConsoleSession } from "@/types/workspace-console";
 
 export type WorkspaceConsolePresentation = "none" | "restore" | "dock" | "expanded";
 
+export interface WorkspaceConsoleTerminalSize {
+  cols: number;
+  rows: number;
+}
+
 interface WorkspaceConsolePresentationInput {
   isExpanded: boolean;
   isOpen: boolean;
@@ -15,9 +20,27 @@ interface WorkspaceConsoleOpenRequestOptions {
   workspacePath: string;
 }
 
-export const shouldConfirmWorkspaceConsoleClose = (
-  session: Pick<WorkspaceConsoleSession, "status">,
-): boolean => session.status === "running" || session.status === "starting";
+const statusLabels: Record<WorkspaceConsoleSession["status"], string> = {
+  error: "Error",
+  exited: "Exited",
+  running: "Running",
+  starting: "Starting",
+};
+
+export const getWorkspaceConsoleSessionCountLabel = (count: number): string =>
+  count === 1 ? "1 session" : `${count} sessions`;
+
+export const getWorkspaceConsoleStatusLabel = (
+  status: WorkspaceConsoleSession["status"],
+): string => statusLabels[status];
+
+export const shouldResizeWorkspaceConsoleTerminal = (
+  previous: WorkspaceConsoleTerminalSize | null,
+  next: WorkspaceConsoleTerminalSize,
+): boolean =>
+  next.cols > 0 &&
+  next.rows > 0 &&
+  (!previous || previous.cols !== next.cols || previous.rows !== next.rows);
 
 export const findWorkspaceConsoleSessionForWorkspace = (
   sessions: WorkspaceConsoleSession[],

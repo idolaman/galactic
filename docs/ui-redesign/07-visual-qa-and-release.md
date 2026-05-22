@@ -1,4 +1,4 @@
-# Step 6: Visual QA And Release Criteria
+# Step 7: Visual QA And Release Criteria
 
 ## Goal
 
@@ -89,6 +89,6 @@ The redesign is ready when:
 ## Residual Risks To Recheck
 
 - Electron window chrome and drag regions may need a separate native polish pass.
-- The console dock may deserve its own deeper redesign after the app shell stabilizes.
+- Terminal rendering, runtime reliability, and link handling should be rechecked after the console dock redesign.
 - Some state, such as live service status, may require future data/model work to make the UI fully truthful.
 - Accessibility should be audited beyond visual QA if the redesign changes focus order or dialog structure.

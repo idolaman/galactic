@@ -1,4 +1,4 @@
-# Step 4: Configuration And Dialogs
+# Step 5: Configuration And Dialogs
 
 ## Goal
 

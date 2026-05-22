@@ -71,7 +71,7 @@ test("workspace console analytics wrappers send typed privacy-safe events", () =
       targetKind: "base",
     });
     trackWorkspaceConsoleSessionCloseFailed({
-      confirmRequired: true,
+      confirmRequired: false,
       error: "Session not found: /secret/path",
       status: "running",
     });
@@ -95,7 +95,7 @@ test("workspace console analytics wrappers send typed privacy-safe events", () =
       {
         event: "WorkspaceConsole.sessionCloseFailed",
         payload: {
-          confirmRequired: true,
+          confirmRequired: false,
           errorKind: "session-missing",
           status: "running",
         },
