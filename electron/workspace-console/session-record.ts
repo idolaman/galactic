@@ -47,6 +47,7 @@ export const createWorkspaceConsoleSessionRecord = ({
     input.workspacePath,
     input.workspaceLabel,
   );
+  const projectName = input.projectName?.trim() || undefined;
   let pty: WorkspaceConsolePty;
   try {
     pty = adapter.spawn({
@@ -73,6 +74,7 @@ export const createWorkspaceConsoleSessionRecord = ({
         randomUUID(),
         input.workspacePath,
         workspaceLabel,
+        projectName,
         cwd,
       ),
     },

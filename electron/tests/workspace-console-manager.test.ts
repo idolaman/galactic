@@ -76,10 +76,16 @@ test("WorkspaceConsoleSessionManager emits PTY lifecycle events", () => {
   const events: WorkspaceConsoleEvent[] = [];
   manager.onEvent((event) => events.push(event));
 
-  const result = manager.createSession({ workspaceLabel: "API", workspacePath: "/tmp/api" });
+  const result = manager.createSession({
+    projectName: "Galactic",
+    workspaceLabel: "API",
+    workspacePath: "/tmp/api",
+  });
   assert.equal(result.success, true);
-  assert.ok(result.value?.sessionId);
-  const { sessionId } = result.value;
+  const session = result.value;
+  assert.ok(session?.sessionId);
+  assert.equal(session.projectName, "Galactic");
+  const { sessionId } = session;
   adapter.ptys[0].emitData("ready\x1b]0;npm dev\x07");
   adapter.ptys[0].emitExit({ exitCode: 0 });
   adapter.ptys[0].emitError(new Error("pty failed"));

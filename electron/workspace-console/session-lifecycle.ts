@@ -12,11 +12,13 @@ export const createWorkspaceConsoleSummary = (
   sessionId: string,
   workspacePath: string,
   label: string,
+  projectName: string | undefined,
   cwd: string,
 ): WorkspaceConsoleSessionSummary => ({
   sessionId,
   workspacePath,
   workspaceLabel: label,
+  ...(projectName ? { projectName } : {}),
   cwd,
   status: "starting",
   title: label,

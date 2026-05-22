@@ -42,6 +42,7 @@ const parseCreateInput = (
     input: {
       workspacePath: input.workspacePath,
       ...(typeof input.workspaceLabel === "string" ? { workspaceLabel: input.workspaceLabel } : {}),
+      ...(typeof input.projectName === "string" ? { projectName: input.projectName } : {}),
       ...(typeof input.cwd === "string" ? { cwd: input.cwd } : {}),
       ...(isPositiveInteger(input.cols) ? { cols: input.cols } : {}),
       ...(isPositiveInteger(input.rows) ? { rows: input.rows } : {}),

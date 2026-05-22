@@ -27,6 +27,14 @@ const statusLabels: Record<WorkspaceConsoleSession["status"], string> = {
   starting: "Starting",
 };
 
+export const getWorkspaceConsoleTabLabel = (
+  session: Pick<WorkspaceConsoleSession, "projectName" | "title" | "workspaceLabel">,
+): string => {
+  const workspaceLabel = session.workspaceLabel.trim() || session.title;
+  const projectName = session.projectName?.trim();
+  return projectName ? `${workspaceLabel} / ${projectName}` : workspaceLabel;
+};
+
 export const getWorkspaceConsoleSessionCountLabel = (count: number): string =>
   count === 1 ? "1 session" : `${count} sessions`;
 

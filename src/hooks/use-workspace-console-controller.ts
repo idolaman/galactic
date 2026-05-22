@@ -20,10 +20,11 @@ const getActiveWorkspace = (
   lastWorkspace: OpenWorkspaceConsoleInput | null,
 ): OpenWorkspaceConsoleInput | null => {
   if (!activeSession) return lastWorkspace;
+  const matchingLastWorkspace =
+    lastWorkspace?.workspacePath === activeSession.workspacePath ? lastWorkspace : null;
   return {
-    targetKind: lastWorkspace?.workspacePath === activeSession.workspacePath
-      ? lastWorkspace.targetKind
-      : undefined,
+    projectName: activeSession.projectName ?? matchingLastWorkspace?.projectName,
+    targetKind: matchingLastWorkspace?.targetKind,
     workspaceLabel: activeSession.workspaceLabel,
     workspacePath: activeSession.workspacePath,
   };

@@ -45,7 +45,7 @@ export function ProjectWorkspaceRow({
   const Icon = targetKind === "base" ? HardDrive : GitBranch;
   const handleOpenConsole = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    void openConsoleForWorkspace({ targetKind, workspaceLabel, workspacePath });
+    void openConsoleForWorkspace({ projectName, targetKind, workspaceLabel, workspacePath });
   };
 
   return (
