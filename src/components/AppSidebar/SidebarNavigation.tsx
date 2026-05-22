@@ -28,17 +28,17 @@ export function SidebarNavigation() {
   const open = useSidebar().open;
 
   return (
-    <SidebarGroup>
+    <SidebarGroup className="px-2 py-1">
       <SidebarGroupContent>
-        <SidebarMenu>
+        <SidebarMenu className="gap-0.5">
           {navItems.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild>
+              <SidebarMenuButton asChild tooltip={item.title} className="h-8 p-0">
                 <NavLink
                   to={item.url}
                   end={item.url === "/"}
-                  className="flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
-                  activeClassName="bg-muted font-medium text-foreground"
+                  className="relative flex h-8 items-center gap-2.5 rounded-md px-2.5 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  activeClassName="bg-sidebar-accent font-medium text-sidebar-accent-foreground before:absolute before:left-0 before:top-1.5 before:h-5 before:w-0.5 before:rounded-r before:bg-primary"
                 >
                   <item.icon className="h-4 w-4 shrink-0" />
                   {open && (
@@ -47,9 +47,9 @@ export function SidebarNavigation() {
                       {item.deprecated && (
                         <Badge
                           variant="outline"
-                          className="h-[18px] px-1.5 text-[9px] uppercase tracking-wider text-muted-foreground opacity-70 shrink-0"
+                          className="h-4 shrink-0 rounded px-1.5 text-[9px] font-medium uppercase tracking-wide text-muted-foreground"
                         >
-                          Deprecated
+                          Legacy
                         </Badge>
                       )}
                     </div>

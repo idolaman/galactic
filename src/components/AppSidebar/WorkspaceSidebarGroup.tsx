@@ -16,6 +16,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { normalizeWorkspacePath } from "@/lib/workspace-session-display";
 import type { SessionSummary } from "@/services/session-rpc";
@@ -31,6 +32,7 @@ export function WorkspaceSidebarGroup({
   sessionsByPath,
 }: WorkspaceSidebarGroupProps) {
   const navigate = useNavigate();
+  const { open } = useSidebar();
 
   if (projects.length === 0) {
     return null;
@@ -40,26 +42,33 @@ export function WorkspaceSidebarGroup({
     sessionsByPath.get(normalizeWorkspacePath(path)) ?? [];
 
   return (
-    <SidebarGroup>
-      <SidebarGroupContent className="px-2 pb-2">
-        <QuickLauncherHint />
-      </SidebarGroupContent>
-      <SidebarGroupLabel>Workspaces</SidebarGroupLabel>
-      <SidebarGroupContent>
-        <SidebarMenu>
+    <SidebarGroup className="min-h-0 flex-1 px-2 py-1">
+      {open && (
+        <SidebarGroupContent className="pb-2">
+          <QuickLauncherHint />
+        </SidebarGroupContent>
+      )}
+      <SidebarGroupLabel className="h-7 px-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        Projects
+      </SidebarGroupLabel>
+      <SidebarGroupContent className="min-h-0 overflow-y-auto">
+        <SidebarMenu className="gap-0.5">
           {projects.map((project) => (
             <Collapsible key={project.id} defaultOpen className="group/collapsible" asChild>
               <SidebarMenuItem>
                 <div className="group/project-item relative">
                   <CollapsibleTrigger asChild>
-                    <SidebarMenuButton tooltip={project.name}>
+                    <SidebarMenuButton
+                      tooltip={project.name}
+                      className="h-8 pr-7 text-sidebar-foreground/85 hover:text-sidebar-accent-foreground"
+                    >
                       <FolderGit2 className="text-muted-foreground" />
-                      <span>{project.name}</span>
-                      <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                      <span className="truncate">{project.name}</span>
+                      <ChevronRight className="ml-auto h-3.5 w-3.5 text-muted-foreground transition-transform group-data-[state=open]/collapsible:rotate-90" />
                     </SidebarMenuButton>
                   </CollapsibleTrigger>
                   <SidebarMenuAction
-                    className="pointer-events-none opacity-0 transition-opacity group-hover/project-item:pointer-events-auto group-hover/project-item:opacity-100 group-focus-within/project-item:pointer-events-auto group-focus-within/project-item:opacity-100"
+                    className="pointer-events-none right-1.5 top-1.5 h-5 w-5 opacity-0 transition-opacity group-hover/project-item:pointer-events-auto group-hover/project-item:opacity-100 group-focus-within/project-item:pointer-events-auto group-focus-within/project-item:opacity-100"
                     onClick={(event) => {
                       event.preventDefault();
                       event.stopPropagation();
@@ -75,7 +84,7 @@ export function WorkspaceSidebarGroup({
                   </SidebarMenuAction>
                 </div>
                 <CollapsibleContent>
-                  <SidebarMenuSub>
+                  <SidebarMenuSub className="mx-3.5 gap-0.5 border-sidebar-border px-2 py-1">
                     <SidebarWorkspaceItem
                       path={project.path}
                       name="Repository Root"
