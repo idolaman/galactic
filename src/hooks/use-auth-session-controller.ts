@@ -2,43 +2,34 @@ import { useCallback, useMemo, useRef, useState } from "react";
 
 import type { AuthContextValue } from "@/hooks/use-auth";
 import { useAuthSessionEffects } from "@/hooks/use-auth-session-effects";
-import { useOAuthSignInTimeout } from "@/hooks/use-oauth-sign-in-timeout";
-import {
-  createOAuthAbandonedTransition,
-  createSignedOutTransition,
-  createUnauthenticatedTransition,
-  EMPTY_AUTH_SESSION,
-  type AuthSessionTransition,
-} from "@/lib/auth-session-transition";
 import { finishOAuthCallback, signOutOfSupabase, startOAuthSignIn } from "@/services/auth-flow";
 import { toAuthUser } from "@/services/auth-user";
-import { activateAuthenticatedUserScope, clearAuthenticatedUserScope } from "@/services/auth-user-scope";
+import {
+  activateAuthenticatedUserScope,
+  clearAuthenticatedUserScope,
+} from "@/services/auth-user-scope";
 import type { AuthProviderName, AuthSessionState, AuthStatus } from "@/types/auth";
 
+const emptySession: AuthSessionState = {
+  session: null,
+  user: null,
+};
+
 export const useAuthSessionController = (): AuthContextValue => {
-  const [authState, setAuthState] = useState<AuthSessionState>(EMPTY_AUTH_SESSION);
+  const [authState, setAuthState] = useState<AuthSessionState>(emptySession);
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [error, setError] = useState<string | null>(null);
   const oauthInFlightRef = useRef(false);
   const signOutInFlightRef = useRef(false);
-
-  const applyTransition = useCallback((transition: AuthSessionTransition) => {
-    setAuthState(transition.authState);
-    setError(transition.error);
-    setStatus(transition.status);
-  }, []);
-
-  const { clearOAuthTimeout, startOAuthTimeout } = useOAuthSignInTimeout({
-    oauthInFlightRef,
-    onTimeout: () => applyTransition(createOAuthAbandonedTransition()),
-  });
 
   const applySession = useCallback(async (session: AuthSessionState["session"]): Promise<boolean> => {
     const userId = session?.user?.id;
     if (userId) {
       const scopeResult = await activateAuthenticatedUserScope(userId);
       if (!scopeResult.success) {
-        applyTransition(createUnauthenticatedTransition(scopeResult.error ?? "Unable to activate signed-in storage."));
+        setAuthState(emptySession);
+        setError(scopeResult.error ?? "Unable to activate signed-in storage.");
+        setStatus("unauthenticated");
         return false;
       }
     } else {
@@ -51,12 +42,11 @@ export const useAuthSessionController = (): AuthContextValue => {
     });
     setStatus(session?.user ? "authenticated" : "unauthenticated");
     return true;
-  }, [applyTransition]);
+  }, []);
 
   const handleCallbackUrl = useCallback(
     async (url: string | null | undefined) => {
       if (!url) return;
-      clearOAuthTimeout();
       oauthInFlightRef.current = true;
       setStatus("loading");
       try {
@@ -74,10 +64,16 @@ export const useAuthSessionController = (): AuthContextValue => {
       }
       setStatus("unauthenticated");
     },
-    [applySession, clearOAuthTimeout],
+    [applySession],
   );
 
-  useAuthSessionEffects({ applySession, handleCallbackUrl, setError, setStatus, signOutInFlightRef });
+  useAuthSessionEffects({
+    applySession,
+    handleCallbackUrl,
+    setError,
+    setStatus,
+    signOutInFlightRef,
+  });
 
   const signIn = useCallback(async (provider: AuthProviderName) => {
     if (oauthInFlightRef.current || status === "loading") return;
@@ -86,23 +82,18 @@ export const useAuthSessionController = (): AuthContextValue => {
     setError(null);
     try {
       const result = await startOAuthSignIn(provider);
-      if (result.success) {
-        startOAuthTimeout();
-        return;
-      }
+      if (result.success) return;
       setError(result.error ?? "Unable to start sign-in.");
     } catch {
       setError("Unable to start sign-in.");
     }
-    clearOAuthTimeout();
     oauthInFlightRef.current = false;
     setStatus("unauthenticated");
-  }, [clearOAuthTimeout, startOAuthTimeout, status]);
+  }, [status]);
 
   const signOut = useCallback(async () => {
     if (signOutInFlightRef.current) return;
     signOutInFlightRef.current = true;
-    clearOAuthTimeout();
     setError(null);
     try {
       const result = await signOutOfSupabase();
@@ -112,13 +103,17 @@ export const useAuthSessionController = (): AuthContextValue => {
       }
 
       const clearResult = await clearAuthenticatedUserScope();
-      applyTransition(createSignedOutTransition(
-        clearResult.success ? null : clearResult.error ?? "Unable to clear signed-in storage.",
-      ));
+      if (!clearResult.success) {
+        setError(clearResult.error ?? "Unable to clear signed-in storage.");
+        return;
+      }
+
+      setAuthState(emptySession);
+      setStatus("unauthenticated");
     } finally {
       signOutInFlightRef.current = false;
     }
-  }, [applyTransition, clearOAuthTimeout]);
+  }, []);
 
   return useMemo(
     () => ({
