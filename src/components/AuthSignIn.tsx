@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Rocket } from "lucide-react";
 import type { IconType } from "react-icons";
 import { FaGithub } from "react-icons/fa";
@@ -22,18 +22,21 @@ const providerButtons: ProviderButton[] = [
 ];
 
 export function AuthSignIn() {
-  const { clearError, error, signIn, status } = useAuth();
+  const { clearError, error, signIn } = useAuth();
+  const [isSignInPending, setIsSignInPending] = useState(false);
   const signInInFlightRef = useRef(false);
-  const viewState = getAuthSignInViewState({ status });
+  const viewState = getAuthSignInViewState({ isSignInPending });
 
   const handleSignIn = async (provider: AuthProviderName) => {
     if (signInInFlightRef.current) return;
 
     signInInFlightRef.current = true;
+    setIsSignInPending(true);
     clearError();
     try {
       await signIn(provider);
     } finally {
+      setIsSignInPending(false);
       signInInFlightRef.current = false;
     }
   };

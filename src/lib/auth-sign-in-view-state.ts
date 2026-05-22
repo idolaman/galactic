@@ -1,4 +1,4 @@
-import type { AuthProviderName, AuthStatus } from "../types/auth.js";
+import type { AuthProviderName } from "../types/auth.js";
 
 export interface AuthProviderButtonViewState {
   disabled: boolean;
@@ -15,7 +15,7 @@ const providerIdleLabels: Record<AuthProviderName, string> = {
 };
 
 interface AuthSignInViewStateInput {
-  status: AuthStatus;
+  isSignInPending: boolean;
 }
 
 const buildProviderViewState = (
@@ -29,14 +29,12 @@ const buildProviderViewState = (
 };
 
 export const getAuthSignInViewState = ({
-  status,
+  isSignInPending,
 }: AuthSignInViewStateInput): AuthSignInViewState => {
-  const isLoading = status === "loading";
-
   return {
     providers: {
-      github: buildProviderViewState("github", isLoading),
-      google: buildProviderViewState("google", isLoading),
+      github: buildProviderViewState("github", isSignInPending),
+      google: buildProviderViewState("google", isSignInPending),
     },
   };
 };
