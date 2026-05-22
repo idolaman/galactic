@@ -7,6 +7,8 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { AuthSignIn } from "@/components/AuthSignIn";
 import { Header } from "@/components/Header";
+import { WorkspaceConsoleProvider } from "@/components/WorkspaceConsole/WorkspaceConsoleProvider";
+import { WorkspaceConsoleProjectsLayout } from "@/components/WorkspaceConsole/WorkspaceConsoleProjectsLayout";
 import Index from "./pages/Index";
 import { QuickSidebar } from "@/pages/QuickSidebar";
 import Environments from "./pages/Environments";
@@ -92,6 +94,27 @@ const App = () => {
     <QuickSidebarApp />
   ) : (
     <MainApp />
+    <HashRouter>
+      <WorkspaceConsoleProvider>
+        <SidebarProvider defaultOpen>
+          <div className="flex h-svh w-full overflow-hidden bg-transparent">
+            <AppSidebar />
+            <SidebarInset className="h-svh min-h-0 overflow-hidden">
+              <Header user={user} onLogout={handleLogout} />
+              <WorkspaceConsoleProjectsLayout>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/environments" element={<Environments />} />
+                  <Route path="/settings" element={<Settings />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </WorkspaceConsoleProjectsLayout>
+            </SidebarInset>
+          </div>
+        </SidebarProvider>
+      </WorkspaceConsoleProvider>
+    </HashRouter>
   );
 
   return (

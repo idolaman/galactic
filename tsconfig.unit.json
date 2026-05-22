@@ -6,6 +6,10 @@
     "moduleResolution": "NodeNext",
     "outDir": ".mcp-build-cache/unit-tests",
     "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*.ts", "./src/*"]
+    },
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
@@ -19,6 +23,7 @@
     "src/lib/auth-analytics.ts",
     "src/lib/auth-callback.ts",
     "src/lib/auth-sign-in-view-state.ts",
+    "src/lib/workspace-console.ts",
     "src/lib/create-workspace-toast.ts",
     "src/lib/create-workspace-flow.ts",
     "src/lib/load-project-branches.ts",
@@ -32,5 +37,7 @@
     "src/services/local-storage-migration.ts",
     "src/services/local-storage-scope.ts",
     "src/types/auth.ts"
+    "src/services/workspace-console.ts",
+    "src/types/workspace-console.ts"
   ]
 }

@@ -30,6 +30,7 @@ import { registerGitWorktreeIpc } from "./ipc/register-git-worktree.js";
 import { MCP_SERVER_PORT, registerMcpIpc } from "./ipc/register-mcp.js";
 import { registerProjectConfigFileIpc } from "./ipc/register-project-config-file.js";
 import { registerProjectSyncIpc } from "./ipc/register-project-sync.js";
+import { registerWorkspaceConsoleIpc } from "./ipc/register-workspace-console.js";
 import { registerWorkspaceIsolationIpc } from "./ipc/register-workspace-isolation.js";
 import {
   startMcpServer,
@@ -64,6 +65,8 @@ import {
   getAuthProtocolScheme,
   isAuthCallbackUrl,
 } from "./utils/auth-callback.js";
+import { WorkspaceConsoleSessionManager } from "./workspace-console/manager.js";
+import type { WorkspaceConsoleEvent } from "./workspace-console/types.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const execFileAsync = promisify(execFile);
@@ -92,6 +95,7 @@ const workspaceIsolationManager = new WorkspaceIsolationManager(app.getPath("use
 const workspaceCache = new UserScopedWorkspaceCache(
   path.join(app.getPath("userData"), "galactic-workspaces"),
 );
+const workspaceConsoleManager = new WorkspaceConsoleSessionManager();
 const macNotifierService = createMacNotifierService({
   isPackaged: app.isPackaged,
   resourcesPath: process.resourcesPath,
@@ -148,6 +152,18 @@ const broadcastUpdateEvent = (status: UpdateEvent, payload: Record<string, unkno
     quickSidebarWindow.webContents.send(...message);
   }
 };
+
+const broadcastWorkspaceConsoleEvent = (event: WorkspaceConsoleEvent) => {
+  const message = ["workspace-console/event", event] as const;
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(...message);
+  }
+  if (quickSidebarWindow && !quickSidebarWindow.isDestroyed()) {
+    quickSidebarWindow.webContents.send(...message);
+  }
+};
+
+workspaceConsoleManager.onEvent(broadcastWorkspaceConsoleEvent);
 
 const loadAppUrl = async (windowRef: BrowserWindow, hash: string) => {
   if (VITE_DEV_SERVER_URL) {
@@ -892,6 +908,9 @@ app.on("before-quit", (event) => {
   }
   authCallbackServer?.close();
   authCallbackServer = null;
+  stopMcpServer();
+  void workspaceIsolationManager.stop();
+  workspaceConsoleManager.disposeAll();
 
   void shutdownAnalyticsWithTimeout()
     .then(async () => {
@@ -1178,6 +1197,11 @@ registerWorkspaceIsolationIpc({
     await persistAppSettings();
     return status;
   },
+});
+
+registerWorkspaceConsoleIpc({
+  ipcMain,
+  sessionManager: workspaceConsoleManager,
 });
 
 const resolveWorktreePath = (projectPath: string, worktreePath: string) => {
