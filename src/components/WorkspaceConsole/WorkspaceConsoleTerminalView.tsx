@@ -18,11 +18,15 @@ export const WorkspaceConsoleTerminalView = ({
 
   return (
     <div
-      ref={containerRef}
       className={cn(
-        "workspace-console-terminal h-full w-full overflow-hidden bg-zinc-950",
+        "h-full w-full bg-zinc-950 p-2",
         !active && "hidden",
       )}
-    />
+    >
+      <div
+        ref={containerRef}
+        className="workspace-console-terminal h-full w-full overflow-hidden bg-zinc-950"
+      />
+    </div>
   );
 };
