@@ -1,6 +1,6 @@
 import type { Session } from "@supabase/supabase-js";
 
-import { buildOAuthSignInOptions, createPendingAuthState, parseAuthCallbackUrl, validatePendingAuthState, type AuthCallbackFailureReason } from "@/lib/auth-callback";
+import { buildAuthRedirectUrl, createPendingAuthState, parseAuthCallbackUrl, validatePendingAuthState, type AuthCallbackFailureReason } from "@/lib/auth-callback";
 import type { AuthProviderName } from "@/types/auth";
 import { clearPendingAuthState, loadPendingAuthState, savePendingAuthState } from "@/services/auth-state";
 import { getSupabaseClient } from "@/services/supabase";
@@ -39,7 +39,10 @@ export const startOAuthSignIn = async (
 
     const { data, error } = await client.auth.signInWithOAuth({
       provider,
-      options: buildOAuthSignInOptions(callbackUrl, pendingState),
+      options: {
+        redirectTo: buildAuthRedirectUrl(callbackUrl),
+        skipBrowserRedirect: true,
+      },
     });
 
     if (error || !data.url) {
@@ -79,7 +82,7 @@ export const finishOAuthCallback = async (url: string): Promise<AuthFlowResult> 
     return toAuthFlowError("callback_error");
   }
 
-  const stateError = validatePendingAuthState(pendingState, Date.now(), callback.state);
+  const stateError = validatePendingAuthState(pendingState, Date.now());
   if (stateError) {
     await clearPendingAuthState();
     trackAuthFailed(provider, stateError);

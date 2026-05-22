@@ -4,7 +4,6 @@ import test from "node:test";
 import {
   AUTH_STATE_TTL_MS,
   buildAuthRedirectUrl,
-  buildOAuthSignInOptions,
   parseAuthCallbackUrl,
   validatePendingAuthState,
   type PendingAuthState,
@@ -35,20 +34,16 @@ test("validatePendingAuthState accepts a matching unexpired state", () => {
   assert.equal(result, null);
 });
 
-test("validatePendingAuthState rejects missing callback state", () => {
-  const result = validatePendingAuthState(pendingState, 1_500, null);
+test("validatePendingAuthState accepts unexpired state without callback state", () => {
+  const result = validatePendingAuthState(pendingState, 1_500);
 
-  assert.equal(result, "invalid_state");
+  assert.equal(result, null);
 });
 
 test("validatePendingAuthState rejects missing and expired state", () => {
-  assert.equal(validatePendingAuthState(null, 1_500, "state-1"), "invalid_state");
+  assert.equal(validatePendingAuthState(null, 1_500), "invalid_state");
   assert.equal(
-    validatePendingAuthState(
-      pendingState,
-      1_000 + AUTH_STATE_TTL_MS + 1,
-      "state-1",
-    ),
+    validatePendingAuthState(pendingState, 1_000 + AUTH_STATE_TTL_MS + 1),
     "invalid_state",
   );
 });
@@ -62,14 +57,13 @@ test("validatePendingAuthState rejects mismatched callback state", () => {
 
 test("validatePendingAuthState rejects invalid creation timestamps", () => {
   assert.equal(
-    validatePendingAuthState({ ...pendingState, createdAt: 0 }, 1_500, "state-1"),
+    validatePendingAuthState({ ...pendingState, createdAt: 0 }, 1_500),
     "invalid_state",
   );
   assert.equal(
     validatePendingAuthState(
       { ...pendingState, createdAt: Number.NaN },
       1_500,
-      "state-1",
     ),
     "invalid_state",
   );
@@ -79,19 +73,4 @@ test("buildAuthRedirectUrl preserves the exact callback URL Supabase allow-lists
   const url = buildAuthRedirectUrl("galactic://auth/callback");
 
   assert.equal(url, "galactic://auth/callback");
-});
-
-test("buildOAuthSignInOptions sends pending state to Supabase OAuth", () => {
-  const options = buildOAuthSignInOptions(
-    "galactic://auth/callback",
-    pendingState,
-  );
-
-  assert.deepEqual(options, {
-    queryParams: {
-      state: "state-1",
-    },
-    redirectTo: "galactic://auth/callback",
-    skipBrowserRedirect: true,
-  });
 });
