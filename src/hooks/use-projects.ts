@@ -1,25 +1,17 @@
 import { useState, useEffect } from "react";
-import { loadProjectsForActiveScope } from "@/lib/project-list-state";
 import { projectStorage, type StoredProject } from "@/services/projects";
 import {
-  getActiveLocalStorageUserId,
   LOCAL_STORAGE_SCOPE_UPDATED_EVENT,
   isActiveLocalStorageDatasetKey,
   isLocalStorageScopeKey,
 } from "@/services/local-storage-scope";
 
-const loadProjects = (): StoredProject[] =>
-  loadProjectsForActiveScope({
-    getActiveUserId: getActiveLocalStorageUserId,
-    loadProjects: projectStorage.load,
-  });
-
 export function useProjects() {
-  const [projects, setProjects] = useState<StoredProject[]>(loadProjects);
+  const [projects, setProjects] = useState<StoredProject[]>(() => projectStorage.load());
 
   useEffect(() => {
     const handleUpdate = () => {
-      setProjects(loadProjects());
+      setProjects(projectStorage.load());
     };
     const handleStorage = (event: StorageEvent) => {
       if (

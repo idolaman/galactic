@@ -59,13 +59,10 @@ import {
   WORKSPACE_CACHE_AUTH_REQUIRED_ERROR,
 } from "./utils/user-scoped-workspace-cache.js";
 import {
-  consumePendingAuthCallbackUrl,
   buildAuthCallbackUrl,
   findAuthCallbackUrlInArgs,
   getAuthProtocolScheme,
   isAuthCallbackUrl,
-  notifyMainWindowAuthCallback,
-  type AuthCallbackDeliveryState,
 } from "./utils/auth-callback.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -124,7 +121,7 @@ const AUTH_PROTOCOL_SCHEME = getAuthProtocolScheme(app.isPackaged);
 const AUTH_CALLBACK_URL = buildAuthCallbackUrl(AUTH_PROTOCOL_SCHEME);
 const AUTH_LOCAL_CALLBACK_URL = `http://127.0.0.1:${AUTH_CALLBACK_PORT}/auth/callback`;
 let appSettings: AppSettings = { ...DEFAULT_APP_SETTINGS };
-const authCallbackDeliveryState: AuthCallbackDeliveryState = { pendingUrl: null };
+let pendingAuthCallbackUrl: string | null = null;
 let authCallbackServer: http.Server | null = null;
 
 const getAppSettingsPath = () => path.join(app.getPath("userData"), APP_SETTINGS_FILE);
@@ -476,13 +473,26 @@ const registerAuthProtocolClient = () => {
   app.setAsDefaultProtocolClient(AUTH_PROTOCOL_SCHEME);
 };
 
+const broadcastAuthCallbackUrl = (url: string) => {
+  [mainWindow, quickSidebarWindow].forEach((windowRef) => {
+    if (windowRef && !windowRef.isDestroyed()) {
+      windowRef.webContents.send("auth/callback-url", url);
+    }
+  });
+};
+
 const processAuthCallbackUrl = (url: string): boolean => {
   const isLocalCallback = url.startsWith(AUTH_LOCAL_CALLBACK_URL);
   if (!isLocalCallback && !isAuthCallbackUrl(url, AUTH_PROTOCOL_SCHEME)) {
     return false;
   }
 
-  notifyMainWindowAuthCallback(authCallbackDeliveryState, url, mainWindow);
+  pendingAuthCallbackUrl = url;
+  broadcastAuthCallbackUrl(url);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.show();
+    mainWindow.focus();
+  }
   return true;
 };
 
@@ -712,12 +722,10 @@ ipcMain.handle("settings/set-event-notifications", async (_event, enabled: boole
 
 ipcMain.handle("auth/get-callback-url", () => getPreferredAuthCallbackUrl());
 
-ipcMain.handle("auth/consume-callback-url", (event) => {
-  if (!mainWindow || mainWindow.isDestroyed() || event.sender !== mainWindow.webContents) {
-    return null;
-  }
-
-  return consumePendingAuthCallbackUrl(authCallbackDeliveryState);
+ipcMain.handle("auth/consume-callback-url", () => {
+  const url = pendingAuthCallbackUrl;
+  pendingAuthCallbackUrl = null;
+  return url;
 });
 
 ipcMain.handle("auth/open-external-url", async (_event, url: string) => {
