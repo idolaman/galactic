@@ -1,114 +1,86 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { FolderGit2, Plus, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { FolderGit2, Plus } from "lucide-react";
 
-interface Project {
-  id: string;
-  name: string;
-  path: string;
-  isGitRepo: boolean;
-  worktrees: number;
-}
+import { ProjectListRow } from "@/components/ProjectListRow";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import {
+  buildVisibleWorkspaceSessionMap,
+  countVisibleProjectSessions,
+} from "@/lib/workspace-session-display";
+import type { StoredProject } from "@/services/projects";
+import { useSessionStore } from "@/stores/session-store";
 
 interface ProjectListProps {
-  projects: Project[];
+  getProjectServiceCount: (projectId: string) => number;
   onAddProject: () => void;
-  onViewProject: (project: Project) => void;
   onDeleteProject: (projectId: string) => void;
+  onViewProject: (project: StoredProject) => void;
+  projects: StoredProject[];
 }
 
 export const ProjectList = ({
-  projects,
+  getProjectServiceCount,
   onAddProject,
   onViewProject,
   onDeleteProject,
+  projects,
 }: ProjectListProps) => {
-  const [projectPendingDelete, setProjectPendingDelete] = useState<Project | null>(null);
+  const [projectPendingDelete, setProjectPendingDelete] = useState<StoredProject | null>(null);
+  const sessions = useSessionStore((state) => state.sessions);
+  const sessionsByPath = useMemo(() => buildVisibleWorkspaceSessionMap(sessions), [sessions]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground">Browse and manage all repositories from one control center.</p>
-          <div className="flex items-center gap-2">
-            <FolderGit2 className="h-6 w-6 text-primary" />
-            <h2 className="text-2xl font-bold leading-tight">Projects</h2>
-          </div>
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 border-b border-border pb-4 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <h2 className="text-xl font-semibold leading-tight">Projects</h2>
+          <p className="text-sm text-muted-foreground">
+            Repositories, branch workspaces, services, and agent sessions.
+          </p>
         </div>
-        <Button onClick={onAddProject} className="bg-primary hover:bg-primary-glow transition-all duration-300 shadow-glow">
+        <Button onClick={onAddProject} className="shrink-0">
           <Plus className="mr-2 h-4 w-4" />
           Add Project
         </Button>
       </div>
 
-
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {projects.map((project) => (
-          <Card
-            key={project.id}
-            className="p-6 bg-gradient-card border-border shadow-card hover:shadow-glow transition-all duration-300 cursor-pointer group"
-            onClick={() => onViewProject(project)}
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold mb-1 group-hover:text-primary transition-colors flex items-center gap-2">
-                  {project.name}
-                  {!project.isGitRepo && (
-                    <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
-                      No Git
-                    </Badge>
-                  )}
-                </h3>
-                <code className="text-xs text-muted-foreground">{project.path}</code>
-              </div>
-
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setProjectPendingDelete(project);
-                  }}
-                  title="Delete Project"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Worktrees:</span>
-                <Badge className="bg-primary/20 text-primary border-primary/30">
-                  {project.worktrees}
-                </Badge>
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      {projects.length === 0 && (
-        <Card className="p-12 bg-gradient-card border-border text-center">
-          <FolderGit2 className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-xl font-semibold mb-2">No projects yet</h3>
-          <p className="text-muted-foreground mb-6">
-            Add your first project to get started with worktree management
-          </p>
-          <Button
-            onClick={onAddProject}
-            className="bg-primary hover:bg-primary-glow transition-all duration-300"
-          >
+      {projects.length > 0 ? (
+        <div className="overflow-hidden rounded-md border border-border bg-card">
+          {projects.map((project) => (
+            <ProjectListRow
+              key={project.id}
+              project={project}
+              serviceCount={getProjectServiceCount(project.id)}
+              sessionCount={countVisibleProjectSessions(project, sessionsByPath)}
+              onViewProject={onViewProject}
+              onDelete={setProjectPendingDelete}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="flex min-h-72 flex-col items-center justify-center gap-4 rounded-md border border-dashed border-border bg-card px-6 text-center">
+          <FolderGit2 className="h-10 w-10 text-muted-foreground" />
+          <div className="space-y-1">
+            <h3 className="text-base font-semibold">No projects yet</h3>
+            <p className="max-w-sm text-sm text-muted-foreground">
+              Add a repository to start managing branch workspaces and Project Services.
+            </p>
+          </div>
+          <Button onClick={onAddProject}>
             <Plus className="mr-2 h-4 w-4" />
-            Add Your First Project
+            Add Project
           </Button>
-        </Card>
+        </div>
       )}
 
       <AlertDialog open={!!projectPendingDelete} onOpenChange={(open) => !open && setProjectPendingDelete(null)}>
@@ -117,7 +89,7 @@ export const ProjectList = ({
             <AlertDialogTitle>Remove project</AlertDialogTitle>
             <AlertDialogDescription>
               {projectPendingDelete
-                ? `Are you sure you want to remove ${projectPendingDelete.name} from Galactic?`
+                ? `Remove ${projectPendingDelete.name} from Galactic?`
                 : "This action cannot be undone."}
             </AlertDialogDescription>
           </AlertDialogHeader>

@@ -1,8 +1,8 @@
 import { GitBranch } from "lucide-react";
+
 import { CreateWorkspaceBaseBranchStep } from "@/components/CreateWorkspaceBaseBranchStep";
 import { CreateWorkspaceBranchStep } from "@/components/CreateWorkspaceBranchStep";
 import { CreateWorkspaceDialogIntro } from "@/components/CreateWorkspaceDialogIntro";
-import { useCreateWorkspaceDialog } from "@/hooks/use-create-workspace-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,6 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useCreateWorkspaceDialog } from "@/hooks/use-create-workspace-dialog";
 import type { CreateWorkspaceRequest } from "@/lib/create-workspace-request";
 
 interface CreateWorkspaceDialogProps {
@@ -20,6 +21,7 @@ interface CreateWorkspaceDialogProps {
   isCreatingWorkspace?: boolean;
   onCreateWorkspace: (request: CreateWorkspaceRequest) => Promise<boolean>;
   onLoadBranches?: () => void | Promise<void>;
+  triggerSize?: "default" | "sm";
 }
 
 export const CreateWorkspaceDialog = ({
@@ -29,6 +31,7 @@ export const CreateWorkspaceDialog = ({
   isCreatingWorkspace = false,
   onCreateWorkspace,
   onLoadBranches,
+  triggerSize = "default",
 }: CreateWorkspaceDialogProps) => {
   const {
     baseBranchInput,
@@ -58,7 +61,7 @@ export const CreateWorkspaceDialog = ({
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button className="gap-2" disabled={isCreatingWorkspace}>
+        <Button className="gap-2" disabled={isCreatingWorkspace} size={triggerSize}>
           <GitBranch className="h-4 w-4" />
           New Workspace
         </Button>

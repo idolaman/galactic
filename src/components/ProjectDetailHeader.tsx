@@ -1,47 +1,55 @@
-import { ArrowLeft, Download, Upload } from "lucide-react";
+import { ArrowLeft, Download, FolderGit2, Upload } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 
 interface ProjectDetailHeaderProps {
-  name: string;
-  path: string;
   isGitRepo: boolean;
+  name: string;
   onBack: () => void;
   onExportProjectConfig: () => void;
   onImportProjectConfig: () => void;
+  path: string;
 }
 
 export const ProjectDetailHeader = ({
-  name,
-  path,
   isGitRepo,
+  name,
   onBack,
   onExportProjectConfig,
   onImportProjectConfig,
+  path,
 }: ProjectDetailHeaderProps) => (
-  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-    <div className="flex min-w-0 items-center gap-4">
-      <Button variant="ghost" onClick={onBack} className="hover:bg-secondary">
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back
-      </Button>
-
-      <div className="min-w-0">
-        <h1 className="text-3xl font-bold">{name}</h1>
-        <code className="break-all text-sm text-muted-foreground">{path}</code>
+  <div className="border-b border-border pb-4">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 items-center gap-3">
+        <Button variant="ghost" size="sm" onClick={onBack}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back
+        </Button>
+        <div className="hidden h-5 w-px bg-border sm:block" />
+        <FolderGit2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <div className="min-w-0">
+          <div className="flex min-w-0 items-center gap-2">
+            <h1 className="truncate text-xl font-semibold">{name}</h1>
+          </div>
+          <code className="block truncate text-xs text-muted-foreground" title={path}>
+            {path}
+          </code>
+        </div>
       </div>
+
+      {isGitRepo ? (
+        <div className="flex shrink-0 items-center gap-2">
+          <Button variant="outline" size="sm" onClick={onImportProjectConfig}>
+            <Upload className="mr-2 h-4 w-4" />
+            Import
+          </Button>
+          <Button variant="outline" size="sm" onClick={onExportProjectConfig}>
+            <Download className="mr-2 h-4 w-4" />
+            Export
+          </Button>
+        </div>
+      ) : null}
     </div>
-
-    {isGitRepo ? (
-      <div className="flex shrink-0 items-center gap-2">
-        <Button variant="outline" onClick={onImportProjectConfig}>
-          <Upload className="mr-2 h-4 w-4" />
-          Import
-        </Button>
-        <Button variant="outline" onClick={onExportProjectConfig}>
-          <Download className="mr-2 h-4 w-4" />
-          Export
-        </Button>
-      </div>
-    ) : null}
   </div>
 );

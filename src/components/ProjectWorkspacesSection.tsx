@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { GitMerge, Settings2 } from "lucide-react";
+
 import { CreateWorkspaceDialog } from "@/components/CreateWorkspaceDialog";
-import { ProjectWorkspacesGrid } from "@/components/ProjectWorkspacesGrid";
+import { ProjectWorkspacesList } from "@/components/ProjectWorkspacesList";
 import { WorkspaceIsolationDialog } from "@/components/WorkspaceIsolationDialog";
 import { Button } from "@/components/ui/button";
 import { useWorkspaceIsolationManager } from "@/hooks/use-workspace-isolation-manager";
@@ -47,9 +48,15 @@ export const ProjectWorkspacesSection = ({
   workspaces,
 }: ProjectWorkspacesSectionProps) => {
   const [isProjectIsolationDialogOpen, setIsProjectIsolationDialogOpen] = useState(false);
-  const { workspaceIsolationStacks, workspaceIsolationTopologyForProject } =
-    useWorkspaceIsolationManager();
+  const {
+    workspaceIsolationForWorkspace,
+    workspaceIsolationStacks,
+    workspaceIsolationTopologyForProject,
+  } = useWorkspaceIsolationManager();
   const projectTopology = workspaceIsolationTopologyForProject(projectId);
+  const serviceCount = projectTopology?.services.length ?? 0;
+  const worktreeLabel = `${workspaces.length} ${workspaces.length === 1 ? "worktree" : "worktrees"}`;
+  const serviceLabel = `${serviceCount} ${serviceCount === 1 ? "service" : "services"}`;
   const activationTargets = useMemo(
     () =>
       createWorkspaceActivationTargets({
@@ -63,23 +70,29 @@ export const ProjectWorkspacesSection = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-2xl font-bold">
-          <GitMerge className="h-6 w-6 text-primary" />
-          Workspaces
-        </h2>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground">
+            <GitMerge className="h-4 w-4" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="truncate text-base font-semibold">Workspaces</h2>
+            <p className="truncate text-xs text-muted-foreground">
+              Repository root, {worktreeLabel}, {serviceLabel}
+            </p>
+          </div>
+        </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {isGitRepo ? (
             <Button
               variant="outline"
+              size="sm"
               onClick={() => setIsProjectIsolationDialogOpen(true)}
               className="gap-2"
             >
               <Settings2 className="h-4 w-4" />
-              {getWorkspaceIsolationProjectScopeLabel(
-                projectTopology?.services.length ?? null,
-              )}
+              {getWorkspaceIsolationProjectScopeLabel(projectTopology ? serviceCount : null)}
             </Button>
           ) : null}
           {isGitRepo ? (
@@ -90,6 +103,7 @@ export const ProjectWorkspacesSection = ({
               isCreatingWorkspace={isCreatingWorkspace}
               onCreateWorkspace={onCreateWorkspace}
               onLoadBranches={onLoadBranches}
+              triggerSize="sm"
             />
           ) : null}
         </div>
@@ -106,10 +120,12 @@ export const ProjectWorkspacesSection = ({
         stack={projectTopology}
       />
 
-      <ProjectWorkspacesGrid
+      <ProjectWorkspacesList
         environments={environments}
         getEnvironmentIdForTarget={getEnvironmentIdForTarget}
-        isGitRepo={isGitRepo}
+        isProjectServicesActiveForWorkspace={(workspacePath) =>
+          Boolean(workspaceIsolationForWorkspace(workspacePath))
+        }
         onDeleteWorkspace={onDeleteWorkspace}
         onEnvironmentChange={onEnvironmentChange}
         onOpenInEditor={onOpenInEditor}
