@@ -61,10 +61,10 @@ import {
 import {
   consumePendingAuthCallbackUrl,
   buildAuthCallbackUrl,
-  findAuthCallbackUrlInArgs,
   getAuthProtocolScheme,
   isAuthCallbackUrl,
   notifyMainWindowAuthCallback,
+  processAuthCallbackUrlInArgs,
   type AuthCallbackDeliveryState,
 } from "./utils/auth-callback.js";
 const __filename = fileURLToPath(import.meta.url);
@@ -522,8 +522,7 @@ if (!singleInstanceLock) {
 }
 
 app.on("second-instance", (_event, argv) => {
-  const authUrl = findAuthCallbackUrlInArgs(argv, AUTH_PROTOCOL_SCHEME);
-  if (authUrl && processAuthCallbackUrl(authUrl)) {
+  if (processAuthCallbackUrlInArgs(argv, AUTH_PROTOCOL_SCHEME, processAuthCallbackUrl)) {
     return;
   }
   mainWindow?.show();
@@ -792,6 +791,7 @@ app.whenReady().then(async () => {
   initAnalytics();
   analytics.appLaunched();
   startAuthCallbackServer();
+  processAuthCallbackUrlInArgs(process.argv, AUTH_PROTOCOL_SCHEME, processAuthCallbackUrl);
   setupAutoUpdater();
   if (app.isPackaged && isUpdateEnabled()) {
     performUpdateCheck().catch((error: Error) => {

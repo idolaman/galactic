@@ -18,6 +18,7 @@
     "src/lib/app-toast.ts",
     "src/lib/auth-analytics.ts",
     "src/lib/auth-callback.ts",
+    "src/lib/auth-session-transition.ts",
     "src/lib/auth-sign-in-view-state.ts",
     "src/lib/create-workspace-toast.ts",
     "src/lib/create-workspace-flow.ts",

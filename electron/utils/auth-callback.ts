@@ -40,9 +40,18 @@ export const isAuthCallbackUrl = (
 };
 
 export const findAuthCallbackUrlInArgs = (
-  args: string[],
+  args: readonly string[],
   scheme: AuthProtocolScheme,
 ): string | null => args.find((arg) => isAuthCallbackUrl(arg, scheme)) ?? null;
+
+export const processAuthCallbackUrlInArgs = (
+  args: readonly string[],
+  scheme: AuthProtocolScheme,
+  processAuthCallbackUrl: (url: string) => boolean,
+): boolean => {
+  const authUrl = findAuthCallbackUrlInArgs(args, scheme);
+  return Boolean(authUrl && processAuthCallbackUrl(authUrl));
+};
 
 export const notifyMainWindowAuthCallback = (
   state: AuthCallbackDeliveryState,

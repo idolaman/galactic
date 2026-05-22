@@ -9,6 +9,7 @@ import {
   getAuthProtocolScheme,
   isAuthCallbackUrl,
   notifyMainWindowAuthCallback,
+  processAuthCallbackUrlInArgs,
   type AuthCallbackDeliveryState,
   type AuthCallbackWindow,
 } from "../utils/auth-callback.js";
@@ -27,6 +28,39 @@ test("isAuthCallbackUrl accepts only the expected scheme and auth callback path"
 test("findAuthCallbackUrlInArgs locates protocol callback arguments", () => {
   const callbackUrl = buildAuthCallbackUrl("galactic");
   assert.equal(findAuthCallbackUrlInArgs(["--flag", `${callbackUrl}?code=1`], "galactic"), `${callbackUrl}?code=1`);
+});
+
+test("processAuthCallbackUrlInArgs processes protocol callback arguments", () => {
+  const callbackUrl = `${buildAuthCallbackUrl("galactic")}?code=1`;
+  const processedUrls: string[] = [];
+
+  const processed = processAuthCallbackUrlInArgs(
+    ["--flag", callbackUrl],
+    "galactic",
+    (url) => {
+      processedUrls.push(url);
+      return true;
+    },
+  );
+
+  assert.equal(processed, true);
+  assert.deepEqual(processedUrls, [callbackUrl]);
+});
+
+test("processAuthCallbackUrlInArgs ignores missing or invalid callback arguments", () => {
+  const processedUrls: string[] = [];
+
+  const processed = processAuthCallbackUrlInArgs(
+    ["--flag", "galactic://settings"],
+    "galactic",
+    (url) => {
+      processedUrls.push(url);
+      return true;
+    },
+  );
+
+  assert.equal(processed, false);
+  assert.deepEqual(processedUrls, []);
 });
 
 test("notifyMainWindowAuthCallback stores one pending callback for renderer claim", () => {

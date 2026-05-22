@@ -116,6 +116,15 @@ export const finishOAuthCallback = async (url: string): Promise<AuthFlowResult> 
   return toAuthFlowError("exchange_failed");
 };
 
+export const cancelOAuthSignIn = async (): Promise<AuthFlowResult> => {
+  try {
+    await clearPendingAuthState();
+    return { success: true };
+  } catch {
+    return toAuthFlowError("unknown", "Unable to reset sign-in state.");
+  }
+};
+
 export const signOutOfSupabase = async (): Promise<AuthFlowResult> => {
   try {
     const { error } = await getSupabaseClient().auth.signOut({ scope: "local" });

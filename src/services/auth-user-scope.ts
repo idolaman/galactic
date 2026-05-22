@@ -75,7 +75,16 @@ export const activateAuthenticatedUserScope = async (
 
 export const clearAuthenticatedUserScope =
   async (): Promise<AuthUserScopeResult> => {
-    const electronScope = await clearWorkspaceIsolationActiveUser();
+    let electronScope: AuthUserScopeResult;
+    try {
+      electronScope = await clearWorkspaceIsolationActiveUser();
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unable to clear Project Services storage.",
+      };
+    }
+
     if (!electronScope.success) {
       return {
         success: false,
