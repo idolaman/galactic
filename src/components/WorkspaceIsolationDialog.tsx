@@ -1,14 +1,11 @@
 import { useState } from "react";
-import { WorkspaceIsolationDialogBody } from "@/components/WorkspaceIsolationDialogBody";
-import { WorkspaceIsolationDialogFooter } from "@/components/WorkspaceIsolationDialogFooter";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { WorkspaceIsolationDialogActions } from "@/components/WorkspaceIsolationDialogActions";
+import { WorkspaceIsolationDialogBodyFrame } from "@/components/WorkspaceIsolationDialogBodyFrame";
+import { WorkspaceIsolationDialogHeader } from "@/components/WorkspaceIsolationDialogHeader";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useWorkspaceIsolationDialog } from "@/hooks/use-workspace-isolation-dialog";
 import { useWorkspaceIsolationManager } from "@/hooks/use-workspace-isolation-manager";
 import { useAppToast } from "@/hooks/use-app-toast";
-import {
-  getWorkspaceIsolationDialogDescription,
-  getWorkspaceIsolationDialogTitle,
-} from "@/lib/workspace-isolation-dialog-copy";
 import { WORKSPACE_ISOLATION_DIALOG_CONTENT_CLASS_NAME } from "@/lib/workspace-isolation-dialog-layout";
 import {
   trackWorkspaceIsolationAutoEnvEnableAttempted,
@@ -72,12 +69,13 @@ export const WorkspaceIsolationDialog = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={WORKSPACE_ISOLATION_DIALOG_CONTENT_CLASS_NAME}>
-        <DialogHeader className="shrink-0">
-          <DialogTitle>{getWorkspaceIsolationDialogTitle(state.step, Boolean(stack))}</DialogTitle>
-          <DialogDescription>{getWorkspaceIsolationDialogDescription(state.step)}</DialogDescription>
-        </DialogHeader>
+        <WorkspaceIsolationDialogHeader
+          isEditing={Boolean(stack)}
+          step={state.step}
+          useFullSetupSteps={state.useFullSetupSteps}
+        />
 
-        <WorkspaceIsolationDialogBody
+        <WorkspaceIsolationDialogBodyFrame
           step={state.step}
           projectId={projectId}
           projectName={projectName}
@@ -102,7 +100,7 @@ export const WorkspaceIsolationDialog = ({
           onSelectActivationTarget={state.handleSelectActivationTarget}
         />
 
-        <WorkspaceIsolationDialogFooter
+        <WorkspaceIsolationDialogActions
           step={state.step}
           isEditing={Boolean(stack)}
           showFeatureIntroStep={state.showFeatureIntroStep}

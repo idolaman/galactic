@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  canCreateWorkspaceFromExistingBranch,
   canCreateWorkspaceFromNewBranch,
   filterBranchesByQuery,
   normalizeBaseBranch,
   resolveCreateWorkspaceDialogVisibilityChange,
   resolveBranchSelection,
   shouldClearSelectedBaseBranch,
+  shouldClearSelectedWorkspaceBranch,
 } from "../../src/lib/create-workspace-flow.js";
 
 test("resolveBranchSelection returns existing branch for exact matches", () => {
@@ -58,6 +60,18 @@ test("canCreateWorkspaceFromNewBranch rejects missing base branches", () => {
   assert.equal(canCreateWorkspaceFromNewBranch("   ", false), false);
   assert.equal(canCreateWorkspaceFromNewBranch("main", true), false);
   assert.equal(canCreateWorkspaceFromNewBranch("main", false), true);
+});
+
+test("canCreateWorkspaceFromExistingBranch requires an armed branch", () => {
+  assert.equal(canCreateWorkspaceFromExistingBranch("", false), false);
+  assert.equal(canCreateWorkspaceFromExistingBranch("main", true), false);
+  assert.equal(canCreateWorkspaceFromExistingBranch("main", false), true);
+});
+
+test("shouldClearSelectedWorkspaceBranch follows normalized input", () => {
+  assert.equal(shouldClearSelectedWorkspaceBranch(" main ", "main"), false);
+  assert.equal(shouldClearSelectedWorkspaceBranch("develop", "main"), true);
+  assert.equal(shouldClearSelectedWorkspaceBranch("develop", ""), false);
 });
 
 test("resolveCreateWorkspaceDialogVisibilityChange keeps branch results during close", () => {

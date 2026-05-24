@@ -113,6 +113,7 @@ export const useWorkspaceIsolationDialog = ({
   >([]);
   const [step, setStep] = useState<WorkspaceIsolationDialogStep>(3);
   const [showFeatureIntroStep, setShowFeatureIntroStep] = useState(false);
+  const [useFullSetupSteps, setUseFullSetupSteps] = useState(false);
   const [isOpenInitialized, setIsOpenInitialized] = useState(false);
   const [isActivatingSelectedWorkspace, setIsActivatingSelectedWorkspace] =
     useState(false);
@@ -148,6 +149,7 @@ export const useWorkspaceIsolationDialog = ({
     if (!open) {
       setIsOpenInitialized(false);
       setShowFeatureIntroStep(false);
+      setUseFullSetupSteps(false);
       setSelectedActivationTargetPath(null);
       setIsActivatingSelectedWorkspace(false);
       setProxyStatus(defaultProxyStatus);
@@ -177,6 +179,9 @@ export const useWorkspaceIsolationDialog = ({
     );
     setStep(openingState.step);
     setShowFeatureIntroStep(openingState.showFeatureIntroStep);
+    setUseFullSetupSteps(
+      openingState.showFeatureIntroStep || openingState.step < 3,
+    );
     trackWorkspaceIsolationDialogOpened(
       Boolean(stack),
       getWorkspaceIsolationAnalyticsOpeningStep(openingState.step),
@@ -437,6 +442,7 @@ export const useWorkspaceIsolationDialog = ({
   return {
     step,
     showFeatureIntroStep,
+    useFullSetupSteps,
     draftServices,
     draftStackId,
     draftWorkspaceMode,

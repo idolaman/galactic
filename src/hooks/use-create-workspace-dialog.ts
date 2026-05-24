@@ -3,6 +3,7 @@ import type { CreateWorkspaceRequest } from "@/lib/create-workspace-request";
 import {
   resolveCreateWorkspaceDialogVisibilityChange,
   shouldClearSelectedBaseBranch,
+  shouldClearSelectedWorkspaceBranch,
 } from "@/lib/create-workspace-flow";
 import { listBranches } from "@/services/git";
 
@@ -25,6 +26,7 @@ export const useCreateWorkspaceDialog = ({
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState<CreateWorkspaceStep>("branch");
   const [branchInput, setBranchInput] = useState("");
+  const [selectedExistingBranch, setSelectedExistingBranch] = useState("");
   const [pendingNewBranch, setPendingNewBranch] = useState("");
   const [baseBranchInput, setBaseBranchInput] = useState("");
   const [selectedBaseBranch, setSelectedBaseBranch] = useState("");
@@ -35,6 +37,7 @@ export const useCreateWorkspaceDialog = ({
     requestIdRef.current += 1;
     setStep("branch");
     setBranchInput("");
+    setSelectedExistingBranch("");
     setPendingNewBranch("");
     setBaseBranchInput("");
     setSelectedBaseBranch("");
@@ -94,26 +97,41 @@ export const useCreateWorkspaceDialog = ({
     }
   };
 
+  const handleBranchInputChange = (value: string) => {
+    setBranchInput(value);
+    if (shouldClearSelectedWorkspaceBranch(value, selectedExistingBranch)) {
+      setSelectedExistingBranch("");
+    }
+  };
+
+  const handleSelectExistingBranch = (branch: string) => {
+    setSelectedExistingBranch(branch);
+    setBranchInput(branch);
+  };
+
   return {
     baseBranchInput,
     baseBranches,
     branchInput,
     handleBaseBranchInputChange,
+    handleBranchInputChange,
     handleCreateFromExisting,
     handleCreateFromNew,
     handleOpenChange,
     isLoadingBaseBranches,
     isOpen,
     pendingNewBranch,
+    selectedExistingBranch,
     selectedBaseBranch,
     setBaseBranchInput,
-    setBranchInput,
     setPendingNewBranch: (branch: string) => {
       setPendingNewBranch(branch);
+      setSelectedExistingBranch("");
       setBaseBranchInput("");
       setSelectedBaseBranch("");
       setStep("base");
     },
+    setSelectedExistingBranch: handleSelectExistingBranch,
     setSelectedBaseBranch: (branch: string) => {
       setSelectedBaseBranch(branch);
       setBaseBranchInput(branch);

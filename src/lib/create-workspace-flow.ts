@@ -87,6 +87,22 @@ export const canCreateWorkspaceFromNewBranch = (
   return !isCreatingWorkspace && normalizeBaseBranch(baseBranch).length > 0;
 };
 
+export const canCreateWorkspaceFromExistingBranch = (
+  selectedBranch: string,
+  isCreatingWorkspace: boolean,
+): boolean => !isCreatingWorkspace && normalizeBranchName(selectedBranch).length > 0;
+
+export const shouldClearSelectedWorkspaceBranch = (
+  inputValue: string,
+  selectedBranch: string,
+): boolean => {
+  if (!selectedBranch) {
+    return false;
+  }
+
+  return normalizeBranchName(inputValue) !== normalizeBranchName(selectedBranch);
+};
+
 export const resolveCreateWorkspaceDialogVisibilityChange = (
   open: boolean,
 ): CreateWorkspaceDialogVisibilityChange => {

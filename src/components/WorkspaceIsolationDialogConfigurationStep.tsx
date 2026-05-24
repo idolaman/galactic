@@ -2,10 +2,12 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WorkspaceIsolationDialogLead } from "@/components/WorkspaceIsolationDialogLead";
 import { WorkspaceIsolationDialogServiceCard } from "@/components/WorkspaceIsolationDialogServiceCard";
+import { WorkspaceIsolationDialogServicesNotice } from "@/components/WorkspaceIsolationDialogServicesNotice";
 import { WorkspaceIsolationDialogSingleAppState } from "@/components/WorkspaceIsolationDialogSingleAppState";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { isSingleAppOverviewStep } from "@/lib/workspace-isolation-dialog-layout";
 import type { WorkspaceIsolationDialogStep } from "@/lib/workspace-isolation-dialog-step";
+import { getWorkspaceIsolationDraftServiceIssues } from "@/lib/workspace-isolation-dialog-service-issues";
 import type {
   WorkspaceIsolationConnection,
   WorkspaceIsolationMode,
@@ -60,6 +62,10 @@ export const WorkspaceIsolationDialogConfigurationStep = ({
   onRemoveConnection,
   onWorkspaceModeChange,
 }: WorkspaceIsolationDialogConfigurationStepProps) => {
+  const serviceIssues = getWorkspaceIsolationDraftServiceIssues(
+    draftWorkspaceMode,
+    draftServices,
+  );
   const lead = (
     <WorkspaceIsolationDialogLead
       step={step}
@@ -78,11 +84,13 @@ export const WorkspaceIsolationDialogConfigurationStep = ({
       </div>
     );
   }
-
   return (
     <ScrollArea className="flex-1 -mr-4 pr-4">
       <div className="grid gap-6">
         {lead}
+        {step === 3 ? (
+          <WorkspaceIsolationDialogServicesNotice />
+        ) : null}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
@@ -111,6 +119,7 @@ export const WorkspaceIsolationDialogConfigurationStep = ({
                 workspaceLabel={workspaceRootLabel}
                 stackId={stackId}
                 service={service}
+                serviceIssue={serviceIssues[service.id]}
                 workspaceMode={draftWorkspaceMode}
                 services={draftServices}
                 workspaceIsolationProjectTopologies={workspaceIsolationProjectTopologies}
