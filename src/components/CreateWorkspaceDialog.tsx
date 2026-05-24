@@ -44,7 +44,9 @@ export const CreateWorkspaceDialog = ({
     handleBaseBranchInputChange,
     handleCreateFromExisting,
     handleCreateFromNew,
+    handleDialogExitComplete,
     handleOpenChange,
+    isClosingAfterCreate,
     isLoadingBaseBranches,
     isOpen,
     pendingNewBranch,
@@ -62,13 +64,14 @@ export const CreateWorkspaceDialog = ({
     onCreateWorkspace,
     onLoadBranches,
   });
+  const isWorkspaceCreationPending = isCreatingWorkspace || isClosingAfterCreate;
   const canCreateExisting = canCreateWorkspaceFromExistingBranch(
     selectedExistingBranch,
-    isCreatingWorkspace,
+    isWorkspaceCreationPending,
   );
   const canCreateNew = canCreateWorkspaceFromNewBranch(
     normalizeBaseBranch(selectedBaseBranch),
-    isCreatingWorkspace || isLoadingBaseBranches,
+    isWorkspaceCreationPending || isLoadingBaseBranches,
   );
   const handleBack = () => {
     setBaseBranchInput("");
@@ -86,15 +89,16 @@ export const CreateWorkspaceDialog = ({
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button className="gap-2" disabled={isCreatingWorkspace} size={triggerSize}>
+        <Button className="gap-2" disabled={isWorkspaceCreationPending} size={triggerSize}>
           <GitBranch className="h-4 w-4" />
           New Workspace
         </Button>
       </DialogTrigger>
       <DialogContent
         className="overflow-hidden p-0 sm:max-w-2xl"
-        onEscapeKeyDown={(event) => isCreatingWorkspace && event.preventDefault()}
-        onPointerDownOutside={(event) => isCreatingWorkspace && event.preventDefault()}
+        onEscapeKeyDown={(event) => isWorkspaceCreationPending && event.preventDefault()}
+        onExitComplete={handleDialogExitComplete}
+        onPointerDownOutside={(event) => isWorkspaceCreationPending && event.preventDefault()}
       >
         <CreateWorkspaceDialogHeader step={step} />
         <CreateWorkspaceDialogBody
@@ -103,7 +107,7 @@ export const CreateWorkspaceDialog = ({
           branchInput={branchInput}
           branchName={pendingNewBranch}
           gitBranches={gitBranches}
-          isCreatingWorkspace={isCreatingWorkspace}
+          isCreatingWorkspace={isWorkspaceCreationPending}
           isLoadingBaseBranches={isLoadingBaseBranches}
           isLoadingBranches={isLoadingBranches}
           selectedBaseBranch={selectedBaseBranch}
@@ -117,7 +121,7 @@ export const CreateWorkspaceDialog = ({
         />
         <CreateWorkspaceDialogFooter
           canCreate={step === "branch" ? canCreateExisting : canCreateNew}
-          isCreatingWorkspace={isCreatingWorkspace}
+          isCreatingWorkspace={isWorkspaceCreationPending}
           step={step}
           onBack={handleBack}
           onCancel={() => handleOpenChange(false)}

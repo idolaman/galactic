@@ -17,6 +17,7 @@ import {
   buildVisibleWorkspaceSessionMap,
   countVisibleProjectSessions,
 } from "@/lib/workspace-session-display";
+import { useDialogExitSnapshot } from "@/hooks/use-dialog-exit-snapshot";
 import type { StoredProject } from "@/services/projects";
 import { useSessionStore } from "@/stores/session-store";
 
@@ -36,6 +37,10 @@ export const ProjectList = ({
   projects,
 }: ProjectListProps) => {
   const [projectPendingDelete, setProjectPendingDelete] = useState<StoredProject | null>(null);
+  const {
+    snapshot: projectDeleteSnapshot,
+    handleExitComplete: handleDeleteExitComplete,
+  } = useDialogExitSnapshot(projectPendingDelete);
   const sessions = useSessionStore((state) => state.sessions);
   const sessionsByPath = useMemo(() => buildVisibleWorkspaceSessionMap(sessions), [sessions]);
 
@@ -84,12 +89,12 @@ export const ProjectList = ({
       )}
 
       <AlertDialog open={!!projectPendingDelete} onOpenChange={(open) => !open && setProjectPendingDelete(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent onExitComplete={handleDeleteExitComplete}>
           <AlertDialogHeader>
             <AlertDialogTitle>Remove project</AlertDialogTitle>
             <AlertDialogDescription>
-              {projectPendingDelete
-                ? `Remove ${projectPendingDelete.name} from Galactic?`
+              {projectDeleteSnapshot
+                ? `Remove ${projectDeleteSnapshot.name} from Galactic?`
                 : "This action cannot be undone."}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -98,8 +103,8 @@ export const ProjectList = ({
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => {
-                if (projectPendingDelete) {
-                  onDeleteProject(projectPendingDelete.id);
+                if (projectDeleteSnapshot) {
+                  onDeleteProject(projectDeleteSnapshot.id);
                   setProjectPendingDelete(null);
                 }
               }}

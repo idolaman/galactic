@@ -45,11 +45,21 @@ export const WorkspaceIsolationDialogActions = ({
   const [isRemovingProjectServices, setIsRemovingProjectServices] = useState(false);
 
   const handleConfirmDelete = async () => {
+    let didCloseAfterDelete = false;
     setIsRemovingProjectServices(true);
     try {
       await onDelete();
+      didCloseAfterDelete = true;
       setIsDeleteConfirmOpen(false);
     } finally {
+      if (!didCloseAfterDelete) {
+        setIsRemovingProjectServices(false);
+      }
+    }
+  };
+
+  const handleDeleteExitComplete = () => {
+    if (!isDeleteConfirmOpen) {
       setIsRemovingProjectServices(false);
     }
   };
@@ -78,6 +88,7 @@ export const WorkspaceIsolationDialogActions = ({
         isRemoving={isRemovingProjectServices}
         open={isDeleteConfirmOpen}
         onConfirm={() => void handleConfirmDelete()}
+        onExitComplete={handleDeleteExitComplete}
         onOpenChange={(nextOpen) => {
           if (!isRemovingProjectServices) {
             setIsDeleteConfirmOpen(nextOpen);

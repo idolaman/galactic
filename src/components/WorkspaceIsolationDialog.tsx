@@ -3,6 +3,7 @@ import { WorkspaceIsolationDialogActions } from "@/components/WorkspaceIsolation
 import { WorkspaceIsolationDialogBodyFrame } from "@/components/WorkspaceIsolationDialogBodyFrame";
 import { WorkspaceIsolationDialogHeader } from "@/components/WorkspaceIsolationDialogHeader";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useDialogExitSnapshot } from "@/hooks/use-dialog-exit-snapshot";
 import { useWorkspaceIsolationDialog } from "@/hooks/use-workspace-isolation-dialog";
 import { useWorkspaceIsolationManager } from "@/hooks/use-workspace-isolation-manager";
 import { useAppToast } from "@/hooks/use-app-toast";
@@ -34,6 +35,11 @@ export const WorkspaceIsolationDialog = ({
   activationTargets,
   stack,
 }: WorkspaceIsolationDialogProps) => {
+  const {
+    snapshot: stackSnapshot,
+    handleExitComplete: handleStackExitComplete,
+  } = useDialogExitSnapshot(stack ?? null);
+  const displayStack = stack ?? stackSnapshot;
   const state = useWorkspaceIsolationDialog({
     open,
     onOpenChange,
@@ -42,7 +48,7 @@ export const WorkspaceIsolationDialog = ({
     workspaceRootLabel,
     projectName,
     activationTargets,
-    stack,
+    stack: displayStack,
   });
   const { setShellHooksEnabled } = useWorkspaceIsolationManager();
   const { error } = useAppToast();
@@ -66,11 +72,19 @@ export const WorkspaceIsolationDialog = ({
     }
   };
 
+  const handleDialogExitComplete = () => {
+    state.handleDialogExitComplete();
+    handleStackExitComplete();
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={WORKSPACE_ISOLATION_DIALOG_CONTENT_CLASS_NAME}>
+      <DialogContent
+        className={WORKSPACE_ISOLATION_DIALOG_CONTENT_CLASS_NAME}
+        onExitComplete={handleDialogExitComplete}
+      >
         <WorkspaceIsolationDialogHeader
-          isEditing={Boolean(stack)}
+          isEditing={Boolean(displayStack)}
           step={state.step}
           useFullSetupSteps={state.useFullSetupSteps}
         />
@@ -102,7 +116,7 @@ export const WorkspaceIsolationDialog = ({
 
         <WorkspaceIsolationDialogActions
           step={state.step}
-          isEditing={Boolean(stack)}
+          isEditing={Boolean(displayStack)}
           showFeatureIntroStep={state.showFeatureIntroStep}
           isEnablingLocalEnv={isEnablingLocalEnv}
           activationButtonLabel={state.activationButtonLabel}

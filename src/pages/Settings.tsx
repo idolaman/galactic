@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { handleMcpInstallResult, MCP_INSTALL_NOTE } from "@/lib/mcp-installation";
 import { getMcpInstallationDetails, MCP_TOOL_NAMES, type McpToolName } from "@/lib/mcp-installation-details";
 import { useUpdate } from "@/hooks/use-update";
+import { useDialogExitSnapshot } from "@/hooks/use-dialog-exit-snapshot";
 import { trackSettingsEditorChanged, trackSettingsMcpInstalled } from "@/services/analytics";
 
 export default function Settings() {
@@ -63,6 +64,10 @@ export default function Settings() {
   });
   const [installing, setInstalling] = useState<Partial<Record<McpToolName, boolean>>>({});
   const [selectedConfig, setSelectedConfig] = useState<McpToolName | null>(null);
+  const {
+    snapshot: selectedConfigSnapshot,
+    handleExitComplete: handleConfigDialogExitComplete,
+  } = useDialogExitSnapshot(selectedConfig);
   const [appVersion, setAppVersion] = useState<string | null>(null);
 
   useEffect(() => {
@@ -145,7 +150,9 @@ export default function Settings() {
       installed: vscodeInstalled,
     },
   ] as const;
-  const selectedConfigDetails = selectedConfig ? getMcpInstallationDetails(selectedConfig) : null;
+  const selectedConfigDetails = selectedConfigSnapshot
+    ? getMcpInstallationDetails(selectedConfigSnapshot)
+    : null;
 
   return (
     <div className="space-y-8 p-6">
@@ -457,8 +464,8 @@ export default function Settings() {
         </CardContent>
       </Card>
 
-      <Dialog open={!!selectedConfig} onOpenChange={(open) => !open && setSelectedConfig(null)}>
-        <DialogContent className="max-w-xl">
+      <Dialog open={Boolean(selectedConfig)} onOpenChange={(open) => !open && setSelectedConfig(null)}>
+        <DialogContent className="max-w-xl" onExitComplete={handleConfigDialogExitComplete}>
           <DialogHeader>
             <DialogTitle>Configuration Details</DialogTitle>
             <DialogDescription>{selectedConfigDetails?.description}</DialogDescription>

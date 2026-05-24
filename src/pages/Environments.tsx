@@ -54,6 +54,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { useAppToast } from "@/hooks/use-app-toast";
+import { useDialogExitSnapshot } from "@/hooks/use-dialog-exit-snapshot";
 import { useEnvironmentManager } from "@/hooks/use-environment-manager";
 import { resolveSelectedEnvironmentId } from "@/lib/environment-selection";
 import type { Environment } from "@/types/environment";
@@ -84,6 +85,10 @@ export default function Environments() {
   const [environmentToDelete, setEnvironmentToDelete] = useState<Environment | null>(
     null
   );
+  const {
+    snapshot: environmentDeleteSnapshot,
+    handleExitComplete: handleDeleteDialogExitComplete,
+  } = useDialogExitSnapshot(environmentToDelete);
 
   // Select initial environment
   useEffect(() => {
@@ -190,6 +195,7 @@ export default function Environments() {
       return;
     }
 
+    let didCloseAfterCreate = false;
     setIsCreating(true);
     try {
       const result = await createEnvironment(trimmed);
@@ -201,13 +207,15 @@ export default function Environments() {
         return;
       }
 
-      setNewEnvName("");
+      didCloseAfterCreate = true;
       setIsCreateDialogOpen(false);
       if (result.id) {
         setSelectedEnvironmentId(result.id);
       }
     } finally {
-      setIsCreating(false);
+      if (!didCloseAfterCreate) {
+        setIsCreating(false);
+      }
     }
   };
 
@@ -252,10 +260,10 @@ export default function Environments() {
   };
 
   const handleDeleteEnvironment = async () => {
-    if (!environmentToDelete) return;
+    if (!environmentDeleteSnapshot) return;
 
     try {
-      const result = await deleteEnvironment(environmentToDelete.id);
+      const result = await deleteEnvironment(environmentDeleteSnapshot.id);
       if (!result.success) {
         error({
           title: "Failed to delete",
@@ -265,6 +273,20 @@ export default function Environments() {
       }
     } finally {
       setEnvironmentToDelete(null);
+    }
+  };
+
+  const handleCreateDialogOpenChange = (open: boolean) => {
+    if (isCreating && !open) {
+      return;
+    }
+    setIsCreateDialogOpen(open);
+  };
+
+  const handleCreateDialogExitComplete = () => {
+    if (!isCreateDialogOpen) {
+      setNewEnvName("");
+      setIsCreating(false);
     }
   };
 
@@ -289,14 +311,18 @@ export default function Environments() {
         </div>
 
         <div className="flex items-center gap-2 flex-1 justify-end">
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <Dialog open={isCreateDialogOpen} onOpenChange={handleCreateDialogOpenChange}>
             <DialogTrigger asChild>
               <Button size="sm">
                 <Plus className="mr-2 h-4 w-4" />
                 New Environment
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent
+              onEscapeKeyDown={(event) => isCreating && event.preventDefault()}
+              onExitComplete={handleCreateDialogExitComplete}
+              onPointerDownOutside={(event) => isCreating && event.preventDefault()}
+            >
               <DialogHeader>
                 <DialogTitle>Create Environment</DialogTitle>
                 <DialogDescription>
@@ -328,6 +354,7 @@ export default function Environments() {
               <DialogFooter>
                 <Button
                   variant="outline"
+                  disabled={isCreating}
                   onClick={() => setIsCreateDialogOpen(false)}
                 >
                   Cancel
@@ -659,13 +686,13 @@ export default function Environments() {
         open={!!environmentToDelete}
         onOpenChange={(open) => !open && setEnvironmentToDelete(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent onExitComplete={handleDeleteDialogExitComplete}>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Environment?</AlertDialogTitle>
             <AlertDialogDescription>
               This will remove the loopback alias{" "}
               <span className="font-mono font-semibold">
-                {environmentToDelete?.address}
+                {environmentDeleteSnapshot?.address}
               </span>{" "}
               and detach all bindings. This action cannot be undone.
             </AlertDialogDescription>

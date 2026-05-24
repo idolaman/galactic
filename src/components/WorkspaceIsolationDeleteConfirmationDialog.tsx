@@ -15,6 +15,7 @@ interface WorkspaceIsolationDeleteConfirmationDialogProps {
   isRemoving: boolean;
   open: boolean;
   onConfirm: () => void;
+  onExitComplete?: () => void;
   onOpenChange: (open: boolean) => void;
 }
 
@@ -22,10 +23,11 @@ export const WorkspaceIsolationDeleteConfirmationDialog = ({
   isRemoving,
   open,
   onConfirm,
+  onExitComplete,
   onOpenChange,
 }: WorkspaceIsolationDeleteConfirmationDialogProps) => (
   <AlertDialog open={open} onOpenChange={onOpenChange}>
-    <AlertDialogContent>
+    <AlertDialogContent onExitComplete={onExitComplete}>
       <AlertDialogHeader>
         <AlertDialogTitle>Remove Project Services?</AlertDialogTitle>
         <AlertDialogDescription asChild>

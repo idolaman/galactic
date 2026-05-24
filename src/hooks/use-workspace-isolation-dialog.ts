@@ -10,6 +10,7 @@ import {
 import {
   getInitialWorkspaceActivationTargetPath,
   getSelectableWorkspaceActivationTargets,
+  getStableWorkspaceActivationTargets,
   getWorkspaceActivationButtonLabel,
   getWorkspaceActivationTarget,
   shouldOfferWorkspaceActivation,
@@ -119,15 +120,31 @@ export const useWorkspaceIsolationDialog = ({
     useState(false);
   const [selectedActivationTargetPath, setSelectedActivationTargetPath] =
     useState<string | null>(null);
+  const [activationTargetsSnapshot, setActivationTargetsSnapshot] =
+    useState<WorkspaceActivationTarget[]>(activationTargets);
   const [proxyStatus, setProxyStatus] =
     useState<WorkspaceIsolationProxyStatus>(defaultProxyStatus);
   const draftName = useMemo(
     () => getWorkspaceIsolationName(projectName, workspaceRootLabel),
     [projectName, workspaceRootLabel],
   );
+  const stableActivationTargets = useMemo(
+    () =>
+      getStableWorkspaceActivationTargets(
+        activationTargets,
+        activationTargetsSnapshot,
+        isActivatingSelectedWorkspace || !open,
+      ),
+    [
+      activationTargets,
+      activationTargetsSnapshot,
+      isActivatingSelectedWorkspace,
+      open,
+    ],
+  );
   const selectableActivationTargets = useMemo(
-    () => getSelectableWorkspaceActivationTargets(activationTargets),
-    [activationTargets],
+    () => getSelectableWorkspaceActivationTargets(stableActivationTargets),
+    [stableActivationTargets],
   );
   const selectedActivationTarget = useMemo(
     () =>
@@ -146,13 +163,13 @@ export const useWorkspaceIsolationDialog = ({
   );
 
   useEffect(() => {
+    if (open && !isActivatingSelectedWorkspace) {
+      setActivationTargetsSnapshot(activationTargets);
+    }
+  }, [activationTargets, isActivatingSelectedWorkspace, open]);
+
+  useEffect(() => {
     if (!open) {
-      setIsOpenInitialized(false);
-      setShowFeatureIntroStep(false);
-      setUseFullSetupSteps(false);
-      setSelectedActivationTargetPath(null);
-      setIsActivatingSelectedWorkspace(false);
-      setProxyStatus(defaultProxyStatus);
       return;
     }
     if (isOpenInitialized) {
@@ -375,6 +392,8 @@ export const useWorkspaceIsolationDialog = ({
       return;
     }
 
+    let didCloseAfterActivation = false;
+    setActivationTargetsSnapshot(stableActivationTargets);
     setIsActivatingSelectedWorkspace(true);
     try {
       const result = await enableWorkspaceIsolationForWorkspace({
@@ -398,9 +417,12 @@ export const useWorkspaceIsolationDialog = ({
         });
         return;
       }
+      didCloseAfterActivation = true;
       onOpenChange(false);
     } finally {
-      setIsActivatingSelectedWorkspace(false);
+      if (!didCloseAfterActivation) {
+        setIsActivatingSelectedWorkspace(false);
+      }
     }
   };
 
@@ -439,6 +461,19 @@ export const useWorkspaceIsolationDialog = ({
     onOpenChange(false);
   };
 
+  const handleDialogExitComplete = () => {
+    if (open) {
+      return;
+    }
+    setIsOpenInitialized(false);
+    setShowFeatureIntroStep(false);
+    setUseFullSetupSteps(false);
+    setSelectedActivationTargetPath(null);
+    setActivationTargetsSnapshot(activationTargets);
+    setIsActivatingSelectedWorkspace(false);
+    setProxyStatus(defaultProxyStatus);
+  };
+
   return {
     step,
     showFeatureIntroStep,
@@ -470,6 +505,7 @@ export const useWorkspaceIsolationDialog = ({
     handleDelete,
     handleSelectActivationTarget,
     handleActivateSelectedWorkspace,
+    handleDialogExitComplete,
     handleFinishWithoutActivation,
   };
 };
