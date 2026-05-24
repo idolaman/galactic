@@ -1,10 +1,9 @@
-import { Bot, Code2, Info, TerminalSquare } from "lucide-react";
+import { Code2, Info } from "lucide-react";
 
-import cursorIcon from "@/assets/cursor.jpeg";
-import vscodeIcon from "@/assets/vscode-icon.png";
 import { SettingRow } from "@/components/Settings/SettingRow";
 import { SettingsSection } from "@/components/Settings/SettingsSection";
 import { SettingsStatusBadge } from "@/components/Settings/SettingsStatusBadge";
+import { McpToolIcon } from "@/components/Settings/McpToolIcon";
 import { Button } from "@/components/ui/button";
 import { MCP_INSTALL_NOTE } from "@/lib/mcp-installation";
 import { MCP_TOOL_NAMES, type McpToolName } from "@/lib/mcp-installation-details";
@@ -15,13 +14,6 @@ interface McpIntegrationsSettingsProps {
   onDetails: (tool: McpToolName) => void;
   onInstall: (tool: McpToolName) => Promise<void>;
 }
-
-const iconByTool = {
-  Claude: <Bot className="h-4 w-4" />,
-  Codex: <TerminalSquare className="h-4 w-4" />,
-  Cursor: <img src={cursorIcon} alt="" className="h-4 w-4 rounded object-cover" />,
-  VSCode: <img src={vscodeIcon} alt="" className="h-4 w-4 object-contain" />,
-} as const;
 
 const labelByTool: Record<McpToolName, string> = {
   Claude: "Claude Code",
@@ -58,11 +50,13 @@ export function McpIntegrationsSettings({
             key={tool}
             label={labelByTool[tool]}
             description={descriptionByTool[tool]}
+            media={(
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border bg-muted/40">
+                <McpToolIcon tool={tool} />
+              </div>
+            )}
           >
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-md border bg-muted/40">
-                {iconByTool[tool]}
-              </div>
               <SettingsStatusBadge tone={isInstalled ? "success" : "muted"}>
                 {isInstalled ? "Installed" : "Installable"}
               </SettingsStatusBadge>
