@@ -13,8 +13,21 @@ const isEditorName = (value: string): value is EditorName => {
 
 export const getPreferredEditor = (): EditorName => {
   if (typeof window === "undefined") return "Cursor";
-  const stored = window.localStorage.getItem("preferredEditor");
-  return stored === "VSCode" ? "VSCode" : "Cursor";
+  try {
+    const stored = window.localStorage.getItem("preferredEditor");
+    return stored === "VSCode" ? "VSCode" : "Cursor";
+  } catch (_caughtError) {
+    return "Cursor";
+  }
+};
+
+export const setPreferredEditorPreference = (editor: EditorName): void => {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem("preferredEditor", editor);
+  } catch (error) {
+    console.warn("Failed to persist editor preference:", error);
+  }
 };
 
 export const openProjectInEditor = async (

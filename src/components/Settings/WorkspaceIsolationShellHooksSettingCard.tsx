@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { WorkspaceIsolationFeatureIntroDialog } from "@/components/settings/WorkspaceIsolationFeatureIntroDialog";
-import { WorkspaceIsolationSupportStatusRow } from "@/components/settings/WorkspaceIsolationSupportStatusRow";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { WorkspaceIsolationFeatureIntroDialog } from "@/components/Settings/WorkspaceIsolationFeatureIntroDialog";
+import { WorkspaceIsolationSupportStatusRow } from "@/components/Settings/WorkspaceIsolationSupportStatusRow";
+import { SettingsSection } from "@/components/Settings/SettingsSection";
 import { Switch } from "@/components/ui/switch";
 import { useAppToast } from "@/hooks/use-app-toast";
 import { useWorkspaceIsolationManager } from "@/hooks/use-workspace-isolation-manager";
@@ -79,17 +79,15 @@ export function WorkspaceIsolationShellHooksSettingCard() {
   };
 
   return (
-    <Card className="border-border bg-card" id="workspace-isolation-shell-hooks">
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between gap-3">
-          <CardTitle>Project Services Support</CardTitle>
-          <WorkspaceIsolationFeatureIntroDialog />
-        </div>
-        <CardDescription>
-          Check the shared proxy and Terminal Auto-Env that Project Services uses. Activation still happens from each workspace.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-4">
+    <SettingsSection
+      id="project-services-support"
+      title="Project Services Support"
+      description="Check the shared proxy and Terminal Auto-Env that Project Services uses."
+    >
+      <div className="flex justify-end px-4 py-3">
+        <WorkspaceIsolationFeatureIntroDialog />
+      </div>
+      <div className="divide-y border-t">
         <WorkspaceIsolationSupportStatusRow
           badgeLabel={proxyStatus.running ? "Running" : "Unavailable"}
           badgeToneClassName={proxyStatus.running ? "h-5 bg-primary/15 text-primary hover:bg-primary/20" : "h-5 bg-muted text-muted-foreground hover:bg-muted"}
@@ -111,7 +109,7 @@ export function WorkspaceIsolationShellHooksSettingCard() {
             onCheckedChange={handleCheckedChange}
           />
         </WorkspaceIsolationSupportStatusRow>
-      </CardContent>
-    </Card>
+      </div>
+    </SettingsSection>
   );
 }
