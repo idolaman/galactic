@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Command as CommandIcon } from "lucide-react";
+import { FolderSearch, SearchX } from "lucide-react";
 import { QuickSidebarFooter } from "@/components/QuickSidebar/QuickSidebarFooter";
 import { QuickSidebarProjectGroup } from "@/components/QuickSidebar/QuickSidebarProjectGroup";
 import { QuickSidebarSearchHeader } from "@/components/QuickSidebar/QuickSidebarSearchHeader";
@@ -11,11 +11,9 @@ import {
 import { useEditorLauncher } from "@/hooks/use-editor-launcher";
 import { useProjects } from "@/hooks/use-projects";
 import { useQuickLauncherAnalytics } from "@/hooks/use-quick-launcher-analytics";
+import { getQuickLauncherResults } from "@/lib/quick-launcher-results";
 import { buildVisibleWorkspaceSessionMap } from "@/lib/workspace-session-display";
 import { useSessionStore } from "@/stores/session-store";
-
-const matchesSearch = (search: string, text: string) =>
-  !search || text.toLowerCase().includes(search);
 
 export function QuickSidebar() {
   const projects = useProjects();
@@ -69,23 +67,10 @@ export function QuickSidebar() {
     return () => window.removeEventListener("focus", focusSearch);
   }, []);
 
-  const filteredProjects = useMemo(() => {
-    if (!searchLower) {
-      return projects;
-    }
-
-    return projects.filter((project) => {
-      if (matchesSearch(searchLower, project.name) || matchesSearch(searchLower, "root")) {
-        return true;
-      }
-
-      return (project.workspaces ?? []).some(
-        (workspace) =>
-          matchesSearch(searchLower, workspace.name) ||
-          matchesSearch(searchLower, "worktree"),
-      );
-    });
-  }, [projects, searchLower]);
+  const results = useMemo(
+    () => getQuickLauncherResults(projects, searchLower),
+    [projects, searchLower],
+  );
 
   const handleLaunch = async (path: string) => {
     await launchWorkspace(path);
@@ -93,23 +78,32 @@ export function QuickSidebar() {
   };
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden bg-[#050510] font-sans text-slate-100 selection:bg-purple-500/30">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/10 via-[#050510] to-[#050510]" />
-      <div className="pointer-events-none absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 brightness-100 contrast-150 mix-blend-overlay" />
-      <Command className="z-10 flex h-full flex-col bg-transparent" shouldFilter={false} loop value={selectedId} onValueChange={setSelectedId}>
+    <div className="flex h-screen w-full flex-col overflow-hidden bg-background font-sans text-foreground selection:bg-primary/20">
+      <Command className="flex h-full flex-col rounded-none bg-background" shouldFilter={false} loop value={selectedId} onValueChange={setSelectedId}>
         <QuickSidebarSearchHeader inputRef={searchInputRef} search={search} onSearchChange={setSearch} />
-        <CommandList className="scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10 flex-1 min-h-0 !max-h-none overflow-y-auto px-2 py-2">
-          <CommandEmpty className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-white/20">
-              <CommandIcon className="h-5 w-5" />
+        <CommandList className="min-h-0 flex-1 !max-h-none overflow-y-auto px-2 py-2">
+          <CommandEmpty className="hidden" />
+          {(results.isEmpty || results.isNoResults) && (
+            <div className="flex flex-col items-center justify-center gap-3 px-8 py-14 text-center">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md border bg-muted/40 text-muted-foreground">
+                {results.isEmpty ? <FolderSearch className="h-5 w-5" /> : <SearchX className="h-5 w-5" />}
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium">
+                  {results.isEmpty ? "No projects yet" : "No matching workspace"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {results.isEmpty
+                    ? "Add a project in Galactic to open it from here."
+                    : "Try a project name, workspace name, root, or worktree."}
+                </p>
+              </div>
             </div>
-            <p className="text-xs font-medium text-white/40">No results found</p>
-          </CommandEmpty>
-          {filteredProjects.map((project) => (
+          )}
+          {results.projects.map((result) => (
             <QuickSidebarProjectGroup
-              key={project.id}
-              project={project}
-              search={searchLower}
+              key={result.project.id}
+              result={result}
               sessionsByPath={sessionsByPath}
               onLaunch={handleLaunch}
             />

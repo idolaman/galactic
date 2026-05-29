@@ -50,6 +50,13 @@ export const getSelectableWorkspaceActivationTargets = (
 ): WorkspaceActivationTarget[] =>
   activationTargets.filter((target) => !target.isActive);
 
+export const getStableWorkspaceActivationTargets = (
+  activationTargets: WorkspaceActivationTarget[],
+  activationTargetsSnapshot: WorkspaceActivationTarget[],
+  shouldUseSnapshot: boolean,
+): WorkspaceActivationTarget[] =>
+  shouldUseSnapshot ? activationTargetsSnapshot : activationTargets;
+
 export const shouldOfferWorkspaceActivation = (
   isEditing: boolean,
   activationTargets: WorkspaceActivationTarget[],

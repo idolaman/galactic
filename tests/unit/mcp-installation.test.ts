@@ -11,8 +11,10 @@ test("handleMcpInstallResult refreshes status without toasting on success", asyn
     refreshStatus: async () => {
       refreshCalls += 1;
     },
-    toast: () => {
-      toastCalls += 1;
+    toast: {
+      error: () => {
+        toastCalls += 1;
+      },
     },
     tool: "Claude",
   });
@@ -30,8 +32,10 @@ test("handleMcpInstallResult toasts and skips refresh on failure", async () => {
     refreshStatus: async () => {
       refreshCalls += 1;
     },
-    toast: (options) => {
-      toastPayload = options;
+    toast: {
+      error: (options) => {
+        toastPayload = options;
+      },
     },
     tool: "Codex",
   });
@@ -40,7 +44,6 @@ test("handleMcpInstallResult toasts and skips refresh on failure", async () => {
   assert.deepEqual(toastPayload, {
     title: "Installation Failed",
     description: "boom",
-    variant: "destructive",
   });
 });
 

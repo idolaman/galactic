@@ -1,9 +1,5 @@
-import {
-  AlertTriangle,
-  FileCode,
-  GitBranch,
-  Network,
-} from "lucide-react";
+import { useEffect, useState } from "react";
+import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -14,6 +10,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { useDialogExitSnapshot } from "@/hooks/use-dialog-exit-snapshot";
+import { buildProjectConfigImportReviewRows } from "@/lib/project-config-import-review-rows";
 import type { ProjectConfigImportReview } from "@/lib/project-config-import-review";
 
 interface ProjectConfigImportReviewDialogProps {
@@ -23,13 +30,21 @@ interface ProjectConfigImportReviewDialogProps {
   onConfirm: () => void;
 }
 
-const getServicesSummary = (review: ProjectConfigImportReview): string => {
-  const summaries: Record<ProjectConfigImportReview["servicesKind"], string> = {
-    save: `Replace ${review.currentServiceCount} Project Services with ${review.serviceCount} imported services.`,
-    remove: `Remove the current ${review.currentServiceCount} Project Services because the file has no Project Services metadata.`,
-    none: "Leave Project Services unset because the file has no Project Services metadata.",
-  };
-  return summaries[review.servicesKind];
+const rowToneClassNames = {
+  default: "border-border text-muted-foreground",
+  destructive: "border-destructive/30 bg-destructive/10 text-destructive",
+  warning: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+} as const;
+
+const getFinalWarning = (review: ProjectConfigImportReview): string | null => {
+  if (review.servicesKind === "remove") {
+    return "Importing this config removes Project Services and stops active Project Services workspaces for this project.";
+  }
+  if (review.externalConnectionCount > 0) {
+    return "Some imported connections still reference Project Services from another topology.";
+  }
+
+  return null;
 };
 
 export const ProjectConfigImportReviewDialog = ({
@@ -37,68 +52,83 @@ export const ProjectConfigImportReviewDialog = ({
   isApplying,
   onCancel,
   onConfirm,
-}: ProjectConfigImportReviewDialogProps) => review ? (
-  <AlertDialog open onOpenChange={(open) => !open && onCancel()}>
-    <AlertDialogContent className="max-w-xl">
-      <AlertDialogHeader>
-        <AlertDialogTitle>Review project config import</AlertDialogTitle>
-        <AlertDialogDescription>
-          Confirm the changes before Galactic replaces this project's saved setup.
-        </AlertDialogDescription>
-      </AlertDialogHeader>
+}: ProjectConfigImportReviewDialogProps) => {
+  const { snapshot: displayReview, handleExitComplete } =
+    useDialogExitSnapshot(review);
+  const [displayIsApplying, setDisplayIsApplying] = useState(isApplying);
 
-      <div className="space-y-3">
-        <div className="flex gap-3 rounded-md border bg-muted/30 p-3">
-          <FileCode className="mt-0.5 h-4 w-4 text-muted-foreground" />
-          <div className="space-y-1 text-sm">
-            <p className="font-medium">Workspace Config Sync</p>
-            <p className="text-muted-foreground">
-              Replace {review.currentSyncTargetCount} targets with{" "}
-              {review.syncTargetCount} imported targets.
-            </p>
+  useEffect(() => {
+    if (review) {
+      setDisplayIsApplying(isApplying);
+    }
+  }, [isApplying, review]);
+
+  if (!displayReview) {
+    return null;
+  }
+
+  return (
+    <AlertDialog open={Boolean(review)} onOpenChange={(open) => !open && onCancel()}>
+      <AlertDialogContent className="max-w-2xl" onExitComplete={handleExitComplete}>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Review project config import</AlertDialogTitle>
+          <AlertDialogDescription>
+            Confirm exactly what Galactic will apply to this project's saved setup.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <div className="grid gap-3">
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Area</TableHead>
+                  <TableHead>Action</TableHead>
+                  <TableHead>Target</TableHead>
+                  <TableHead>State</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {buildProjectConfigImportReviewRows(displayReview).map((row) => (
+                  <TableRow key={row.id} className="hover:bg-transparent">
+                    <TableCell className="font-medium">{row.area}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={rowToneClassNames[row.tone]}
+                      >
+                        {row.action}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      {row.target}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {row.state}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
-        </div>
 
-        <div className="flex gap-3 rounded-md border bg-muted/30 p-3">
-          <GitBranch className="mt-0.5 h-4 w-4 text-muted-foreground" />
-          <div className="space-y-1 text-sm">
-            <p className="font-medium">Project Services</p>
-            <p className="text-muted-foreground">{getServicesSummary(review)}</p>
-          </div>
-        </div>
-
-        {review.externalConnectionCount > 0 ? (
-          <div className="flex gap-3 rounded-md border border-amber-500/30 bg-amber-500/10 p-3">
-            <Network className="mt-0.5 h-4 w-4 text-amber-700 dark:text-amber-400" />
-            <div className="space-y-1 text-sm">
-              <p className="font-medium">External service references remain</p>
-              <p className="text-muted-foreground">
-                {review.externalConnectionCount} imported connections still point
-                to another Project Services topology.
-              </p>
+          {getFinalWarning(displayReview) ? (
+            <div className="flex gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>{getFinalWarning(displayReview)}</span>
             </div>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
 
-        {review.servicesKind === "remove" ? (
-          <div className="flex gap-3 rounded-md border border-destructive/30 bg-destructive/10 p-3">
-            <AlertTriangle className="mt-0.5 h-4 w-4 text-destructive" />
-            <p className="text-sm text-muted-foreground">
-              Removing Project Services also stops active Project Services
-              workspaces for this project.
-            </p>
-          </div>
-        ) : null}
-      </div>
-
-      <AlertDialogFooter>
-        <AlertDialogCancel disabled={isApplying}>
-          Cancel
-        </AlertDialogCancel>
-        <Button disabled={isApplying} onClick={onConfirm}>
-          {isApplying ? "Importing..." : "Import config"}
-        </Button>
-      </AlertDialogFooter>
-    </AlertDialogContent>
-  </AlertDialog>
-) : null;
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={displayIsApplying}>
+            Cancel
+          </AlertDialogCancel>
+          <Button disabled={displayIsApplying} onClick={onConfirm}>
+            {displayIsApplying ? "Importing..." : "Import config"}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+};

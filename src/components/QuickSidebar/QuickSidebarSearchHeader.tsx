@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import { Rocket, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { CommandInput } from "@/components/ui/command";
 
 export interface QuickSidebarSearchHeaderProps {
@@ -14,28 +14,22 @@ export function QuickSidebarSearchHeader({
   onSearchChange,
 }: QuickSidebarSearchHeaderProps) {
   return (
-    <div className="shrink-0 space-y-3 border-b border-white/5 bg-[#050510]/50 px-5 pb-3 pt-7 backdrop-blur-sm">
+    <div className="shrink-0 border-b bg-card px-3 pb-3 pt-4">
       <div className="group relative">
-        <div className="absolute -inset-0.5 rounded-lg bg-gradient-to-r from-indigo-500/10 to-purple-600/10 opacity-0 blur transition duration-500 group-focus-within:opacity-100" />
-        <div className="relative flex items-center rounded-lg border border-white/5 bg-white/5 shadow-sm transition-all group-focus-within:border-white/10 group-focus-within:bg-[#0A0A15]">
-          <Search className="ml-3 h-3.5 w-3.5 text-white/30 transition-colors group-focus-within:text-white/50" />
+        <div className="relative flex items-center rounded-md border bg-background transition-colors group-focus-within:border-primary/60 group-focus-within:ring-2 group-focus-within:ring-primary/15">
+          <Search className="ml-3 h-3.5 w-3.5 text-muted-foreground transition-colors group-focus-within:text-primary" />
           <CommandInput
-            placeholder="Search projects & workspaces..."
+            placeholder="Search projects and workspaces..."
             value={search}
             onValueChange={onSearchChange}
             ref={inputRef}
             autoFocus
             hideIcon
             wrapperClassName="h-9 flex-1 border-none bg-transparent px-0"
-            className="h-full border-0 bg-transparent px-3 text-sm font-medium text-white placeholder:text-white/20 focus:ring-0"
+            className="h-full border-0 bg-transparent px-3 text-sm font-medium text-foreground placeholder:text-muted-foreground focus:ring-0"
           />
-          <div className="mr-2 flex items-center gap-2">
-            <div className="flex items-center gap-1.5 opacity-50">
-              <Rocket className="h-3 w-3 text-indigo-400" />
-              <span className="text-[10px] font-medium uppercase tracking-wide text-indigo-300">
-                Galactic
-              </span>
-            </div>
+          <div className="mr-2 rounded border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+            esc
           </div>
         </div>
       </div>

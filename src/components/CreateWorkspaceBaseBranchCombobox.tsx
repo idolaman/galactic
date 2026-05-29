@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/command";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
-import { filterBranchesByQuery, normalizeBaseBranch } from "@/lib/create-workspace-flow";
+import { filterBranchesByQuery, normalizeBaseBranch, orderBaseBranchCandidates } from "@/lib/create-workspace-flow";
 import { cn } from "@/lib/utils";
 
 interface CreateWorkspaceBaseBranchComboboxProps {
@@ -39,7 +39,7 @@ export const CreateWorkspaceBaseBranchCombobox = ({
   const [isListVisible, setIsListVisible] = useState(false);
   const [overlayWidth, setOverlayWidth] = useState<number | null>(null);
   const normalizedBaseBranch = normalizeBaseBranch(selectedBaseBranch);
-  const filteredBaseBranches = filterBranchesByQuery(baseBranches, baseBranchInput);
+  const filteredBaseBranches = filterBranchesByQuery(orderBaseBranchCandidates(baseBranches), baseBranchInput);
   const emptyMessage = baseBranches.length === 0 ? "No local branches available." : "No matching base branches.";
   const popoverStyle = overlayWidth === null
     ? undefined
@@ -102,17 +102,16 @@ export const CreateWorkspaceBaseBranchCombobox = ({
             </div>
           </PopoverAnchor>
           <PopoverContent
-            align="start"
-            sideOffset={8}
+            align="start" side="bottom" sideOffset={8} avoidCollisions={false}
             style={popoverStyle}
-            className="z-[60] w-[var(--create-workspace-base-branch-width)] border-border/60 p-0 shadow-lg"
+            className="z-[60] max-h-80 w-[var(--create-workspace-base-branch-width)] overflow-hidden border-border/60 p-0 shadow-lg"
             onOpenAutoFocus={(event) => event.preventDefault()}
             onCloseAutoFocus={(event) => event.preventDefault()}
             onInteractOutside={(event) => {
               if (anchorRef.current?.contains(event.target as Node)) event.preventDefault();
             }}
           >
-            <CommandList className="max-h-[160px]">
+            <CommandList className="h-64 max-h-64 overflow-y-auto overscroll-contain sm:h-80 sm:max-h-80" onWheelCapture={(event) => { event.preventDefault(); event.stopPropagation(); event.currentTarget.scrollTop += event.deltaY; }}>
               <CommandEmpty>{emptyMessage}</CommandEmpty>
               <CommandGroup>
                 {filteredBaseBranches.map((branch) => (

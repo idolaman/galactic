@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { WorkspaceIsolationConnectionsField } from "@/components/WorkspaceIsolationConnectionsField";
+import { WorkspaceIsolationDialogServiceOverview } from "@/components/WorkspaceIsolationDialogServiceOverview";
 import type {
   WorkspaceIsolationConnection,
   WorkspaceIsolationMode,
@@ -18,6 +19,7 @@ interface WorkspaceIsolationDialogServiceCardProps {
   workspaceLabel: string;
   stackId: string;
   service: WorkspaceIsolationService;
+  serviceIssue?: string;
   workspaceMode: WorkspaceIsolationMode;
   services: WorkspaceIsolationService[];
   workspaceIsolationProjectTopologies: WorkspaceIsolationProjectTopology[];
@@ -44,6 +46,7 @@ export const WorkspaceIsolationDialogServiceCard = ({
   workspaceLabel,
   stackId,
   service,
+  serviceIssue,
   workspaceMode,
   services,
   workspaceIsolationProjectTopologies,
@@ -84,19 +87,31 @@ export const WorkspaceIsolationDialogServiceCard = ({
 
       <div className="grid gap-5 p-4">
         {step === 3 && workspaceMode === "monorepo" ? (
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <Label htmlFor={relativeFolderInputId} className="sm:w-32 shrink-0">Relative Folder</Label>
-            <Input
-              id={relativeFolderInputId}
-              value={pathValue}
-              onChange={(event) =>
-                onChangeService(service.id, { relativePath: event.target.value })
-              }
-              placeholder="app/api"
-              className="flex-1"
-            />
+          <div className="grid gap-2">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <Label htmlFor={relativeFolderInputId} className="shrink-0 sm:w-32">
+                Relative folder
+              </Label>
+              <Input
+                id={relativeFolderInputId}
+                value={pathValue}
+                onChange={(event) =>
+                  onChangeService(service.id, { relativePath: event.target.value })
+                }
+                placeholder="apps/api"
+                className="flex-1 font-mono"
+                aria-invalid={Boolean(serviceIssue)}
+              />
+            </div>
           </div>
         ) : null}
+
+        <WorkspaceIsolationDialogServiceOverview
+          issue={serviceIssue}
+          projectName={projectName}
+          service={service}
+          workspaceLabel={workspaceLabel}
+        />
 
         {step === 4 ? (
           <WorkspaceIsolationConnectionsField

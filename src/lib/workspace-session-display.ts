@@ -10,6 +10,13 @@ export interface WorkspaceSession {
   chat_id?: string;
 }
 
+export interface ProjectSessionSummaryTarget {
+  path: string;
+  workspaces?: {
+    workspace: string;
+  }[];
+}
+
 interface SessionEntry<T extends WorkspaceSession> {
   index: number;
   session: T;
@@ -104,5 +111,22 @@ export const buildVisibleWorkspaceSessionMap = <T extends WorkspaceSession>(
       path,
       toVisibleEntries(entries).map((entry) => entry.session),
     ]),
+  );
+};
+
+export const countVisibleProjectSessions = <T extends WorkspaceSession>(
+  project: ProjectSessionSummaryTarget,
+  sessionsByPath: Map<string, T[]>,
+): number => {
+  const paths = new Set(
+    [
+      project.path,
+      ...(project.workspaces ?? []).map((workspace) => workspace.workspace),
+    ].map((path) => normalizeWorkspacePath(path)),
+  );
+
+  return Array.from(paths).reduce(
+    (count, path) => count + (sessionsByPath.get(path)?.length ?? 0),
+    0,
   );
 };

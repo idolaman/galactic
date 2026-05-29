@@ -1,5 +1,5 @@
+import { AppDialogFooterBar } from "@/components/app/AppDialogFooterBar";
 import { Button } from "@/components/ui/button";
-import { DialogFooter } from "@/components/ui/dialog";
 import type { WorkspaceIsolationDialogStep } from "@/lib/workspace-isolation-dialog-step";
 
 interface WorkspaceIsolationDialogFooterProps {
@@ -39,15 +39,15 @@ export const WorkspaceIsolationDialogFooter = ({
   onActivateSelectedWorkspace,
   onFinishWithoutActivation,
 }: WorkspaceIsolationDialogFooterProps) => (
-  <DialogFooter className="shrink-0 gap-2 pt-4 sm:justify-between">
-    {isEditing && step === 3 ? (
-      <Button variant="destructive" onClick={onDelete}>
-        Remove Project Services
-      </Button>
-    ) : (
-      <div />
-    )}
-    <div className="flex min-w-0 flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+  <AppDialogFooterBar
+    leading={
+      isEditing && step === 3 ? (
+        <Button variant="destructive" onClick={onDelete}>
+          Remove Project Services
+        </Button>
+      ) : null
+    }
+  >
       {step === 1 ? (
         <>
           <Button variant="outline" onClick={onClose}>
@@ -107,6 +107,5 @@ export const WorkspaceIsolationDialogFooter = ({
           </Button>
         </>
       ) : null}
-    </div>
-  </DialogFooter>
+  </AppDialogFooterBar>
 );

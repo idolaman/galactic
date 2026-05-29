@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { SettingRow } from "@/components/Settings/SettingRow";
+import { SettingsSection } from "@/components/Settings/SettingsSection";
 import { Switch } from "@/components/ui/switch";
 import { useAppToast } from "@/hooks/use-app-toast";
 import {
@@ -89,16 +89,8 @@ export function AsyncToggleSettingCard({
   };
 
   return (
-    <Card className="border-border bg-card" id={cardId}>
-      <CardHeader className="pb-4">
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-1">
-          <Label htmlFor={switchId} className="text-sm font-medium">{label}</Label>
-          <div className="text-xs text-muted-foreground">{details}</div>
-        </div>
+    <SettingsSection id={cardId ?? switchId} title={title} description={description}>
+      <SettingRow label={label} htmlFor={switchId} description={details}>
         <Switch
           id={switchId}
           checked={enabled}
@@ -106,7 +98,7 @@ export function AsyncToggleSettingCard({
           disabled={loading || saving}
           className={cn(switchClassName)}
         />
-      </CardContent>
-    </Card>
+      </SettingRow>
+    </SettingsSection>
   );
 }

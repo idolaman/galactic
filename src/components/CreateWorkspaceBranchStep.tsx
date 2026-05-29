@@ -16,6 +16,7 @@ interface CreateWorkspaceBranchStepProps {
   gitBranches: string[];
   isCreatingWorkspace: boolean;
   isLoadingBranches: boolean;
+  selectedBranch: string;
   onBranchInputChange: (value: string) => void;
   onChooseBaseBranch: (branch: string) => void;
   onSelectBranch: (branch: string) => void;
@@ -26,6 +27,7 @@ export const CreateWorkspaceBranchStep = ({
   gitBranches,
   isCreatingWorkspace,
   isLoadingBranches,
+  selectedBranch,
   onBranchInputChange,
   onChooseBaseBranch,
   onSelectBranch,
@@ -69,6 +71,7 @@ export const CreateWorkspaceBranchStep = ({
                     key={branchName}
                     branchName={branchName}
                     isCreatingWorkspace={isCreatingWorkspace}
+                    isSelected={selectedBranch === branchName}
                     onSelectBranch={onSelectBranch}
                   />
                 ))}

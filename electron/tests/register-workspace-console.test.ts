@@ -13,6 +13,7 @@ const createSession = (input: CreateWorkspaceConsoleSessionInput): WorkspaceCons
   sessionId: "session-1",
   workspacePath: input.workspacePath,
   workspaceLabel: input.workspaceLabel ?? "Workspace",
+  ...(input.projectName ? { projectName: input.projectName } : {}),
   cwd: input.cwd ?? input.workspacePath,
   status: "running",
   title: input.workspaceLabel ?? "Workspace",
@@ -78,11 +79,13 @@ test("workspace console IPC validates invalid inputs", async () => {
 test("workspace console IPC delegates create list write resize and kill", async () => {
   const handlers = new Map<string, IpcHandler>();
   const calls: string[] = [];
+  const createdProjectNames: Array<string | undefined> = [];
   registerWorkspaceConsoleIpc({
     ipcMain: { handle: (channel, handler) => handlers.set(channel, handler) },
     sessionManager: {
       createSession: (input) => {
         calls.push(`create:${input.workspacePath}`);
+        createdProjectNames.push(input.projectName);
         return { success: true, value: createSession(input) };
       },
       killSession: (sessionId) => {
@@ -105,6 +108,7 @@ test("workspace console IPC delegates create list write resize and kill", async 
   });
 
   await handlers.get("workspace-console/create-session")?.({} as IpcMainInvokeEvent, {
+    projectName: "Galactic",
     workspacePath: "/repo",
   });
   await handlers.get("workspace-console/list-sessions")?.({} as IpcMainInvokeEvent);
@@ -119,4 +123,5 @@ test("workspace console IPC delegates create list write resize and kill", async 
     "resize:s1:80:24",
     "kill:s1",
   ]);
+  assert.deepEqual(createdProjectNames, ["Galactic"]);
 });

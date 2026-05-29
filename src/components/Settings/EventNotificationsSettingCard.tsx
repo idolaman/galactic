@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { SettingRow } from "@/components/Settings/SettingRow";
+import { SettingsSection } from "@/components/Settings/SettingsSection";
 import { Switch } from "@/components/ui/switch";
 import { useAppToast } from "@/hooks/use-app-toast";
 import type { EventNotificationStatus } from "@/types/electron";
@@ -94,28 +94,28 @@ export function EventNotificationsSettingCard() {
   const isUnsupported = !status.supported;
 
   return (
-    <Card className="border-border bg-card" id="event-notifications">
-      <CardHeader className="pb-4">
-        <CardTitle>Event Notifications</CardTitle>
-        <CardDescription>Allow Galactic to alert you about important events.</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-1">
-          <Label htmlFor="event-notifications-enabled" className="text-sm font-medium">
-            Galactic event alerts
-          </Label>
-          <p className="text-xs text-muted-foreground">{getStatusDetails(status)}</p>
-          {isUnsupported && (
-            <p className="text-xs text-muted-foreground">Development builds intentionally do not use the helper path.</p>
-          )}
-        </div>
+    <SettingsSection
+      id="event-notifications"
+      title="Event Notifications"
+      description="Allow Galactic to alert you about important events."
+    >
+      <SettingRow
+        label="Galactic event alerts"
+        htmlFor="event-notifications-enabled"
+        description={(
+          <>
+            <p>{getStatusDetails(status)}</p>
+            {isUnsupported && <p>Development builds intentionally do not use the helper path.</p>}
+          </>
+        )}
+      >
         <Switch
           id="event-notifications-enabled"
           checked={status.enabled}
           disabled={loading || saving || (isUnsupported && !status.enabled)}
           onCheckedChange={handleCheckedChange}
         />
-      </CardContent>
-    </Card>
+      </SettingRow>
+    </SettingsSection>
   );
 }

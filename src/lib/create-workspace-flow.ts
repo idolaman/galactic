@@ -59,6 +59,20 @@ export const resolveBranchSelection = (
 
 export const normalizeBaseBranch = (value: string): string => value.trim();
 
+const preferredBaseBranches = ["dev", "main", "master"] as const;
+
+const isPreferredBaseBranch = (branch: string): boolean =>
+  preferredBaseBranches.some((preferredBranch) => preferredBranch === branch);
+
+export const orderBaseBranchCandidates = (branches: string[]): string[] => {
+  const promotedBranches = preferredBaseBranches.filter((branch) =>
+    branches.includes(branch),
+  );
+  const remainingBranches = branches.filter((branch) => !isPreferredBaseBranch(branch));
+
+  return [...promotedBranches, ...remainingBranches];
+};
+
 export const filterBranchesByQuery = (
   branches: string[],
   query: string,
@@ -85,6 +99,22 @@ export const canCreateWorkspaceFromNewBranch = (
   isCreatingWorkspace: boolean,
 ): boolean => {
   return !isCreatingWorkspace && normalizeBaseBranch(baseBranch).length > 0;
+};
+
+export const canCreateWorkspaceFromExistingBranch = (
+  selectedBranch: string,
+  isCreatingWorkspace: boolean,
+): boolean => !isCreatingWorkspace && normalizeBranchName(selectedBranch).length > 0;
+
+export const shouldClearSelectedWorkspaceBranch = (
+  inputValue: string,
+  selectedBranch: string,
+): boolean => {
+  if (!selectedBranch) {
+    return false;
+  }
+
+  return normalizeBranchName(inputValue) !== normalizeBranchName(selectedBranch);
 };
 
 export const resolveCreateWorkspaceDialogVisibilityChange = (
