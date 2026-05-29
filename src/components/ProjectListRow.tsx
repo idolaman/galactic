@@ -2,6 +2,7 @@ import { FolderGit2, GitBranch, RadioTower, Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { shouldActivateProjectListRowFromKey } from "@/lib/project-list-row";
 import type { StoredProject } from "@/services/projects";
 
 export interface ProjectListRowProps {
@@ -24,7 +25,7 @@ export function ProjectListRow({
       tabIndex={0}
       onClick={() => onViewProject(project)}
       onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
+        if (shouldActivateProjectListRowFromKey(event.key, event.target === event.currentTarget)) {
           event.preventDefault();
           onViewProject(project);
         }

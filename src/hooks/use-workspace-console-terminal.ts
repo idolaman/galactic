@@ -24,7 +24,7 @@ export const useWorkspaceConsoleTerminal = ({
   active,
   containerRef,
   session,
-}: UseWorkspaceConsoleTerminalInput) => {
+}: UseWorkspaceConsoleTerminalInput): void => {
   const activeRef = useRef(active);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const fitTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
@@ -55,7 +55,7 @@ export const useWorkspaceConsoleTerminal = ({
       const nextSize = { cols: terminal.cols, rows: terminal.rows };
       if (!shouldResizeWorkspaceConsoleTerminal(lastSizeRef.current, nextSize)) return;
       lastSizeRef.current = nextSize;
-      void resizeWorkspaceConsoleSession(session.sessionId, nextSize.cols, nextSize.rows);
+      void resizeWorkspaceConsoleSession(session.sessionId, nextSize.cols, nextSize.rows).catch((error) => console.error("Workspace console terminal resize failed", { error, sessionId: session.sessionId, size: nextSize }));
     } catch (error) {
       console.error("Workspace console terminal fit failed", {
         error,
@@ -103,7 +103,7 @@ export const useWorkspaceConsoleTerminal = ({
     fitAddonRef.current = fitAddon;
 
     const dataDisposable = terminal.onData((data) => {
-      void writeWorkspaceConsoleInput(session.sessionId, data);
+      void writeWorkspaceConsoleInput(session.sessionId, data).catch((error) => console.error("Workspace console input write failed", { error, sessionId: session.sessionId }));
     });
     const unsubscribe = onWorkspaceConsoleEvent((event) => {
       if ("sessionId" in event && event.sessionId !== session.sessionId) return;

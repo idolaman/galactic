@@ -17,6 +17,7 @@ test("ensureNodePtySpawnHelperExecutable repairs missing helper execute bits", (
     chmodSync(helperPath, 0o644);
 
     ensureNodePtySpawnHelperExecutable(helperPath);
+    if (process.platform === "win32") return;
 
     assert.equal((statSync(helperPath).mode & 0o111) !== 0, true);
   } finally {

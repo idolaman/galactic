@@ -84,9 +84,15 @@ export const ProjectList = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Remove project</AlertDialogTitle>
             <AlertDialogDescription>
-              {projectDeleteSnapshot
-                ? `Remove ${projectDeleteSnapshot.name} from Galactic?`
-                : "This action cannot be undone."}
+              {projectDeleteSnapshot ? (
+                <>
+                  Remove {projectDeleteSnapshot.name} from Galactic?
+                  <br />
+                  This action cannot be undone.
+                </>
+              ) : (
+                "This action cannot be undone."
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

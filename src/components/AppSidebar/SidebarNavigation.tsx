@@ -37,8 +37,10 @@ export function SidebarNavigation() {
                 <NavLink
                   to={item.url}
                   end={item.url === "/"}
+                  aria-label={open ? undefined : item.title}
                   className="relative flex h-8 items-center gap-2.5 rounded-md px-2.5 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                   activeClassName="bg-sidebar-accent font-medium text-sidebar-accent-foreground before:absolute before:left-0 before:top-1.5 before:h-5 before:w-0.5 before:rounded-r before:bg-primary"
+                  title={open ? undefined : item.title}
                 >
                   <item.icon className="h-4 w-4 shrink-0" />
                   {open && (

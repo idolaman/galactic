@@ -55,7 +55,12 @@ export const resolveNodePtySpawnHelperPath = (): string | null => {
       .resolve(path.dirname(unixTerminalPath), native.dir, "spawn-helper")
       .replace("app.asar", "app.asar.unpacked")
       .replace("node_modules.asar", "node_modules.asar.unpacked");
-  } catch {
+  } catch (error) {
+    console.error("Failed to resolve node-pty spawn-helper path", {
+      error,
+      helperName: "spawn-helper",
+    });
+
     return null;
   }
 };

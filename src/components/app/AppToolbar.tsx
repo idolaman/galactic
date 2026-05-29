@@ -30,7 +30,7 @@ export function AppToolbar({ user, onLogout }: AppToolbarProps) {
   const fallback = user.name.trim().charAt(0).toUpperCase() || "G";
 
   return (
-    <header className="sticky top-0 z-20 border-b border-border bg-background/95 supports-[backdrop-filter]:bg-background/85">
+    <header className="sticky top-0 z-20 border-b border-border bg-background/95 pt-[env(safe-area-inset-top)] supports-[backdrop-filter]:bg-background/85">
       <div className="flex h-12 items-center gap-3 px-3">
         <SidebarTrigger className="h-8 w-8" />
         <Separator orientation="vertical" className="hidden h-5 md:block" />
