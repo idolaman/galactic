@@ -1,4 +1,4 @@
-import { FolderGit2, GitBranch, RadioTower, Trash2, Users } from "lucide-react";
+import { FolderGit2, GitBranch, RadioTower, Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,6 @@ export interface ProjectListRowProps {
   onViewProject: (project: StoredProject) => void;
   project: StoredProject;
   serviceCount: number;
-  sessionCount: number;
 }
 
 export function ProjectListRow({
@@ -17,7 +16,6 @@ export function ProjectListRow({
   onViewProject,
   project,
   serviceCount,
-  sessionCount,
 }: ProjectListRowProps) {
   return (
     <div
@@ -54,10 +52,6 @@ export function ProjectListRow({
         <Badge variant="outline" className="hidden h-6 gap-1.5 px-2 text-xs md:inline-flex">
           <RadioTower className="h-3 w-3" />
           {serviceCount}
-        </Badge>
-        <Badge variant="outline" className="hidden h-6 gap-1.5 px-2 text-xs md:inline-flex">
-          <Users className="h-3 w-3" />
-          {sessionCount}
         </Badge>
         <Button
           size="icon"

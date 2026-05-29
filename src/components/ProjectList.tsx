@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { FolderGit2, Plus } from "lucide-react";
 
 import { ProjectListRow } from "@/components/ProjectListRow";
@@ -13,13 +13,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  buildVisibleWorkspaceSessionMap,
-  countVisibleProjectSessions,
-} from "@/lib/workspace-session-display";
 import { useDialogExitSnapshot } from "@/hooks/use-dialog-exit-snapshot";
 import type { StoredProject } from "@/services/projects";
-import { useSessionStore } from "@/stores/session-store";
 
 interface ProjectListProps {
   getProjectServiceCount: (projectId: string) => number;
@@ -41,16 +36,13 @@ export const ProjectList = ({
     snapshot: projectDeleteSnapshot,
     handleExitComplete: handleDeleteExitComplete,
   } = useDialogExitSnapshot(projectPendingDelete);
-  const sessions = useSessionStore((state) => state.sessions);
-  const sessionsByPath = useMemo(() => buildVisibleWorkspaceSessionMap(sessions), [sessions]);
-
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 border-b border-border pb-4 md:flex-row md:items-center md:justify-between">
         <div className="min-w-0">
           <h2 className="text-xl font-semibold leading-tight">Projects</h2>
           <p className="text-sm text-muted-foreground">
-            Repositories, branch workspaces, services, and agent sessions.
+            Repositories, branch workspaces, and services.
           </p>
         </div>
         <Button onClick={onAddProject} className="shrink-0">
@@ -66,7 +58,6 @@ export const ProjectList = ({
               key={project.id}
               project={project}
               serviceCount={getProjectServiceCount(project.id)}
-              sessionCount={countVisibleProjectSessions(project, sessionsByPath)}
               onViewProject={onViewProject}
               onDelete={setProjectPendingDelete}
             />

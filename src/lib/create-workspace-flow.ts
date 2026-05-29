@@ -59,6 +59,20 @@ export const resolveBranchSelection = (
 
 export const normalizeBaseBranch = (value: string): string => value.trim();
 
+const preferredBaseBranches = ["dev", "main", "master"] as const;
+
+const isPreferredBaseBranch = (branch: string): boolean =>
+  preferredBaseBranches.some((preferredBranch) => preferredBranch === branch);
+
+export const orderBaseBranchCandidates = (branches: string[]): string[] => {
+  const promotedBranches = preferredBaseBranches.filter((branch) =>
+    branches.includes(branch),
+  );
+  const remainingBranches = branches.filter((branch) => !isPreferredBaseBranch(branch));
+
+  return [...promotedBranches, ...remainingBranches];
+};
+
 export const filterBranchesByQuery = (
   branches: string[],
   query: string,

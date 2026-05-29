@@ -5,6 +5,7 @@ import {
   canCreateWorkspaceFromNewBranch,
   filterBranchesByQuery,
   normalizeBaseBranch,
+  orderBaseBranchCandidates,
   resolveCreateWorkspaceDialogVisibilityChange,
   resolveBranchSelection,
   shouldClearSelectedBaseBranch,
@@ -46,6 +47,36 @@ test("filterBranchesByQuery matches branches case-insensitively", () => {
 
 test("filterBranchesByQuery returns no branches when nothing matches", () => {
   assert.deepEqual(filterBranchesByQuery(["main", "develop"], "release"), []);
+});
+
+test("orderBaseBranchCandidates promotes preferred branches in order", () => {
+  assert.deepEqual(
+    orderBaseBranchCandidates(["feature/a", "master", "dev", "release", "main"]),
+    ["dev", "main", "master", "feature/a", "release"],
+  );
+});
+
+test("orderBaseBranchCandidates skips missing preferred branches", () => {
+  assert.deepEqual(orderBaseBranchCandidates(["release", "master", "feature/a"]), [
+    "master",
+    "release",
+    "feature/a",
+  ]);
+});
+
+test("orderBaseBranchCandidates keeps non-preferred branches in git order", () => {
+  assert.deepEqual(orderBaseBranchCandidates(["feature/b", "release", "hotfix"]), [
+    "feature/b",
+    "release",
+    "hotfix",
+  ]);
+});
+
+test("orderBaseBranchCandidates only promotes exact case-sensitive matches", () => {
+  assert.deepEqual(
+    orderBaseBranchCandidates(["develop", "main-fix", "Dev", "feature/a", "main"]),
+    ["main", "develop", "main-fix", "Dev", "feature/a"],
+  );
 });
 
 test("shouldClearSelectedBaseBranch returns false for matching normalized values", () => {

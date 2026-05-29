@@ -1,5 +1,6 @@
+import { Rocket } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
-import { Github } from "lucide-react";
 import Logo from "@/assets/logo.svg";
 
 interface GitHubAuthProps {
@@ -7,8 +8,7 @@ interface GitHubAuthProps {
 }
 
 export const GitHubAuth = ({ onAuthSuccess }: GitHubAuthProps) => {
-  const handleGitHubLogin = () => {
-    // Mock GitHub auth for now
+  const handleEnterGalactic = () => {
     setTimeout(() => {
       onAuthSuccess({
         name: "Developer",
@@ -27,12 +27,12 @@ export const GitHubAuth = ({ onAuthSuccess }: GitHubAuthProps) => {
           <div className="space-y-1">
             <h1 className="text-xl font-semibold">Galactic</h1>
             <p className="text-sm text-muted-foreground">
-              Developer workbench for projects, workspaces, and local services.
+              Code at Warp Speed
             </p>
           </div>
-          <Button onClick={handleGitHubLogin} className="w-full" size="lg">
-            <Github className="h-4 w-4" />
-            Continue with GitHub
+          <Button onClick={handleEnterGalactic} className="w-full" size="lg">
+            <Rocket className="h-4 w-4" />
+            Enter Galactic
           </Button>
           <p className="text-xs text-muted-foreground">
             Early Access Preview
