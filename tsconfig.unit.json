@@ -23,6 +23,7 @@
     "src/lib/auth-analytics.ts",
     "src/lib/auth-callback.ts",
     "src/lib/auth-sign-in-view-state.ts",
+    "src/lib/authenticated-app-view-state.ts",
     "src/lib/workspace-console.ts",
     "src/lib/create-workspace-toast.ts",
     "src/lib/create-workspace-flow.ts",

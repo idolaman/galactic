@@ -5,6 +5,8 @@ import { AppShell } from "@/components/app/AppShell";
 import { AppToolbar } from "@/components/app/AppToolbar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { AuthSignIn } from "@/components/AuthSignIn";
+import { QuickSidebarAuthLoading } from "@/components/QuickSidebar/QuickSidebarAuthLoading";
+import { QuickSidebarAuthRequired } from "@/components/QuickSidebar/QuickSidebarAuthRequired";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -14,6 +16,7 @@ import { WorkspaceConsoleProjectsLayout } from "@/components/WorkspaceConsole/Wo
 import { EnvironmentProvider } from "@/hooks/use-environment-manager";
 import { useAuth } from "@/hooks/use-auth";
 import { useUpdateListener } from "@/hooks/use-update";
+import { getAuthenticatedAppViewState } from "@/lib/authenticated-app-view-state";
 import Environments from "@/pages/Environments";
 import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
@@ -71,8 +74,21 @@ const QuickSidebarApp = () => (
 
 const AuthenticatedApp = ({ isQuickSidebar }: AuthenticatedAppProps) => {
   const { signOut, status, user } = useAuth();
+  const viewState = getAuthenticatedAppViewState({
+    hasUser: Boolean(user),
+    isQuickSidebar,
+    status,
+  });
 
-  if (status !== "authenticated" || !user) {
+  if (viewState === "quick-sidebar-auth-required") {
+    return <QuickSidebarAuthRequired />;
+  }
+
+  if (viewState === "quick-sidebar-auth-loading") {
+    return <QuickSidebarAuthLoading />;
+  }
+
+  if (viewState === "main-sign-in" || !user) {
     return <AuthSignIn />;
   }
 
