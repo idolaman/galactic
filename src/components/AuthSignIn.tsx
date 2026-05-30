@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef } from "react";
 import { Rocket } from "lucide-react";
 import type { IconType } from "react-icons";
 import { FaGithub } from "react-icons/fa";
@@ -8,6 +8,11 @@ import Logo from "@/assets/logo.svg";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
+import {
+  AUTH_SIGN_IN_RETRY_TIMEOUT_MS,
+  initialAuthSignInPendingState,
+  reduceAuthSignInPendingState,
+} from "@/lib/auth-sign-in-pending-state";
 import { getAuthSignInViewState } from "@/lib/auth-sign-in-view-state";
 import type { AuthProviderName } from "@/types/auth";
 
@@ -23,21 +28,64 @@ const providerButtons: ProviderButton[] = [
 
 export function AuthSignIn() {
   const { clearError, error, signIn } = useAuth();
-  const [isSignInPending, setIsSignInPending] = useState(false);
+  const [pendingState, dispatchPendingState] = useReducer(
+    reduceAuthSignInPendingState,
+    initialAuthSignInPendingState,
+  );
   const signInInFlightRef = useRef(false);
-  const viewState = getAuthSignInViewState({ isSignInPending });
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const viewState = getAuthSignInViewState({
+    isSignInPending: pendingState.isSignInPending,
+  });
+
+  const clearRetryTimer = useCallback(() => {
+    if (!retryTimerRef.current) return;
+    clearTimeout(retryTimerRef.current);
+    retryTimerRef.current = null;
+  }, []);
+
+  const releasePendingSignIn = useCallback(() => {
+    clearRetryTimer();
+    signInInFlightRef.current = false;
+    dispatchPendingState({ type: "released" });
+  }, [clearRetryTimer]);
+
+  useEffect(() => {
+    return clearRetryTimer;
+  }, [clearRetryTimer]);
+
+  useEffect(() => {
+    if (error && pendingState.isSignInPending) {
+      releasePendingSignIn();
+    }
+  }, [error, pendingState.isSignInPending, releasePendingSignIn]);
+
+  useEffect(() => {
+    if (!pendingState.shouldScheduleRetry) return;
+
+    clearRetryTimer();
+    retryTimerRef.current = setTimeout(
+      releasePendingSignIn,
+      AUTH_SIGN_IN_RETRY_TIMEOUT_MS,
+    );
+  }, [
+    clearRetryTimer,
+    pendingState.shouldScheduleRetry,
+    releasePendingSignIn,
+  ]);
 
   const handleSignIn = async (provider: AuthProviderName) => {
-    if (signInInFlightRef.current) return;
+    if (signInInFlightRef.current || pendingState.isSignInPending) return;
 
     signInInFlightRef.current = true;
-    setIsSignInPending(true);
+    dispatchPendingState({ type: "start_requested" });
     clearError();
     try {
-      await signIn(provider);
-    } finally {
-      setIsSignInPending(false);
+      const started = await signIn(provider);
       signInInFlightRef.current = false;
+      dispatchPendingState({ started, type: "start_completed" });
+    } catch {
+      releasePendingSignIn();
     }
   };
 

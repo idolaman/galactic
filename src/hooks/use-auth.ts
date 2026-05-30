@@ -5,7 +5,7 @@ import type { AuthProviderName, AuthSessionState, AuthStatus } from "@/types/aut
 export interface AuthContextValue extends AuthSessionState {
   clearError: () => void;
   error: string | null;
-  signIn: (provider: AuthProviderName) => Promise<void>;
+  signIn: (provider: AuthProviderName) => Promise<boolean>;
   signOut: () => Promise<void>;
   status: AuthStatus;
 }

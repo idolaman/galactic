@@ -104,7 +104,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const result = await startOAuthSignIn(provider);
     if (!result.success) {
       setError(result.error ?? "Unable to start sign-in.");
+      return false;
     }
+    return true;
   }, []);
 
   const signOut = useCallback(async () => {
