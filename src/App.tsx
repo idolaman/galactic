@@ -36,24 +36,24 @@ const MainApp = () => {
     <EnvironmentProvider key={user.id}>
       <WorkspaceIsolationManagerProvider>
         <HashRouter>
-          <SidebarProvider defaultOpen>
-            <div className="flex h-svh w-full bg-transparent">
-              <AppSidebar />
-              <SidebarInset>
-                <Header user={user} onLogout={() => void signOut()} />
-                <div className="flex-1 overflow-hidden">
-                  <div className="h-full overflow-auto">
+          <WorkspaceConsoleProvider>
+            <SidebarProvider defaultOpen>
+              <div className="flex h-svh w-full overflow-hidden bg-transparent">
+                <AppSidebar />
+                <SidebarInset className="h-svh min-h-0 overflow-hidden">
+                  <Header user={user} onLogout={() => void signOut()} />
+                  <WorkspaceConsoleProjectsLayout>
                     <Routes>
                       <Route path="/" element={<Index />} />
                       <Route path="/environments" element={<Environments />} />
                       <Route path="/settings" element={<Settings />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
-                  </div>
-                </div>
-              </SidebarInset>
-            </div>
-          </SidebarProvider>
+                  </WorkspaceConsoleProjectsLayout>
+                </SidebarInset>
+              </div>
+            </SidebarProvider>
+          </WorkspaceConsoleProvider>
         </HashRouter>
       </WorkspaceIsolationManagerProvider>
     </EnvironmentProvider>
@@ -94,27 +94,6 @@ const App = () => {
     <QuickSidebarApp />
   ) : (
     <MainApp />
-    <HashRouter>
-      <WorkspaceConsoleProvider>
-        <SidebarProvider defaultOpen>
-          <div className="flex h-svh w-full overflow-hidden bg-transparent">
-            <AppSidebar />
-            <SidebarInset className="h-svh min-h-0 overflow-hidden">
-              <Header user={user} onLogout={handleLogout} />
-              <WorkspaceConsoleProjectsLayout>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/environments" element={<Environments />} />
-                  <Route path="/settings" element={<Settings />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </WorkspaceConsoleProjectsLayout>
-            </SidebarInset>
-          </div>
-        </SidebarProvider>
-      </WorkspaceConsoleProvider>
-    </HashRouter>
   );
 
   return (

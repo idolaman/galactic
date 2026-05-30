@@ -36,7 +36,7 @@
     "src/services/local-storage-keys.ts",
     "src/services/local-storage-migration.ts",
     "src/services/local-storage-scope.ts",
-    "src/types/auth.ts"
+    "src/types/auth.ts",
     "src/services/workspace-console.ts",
     "src/types/workspace-console.ts"
   ]
