@@ -42,6 +42,7 @@ const isWorkspaceConsoleSession = (value: unknown): value is WorkspaceConsoleSes
     isString(session.sessionId) &&
     isString(session.workspacePath) &&
     isString(session.workspaceLabel) &&
+    (session.projectName === undefined || isString(session.projectName)) &&
     isString(session.cwd) &&
     isString(session.status) &&
     statuses.has(session.status) &&

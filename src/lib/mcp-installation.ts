@@ -8,13 +8,12 @@ export interface McpInstallResult {
 export interface McpInstallToast {
   title: string;
   description: string;
-  variant: "destructive";
 }
 
 interface HandleMcpInstallResultOptions {
   result: McpInstallResult;
   refreshStatus: () => Promise<void>;
-  toast: (options: McpInstallToast) => void;
+  toast: { error: (options: McpInstallToast) => unknown };
   tool: McpToolName;
 }
 
@@ -31,9 +30,8 @@ export const handleMcpInstallResult = async ({
     return;
   }
 
-  toast({
+  toast.error({
     title: "Installation Failed",
     description: result.error ?? `Failed to install MCP for ${tool}.`,
-    variant: "destructive",
   });
 };

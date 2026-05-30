@@ -1,44 +1,28 @@
 import { FolderGit2, GitBranch, HardDrive } from "lucide-react";
 import { CommandGroup } from "@/components/ui/command";
+import type { QuickLauncherProjectResult } from "@/lib/quick-launcher-results";
 import { normalizeWorkspacePath } from "@/lib/workspace-session-display";
 import type { SessionSummary } from "@/services/session-rpc";
-import type { StoredProject } from "@/services/projects";
 import { QuickSidebarWorkspaceSection } from "@/components/QuickSidebar/QuickSidebarWorkspaceSection";
 
 export interface QuickSidebarProjectGroupProps {
-  project: StoredProject;
-  search: string;
+  result: QuickLauncherProjectResult;
   sessionsByPath: Map<string, SessionSummary[]>;
   onLaunch: (path: string) => void | Promise<void>;
 }
 
-const matchesSearch = (search: string, text: string) =>
-  !search || text.toLowerCase().includes(search);
-
 export function QuickSidebarProjectGroup({
-  project,
-  search,
+  result,
   sessionsByPath,
   onLaunch,
 }: QuickSidebarProjectGroupProps) {
+  const { project, showRoot, workspaces } = result;
   const rootSessions = sessionsByPath.get(normalizeWorkspacePath(project.path)) ?? [];
-  const showRoot =
-    !search ||
-    matchesSearch(search, project.name) ||
-    matchesSearch(search, "root");
-  const filteredWorkspaces = (project.workspaces ?? []).flatMap((workspace, index) =>
-    search &&
-    !matchesSearch(search, workspace.name) &&
-    !matchesSearch(search, "worktree") &&
-    !matchesSearch(search, project.name)
-      ? []
-      : [{ index, workspace }],
-  );
 
   return (
     <CommandGroup
       heading={
-        <div className="flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white/30">
+        <div className="flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
           <FolderGit2 className="h-3 w-3" />
           <span>{project.name}</span>
         </div>
@@ -56,7 +40,7 @@ export function QuickSidebarProjectGroup({
           sessions={rootSessions}
         />
       )}
-      {filteredWorkspaces.map(({ index, workspace }) => (
+      {workspaces.map(({ index, workspace }) => (
         <QuickSidebarWorkspaceSection
           key={workspace.workspace}
           icon={GitBranch}

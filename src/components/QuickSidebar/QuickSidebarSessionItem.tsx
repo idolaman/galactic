@@ -26,18 +26,18 @@ const getStatusConfig = (session: SessionSummary): StatusConfig => {
       (session.estimated_duration ?? 0) * 2000;
 
   if (isDone) {
-    return { label: "Completed", icon: Check, color: "text-emerald-400" };
+    return { label: "Completed", icon: Check, color: "text-success" };
   }
 
   if (isApproval) {
-    return { label: "Needs Action", icon: AlertCircle, color: "text-amber-400" };
+    return { label: "Needs Action", icon: AlertCircle, color: "text-warning" };
   }
 
   if (isOverdue) {
-    return { label: "Slow", icon: Clock, color: "text-orange-400" };
+    return { label: "Slow", icon: Clock, color: "text-warning" };
   }
 
-  return { label: "Running", icon: Loader2, color: "text-blue-400" };
+  return { label: "Running", icon: Loader2, color: "text-primary" };
 };
 
 export function QuickSidebarSessionItem({ session }: QuickSidebarSessionItemProps) {
@@ -67,19 +67,19 @@ export function QuickSidebarSessionItem({ session }: QuickSidebarSessionItemProp
     >
       <div
         className={cn(
-          "absolute bottom-0 left-5 top-[-50%] w-px bg-white/10 transition-opacity group-last/session:bottom-1/2",
+          "absolute bottom-0 left-5 top-[-50%] w-px bg-border transition-opacity group-last/session:bottom-1/2",
           isExiting && "opacity-0",
         )}
       />
       <div
         className={cn(
-          "absolute left-5 top-1/2 h-px w-4 bg-white/10 transition-all",
+          "absolute left-5 top-1/2 h-px w-4 bg-border transition-all",
           isExiting && "opacity-0",
         )}
       />
       <div
         className={cn(
-          "relative flex h-7 items-center gap-2.5 overflow-hidden rounded-md border border-transparent bg-transparent px-2 pr-2 transition-all duration-200 hover:bg-white/[0.04] group-data-[selected=true]:border-white/5 group-data-[selected=true]:bg-white/[0.06] group-hover/session:border-white/5",
+          "relative flex h-7 items-center gap-2.5 overflow-hidden rounded-md border border-transparent bg-transparent px-2 pr-2 transition-colors hover:bg-muted/50 group-data-[selected=true]:border-border group-data-[selected=true]:bg-muted/60",
           isExiting && "scale-[0.98] blur-[2px]",
         )}
       >
@@ -97,13 +97,13 @@ export function QuickSidebarSessionItem({ session }: QuickSidebarSessionItemProp
           <span
             className={cn(
               "flex-1 truncate text-[11px] font-medium transition-colors",
-              isDone ? "text-slate-500" : "text-slate-300 group-hover/session:text-slate-200",
+              isDone ? "text-muted-foreground" : "text-foreground",
             )}
           >
             {session.title}
           </span>
           {session.started_at && (
-            <span className="shrink-0 font-mono text-[9px] text-slate-600 opacity-0 transition-opacity group-data-[selected=true]:opacity-100 group-hover/session:opacity-100">
+            <span className="shrink-0 font-mono text-[9px] text-muted-foreground opacity-0 transition-opacity group-data-[selected=true]:opacity-100 group-hover/session:opacity-100">
               {new Date(session.started_at).toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
@@ -113,7 +113,7 @@ export function QuickSidebarSessionItem({ session }: QuickSidebarSessionItemProp
         </div>
         <button
           onClick={handleDismiss}
-          className="flex h-4 w-4 -mr-1 items-center justify-center rounded text-slate-500 opacity-0 transition-all duration-200 group-data-[selected=true]:opacity-100 group-hover/session:opacity-100 hover:bg-white/10 hover:text-slate-300"
+          className="flex h-4 w-4 -mr-1 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity group-data-[selected=true]:opacity-100 group-hover/session:opacity-100 hover:bg-muted hover:text-foreground"
           title={isDone ? "Clear session" : "Dismiss session"}
         >
           <X className="h-2.5 w-2.5" />

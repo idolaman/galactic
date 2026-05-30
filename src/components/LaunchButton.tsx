@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
-import { cn } from "@/lib/utils";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,8 +11,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { setLaunchedEnvironment } from "@/services/workspace-state";
+import { Button } from "@/components/ui/button";
 import { useWorkspaceNeedsRelaunch } from "@/hooks/use-workspace-relaunch";
+import { cn } from "@/lib/utils";
+import { setLaunchedEnvironment } from "@/services/workspace-state";
 
 export interface LaunchButtonProps {
   path: string;
@@ -21,6 +22,7 @@ export interface LaunchButtonProps {
   onLaunch: (path: string) => void;
   children: React.ReactNode;
   className?: string;
+  size?: "default" | "sm" | "lg" | "icon";
   variant?: "default" | "secondary" | "ghost" | "destructive" | "outline" | "link";
 }
 
@@ -30,6 +32,7 @@ export const LaunchButton = ({
   onLaunch,
   children,
   className,
+  size = "default",
   variant = "default",
 }: LaunchButtonProps) => {
   const [showDialog, setShowDialog] = useState(false);
@@ -46,6 +49,7 @@ export const LaunchButton = ({
       <Button
         onClick={handleLaunch}
         className={className}
+        size={size}
         variant={variant}
       >
         {children}
@@ -58,6 +62,7 @@ export const LaunchButton = ({
       <Button
         onClick={() => setShowDialog(true)}
         className={cn(className, "bg-orange-600 hover:bg-orange-700 text-white border-orange-700")}
+        size={size}
         variant={variant}
       >
         <RefreshCw className="mr-2 h-4 w-4" />
@@ -92,4 +97,3 @@ export const LaunchButton = ({
     </>
   );
 };
-

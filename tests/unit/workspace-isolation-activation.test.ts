@@ -4,6 +4,7 @@ import {
   createWorkspaceActivationTargets,
   getInitialWorkspaceActivationTargetPath,
   getSelectableWorkspaceActivationTargets,
+  getStableWorkspaceActivationTargets,
   getWorkspaceActivationButtonLabel,
   getWorkspaceActivationTarget,
   shouldOfferWorkspaceActivation,
@@ -64,6 +65,38 @@ test("workspace activation helpers filter active workspaces and default to the f
   assert.equal(
     getWorkspaceActivationTarget(targets, "/repo-auth")?.label,
     "feature/auth",
+  );
+});
+
+test("workspace activation targets can stay stable while activation closes", () => {
+  const previousTargets = createWorkspaceActivationTargets({
+    workspaceRootPath: "/repo",
+    workspaceRootLabel: "Repository Root",
+    workspaces: [{ name: "feature/auth", workspace: "/repo-auth" }],
+    workspaceIsolationStacks: [],
+  });
+  const updatedTargets = createWorkspaceActivationTargets({
+    workspaceRootPath: "/repo",
+    workspaceRootLabel: "Repository Root",
+    workspaces: [{ name: "feature/auth", workspace: "/repo-auth" }],
+    workspaceIsolationStacks: [{ workspaceRootPath: "/repo" }],
+  });
+
+  assert.deepEqual(
+    getStableWorkspaceActivationTargets(
+      updatedTargets,
+      previousTargets,
+      true,
+    ),
+    previousTargets,
+  );
+  assert.deepEqual(
+    getStableWorkspaceActivationTargets(
+      updatedTargets,
+      previousTargets,
+      false,
+    ),
+    updatedTargets,
   );
 });
 

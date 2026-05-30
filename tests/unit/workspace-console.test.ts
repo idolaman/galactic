@@ -3,10 +3,10 @@ import test from "node:test";
 import {
   findWorkspaceConsoleSessionForWorkspace,
   getWorkspaceConsolePresentation,
+  getWorkspaceConsoleTabLabel,
   runWorkspaceConsoleOpenRequest,
   shouldShowWorkspaceConsoleDock,
   shouldShowWorkspaceConsoleRestoreBar,
-  shouldConfirmWorkspaceConsoleClose,
 } from "../../src/lib/workspace-console.js";
 import {
   createWorkspaceConsoleSession,
@@ -29,10 +29,12 @@ const createSession = (
   sessionId: string,
   workspacePath: string,
   status: WorkspaceConsoleSession["status"] = "running",
+  projectName?: string,
 ): WorkspaceConsoleSession => ({
   sessionId,
   workspacePath,
   workspaceLabel: workspacePath,
+  ...(projectName ? { projectName } : {}),
   cwd: workspacePath,
   status,
   title: workspacePath,
@@ -71,21 +73,24 @@ test("workspace console event guard accepts valid events and rejects malformed o
     }),
     false,
   );
+  assert.equal(
+    isWorkspaceConsoleEvent({
+      type: "created",
+      session: { ...createSession("s1", "/repo"), projectName: 42 },
+    }),
+    false,
+  );
 });
 
-test("workspace console close confirmation is only required for live sessions", () => {
-  const cases: Array<[WorkspaceConsoleSession["status"], boolean]> = [
-    ["running", true],
-    ["starting", true],
-    ["exited", false],
-  ];
+test("workspace console tab labels combine workspace and project names", () => {
+  const session = {
+    ...createSession("s1", "/repo", "running", "Galactic"),
+    workspaceLabel: "Repository Root",
+    title: "npm dev",
+  };
 
-  for (const [status, expected] of cases) {
-    assert.equal(
-      shouldConfirmWorkspaceConsoleClose(createSession("s1", "/repo", status)),
-      expected,
-    );
-  }
+  assert.equal(getWorkspaceConsoleTabLabel(session), "Repository Root / Galactic");
+  assert.equal(getWorkspaceConsoleTabLabel(createSession("s2", "/repo/api")), "/repo/api");
 });
 
 test("workspace console chooses an existing session for a workspace", () => {

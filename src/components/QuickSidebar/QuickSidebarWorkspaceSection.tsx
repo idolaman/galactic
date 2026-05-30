@@ -6,7 +6,7 @@ import { QuickSidebarSessionItem } from "@/components/QuickSidebar/QuickSidebarS
 
 interface ToneConfig {
   accentText: string;
-  activeBackground: string;
+  iconBackground: string;
 }
 
 export interface QuickSidebarWorkspaceSectionProps {
@@ -21,14 +21,12 @@ export interface QuickSidebarWorkspaceSectionProps {
 
 const toneConfig: Record<QuickSidebarWorkspaceSectionProps["tone"], ToneConfig> = {
   root: {
-    accentText: "text-indigo-400/80",
-    activeBackground:
-      "group-data-[selected=true]:from-indigo-600 group-data-[selected=true]:to-indigo-700",
+    accentText: "text-primary",
+    iconBackground: "bg-primary/10 text-primary",
   },
   workspace: {
-    accentText: "text-cyan-400/80",
-    activeBackground:
-      "group-data-[selected=true]:from-cyan-600 group-data-[selected=true]:to-cyan-700",
+    accentText: "text-success",
+    iconBackground: "bg-success/10 text-success",
   },
 };
 
@@ -46,36 +44,36 @@ export function QuickSidebarWorkspaceSection({
   return (
     <div className="relative mt-0.5">
       {sessions.length > 0 && (
-        <div className="absolute bottom-0 left-5 top-5 w-px bg-white/10" />
+        <div className="absolute bottom-0 left-5 top-5 w-px bg-border" />
       )}
       <CommandItem
         value={itemValue}
         onSelect={onSelect}
-        className="group relative my-0.5 flex cursor-pointer select-none flex-col rounded-lg p-0 outline-none transition-all duration-200 data-[selected=true]:bg-white/5"
+        className="group relative my-0.5 flex cursor-pointer select-none flex-col rounded-md p-0 outline-none transition-colors data-[selected=true]:bg-accent"
       >
-        <div className="relative flex w-full items-center gap-3 rounded-lg border border-transparent px-2 py-1.5 transition-all group-data-[selected=true]:border-white/5">
+        <div className="relative flex w-full items-center gap-3 rounded-md border border-transparent px-2 py-1.5 transition-colors group-data-[selected=true]:border-border">
           <div
             className={cn(
-              "z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded border border-white/10 bg-gradient-to-br from-slate-800 to-slate-900 text-slate-400 transition-all group-data-[selected=true]:border-transparent group-data-[selected=true]:text-white",
-              styles.activeBackground,
+              "z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded border transition-colors",
+              styles.iconBackground,
             )}
           >
             <Icon className="h-3.5 w-3.5" />
           </div>
           <div className="flex min-w-0 flex-1 items-baseline gap-2 overflow-hidden">
-            <span className="truncate text-xs font-semibold text-slate-300 transition-colors group-data-[selected=true]:text-white">
+            <span className="truncate text-xs font-semibold text-foreground">
               {label}
             </span>
             <span
               className={cn(
-                "truncate text-[10px] text-slate-600",
+                "truncate text-[10px] text-muted-foreground",
                 tone === "root" ? "hidden font-mono sm:inline-block max-w-[200px]" : "",
               )}
             >
               {meta}
             </span>
           </div>
-          <div className="flex items-center gap-1 text-[10px] text-white/40 opacity-0 transition-all group-data-[selected=true]:opacity-100">
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground opacity-0 transition-opacity group-data-[selected=true]:opacity-100">
             <span className={styles.accentText}>Open</span>
             <kbd className="font-sans">↵</kbd>
           </div>

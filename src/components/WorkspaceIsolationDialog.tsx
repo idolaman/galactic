@@ -1,14 +1,12 @@
 import { useState } from "react";
-import { WorkspaceIsolationDialogBody } from "@/components/WorkspaceIsolationDialogBody";
-import { WorkspaceIsolationDialogFooter } from "@/components/WorkspaceIsolationDialogFooter";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { WorkspaceIsolationDialogActions } from "@/components/WorkspaceIsolationDialogActions";
+import { WorkspaceIsolationDialogBodyFrame } from "@/components/WorkspaceIsolationDialogBodyFrame";
+import { WorkspaceIsolationDialogHeader } from "@/components/WorkspaceIsolationDialogHeader";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useDialogExitSnapshot } from "@/hooks/use-dialog-exit-snapshot";
 import { useWorkspaceIsolationDialog } from "@/hooks/use-workspace-isolation-dialog";
 import { useWorkspaceIsolationManager } from "@/hooks/use-workspace-isolation-manager";
 import { useAppToast } from "@/hooks/use-app-toast";
-import {
-  getWorkspaceIsolationDialogDescription,
-  getWorkspaceIsolationDialogTitle,
-} from "@/lib/workspace-isolation-dialog-copy";
 import { WORKSPACE_ISOLATION_DIALOG_CONTENT_CLASS_NAME } from "@/lib/workspace-isolation-dialog-layout";
 import {
   trackWorkspaceIsolationAutoEnvEnableAttempted,
@@ -37,6 +35,11 @@ export const WorkspaceIsolationDialog = ({
   activationTargets,
   stack,
 }: WorkspaceIsolationDialogProps) => {
+  const {
+    snapshot: stackSnapshot,
+    handleExitComplete: handleStackExitComplete,
+  } = useDialogExitSnapshot(stack ?? null);
+  const displayStack = stack ?? stackSnapshot;
   const state = useWorkspaceIsolationDialog({
     open,
     onOpenChange,
@@ -45,7 +48,7 @@ export const WorkspaceIsolationDialog = ({
     workspaceRootLabel,
     projectName,
     activationTargets,
-    stack,
+    stack: displayStack,
   });
   const { setShellHooksEnabled } = useWorkspaceIsolationManager();
   const { error } = useAppToast();
@@ -69,15 +72,24 @@ export const WorkspaceIsolationDialog = ({
     }
   };
 
+  const handleDialogExitComplete = () => {
+    state.handleDialogExitComplete();
+    handleStackExitComplete();
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={WORKSPACE_ISOLATION_DIALOG_CONTENT_CLASS_NAME}>
-        <DialogHeader className="shrink-0">
-          <DialogTitle>{getWorkspaceIsolationDialogTitle(state.step, Boolean(stack))}</DialogTitle>
-          <DialogDescription>{getWorkspaceIsolationDialogDescription(state.step)}</DialogDescription>
-        </DialogHeader>
+      <DialogContent
+        className={WORKSPACE_ISOLATION_DIALOG_CONTENT_CLASS_NAME}
+        onExitComplete={handleDialogExitComplete}
+      >
+        <WorkspaceIsolationDialogHeader
+          isEditing={Boolean(displayStack)}
+          step={state.step}
+          useFullSetupSteps={state.useFullSetupSteps}
+        />
 
-        <WorkspaceIsolationDialogBody
+        <WorkspaceIsolationDialogBodyFrame
           step={state.step}
           projectId={projectId}
           projectName={projectName}
@@ -102,9 +114,9 @@ export const WorkspaceIsolationDialog = ({
           onSelectActivationTarget={state.handleSelectActivationTarget}
         />
 
-        <WorkspaceIsolationDialogFooter
+        <WorkspaceIsolationDialogActions
           step={state.step}
-          isEditing={Boolean(stack)}
+          isEditing={Boolean(displayStack)}
           showFeatureIntroStep={state.showFeatureIntroStep}
           isEnablingLocalEnv={isEnablingLocalEnv}
           activationButtonLabel={state.activationButtonLabel}

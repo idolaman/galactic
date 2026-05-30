@@ -645,6 +645,12 @@ const Index = () => {
     void loadProjectBranches(selectedProject);
   }, [loadProjectBranches, selectedProject]);
 
+  const getProjectServiceCount = useCallback(
+    (projectId: string) =>
+      workspaceIsolationTopologyForProject(projectId)?.services.length ?? 0,
+    [workspaceIsolationTopologyForProject],
+  );
+
   return (
     <div className="space-y-8 p-6">
       {selectedProject ? (
@@ -674,6 +680,7 @@ const Index = () => {
       ) : (
         <ProjectList
           projects={projects}
+          getProjectServiceCount={getProjectServiceCount}
           onAddProject={handleAddProject}
           onViewProject={handleViewProject}
           onDeleteProject={handleDeleteProject}

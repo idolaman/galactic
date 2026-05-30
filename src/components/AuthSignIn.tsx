@@ -42,15 +42,13 @@ export function AuthSignIn() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-transparent p-4">
-      <Card className="relative z-10 w-full max-w-sm border-white/10 bg-card/70 p-8 shadow-2xl backdrop-blur-xl">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-sm border-border bg-card p-6 shadow-sm">
         <div className="flex flex-col items-center gap-6 text-center">
           <div className="flex flex-col items-center gap-4">
-            <img src={Logo} alt="Galactic Logo" className="h-16 w-16" />
+            <img src={Logo} alt="Galactic Logo" className="h-12 w-12 rounded-md" />
             <div className="flex flex-col gap-2">
-              <h1 className="bg-gradient-to-r from-white to-indigo-300 bg-clip-text text-4xl font-bold text-transparent">
-                Galactic
-              </h1>
+              <h1 className="text-2xl font-semibold text-foreground">Galactic</h1>
               <p className="text-sm text-muted-foreground">Sign in to continue</p>
             </div>
           </div>

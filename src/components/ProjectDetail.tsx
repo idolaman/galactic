@@ -1,11 +1,12 @@
 import { FileCode, Info } from "lucide-react";
+
 import { ProjectDetailHeader } from "@/components/ProjectDetailHeader";
 import { ProjectSyncTargets } from "@/components/ProjectSyncTargets";
 import { ProjectWorkspacesSection } from "@/components/ProjectWorkspacesSection";
 import type { CreateWorkspaceRequest } from "@/lib/create-workspace-request";
-import type { Workspace } from "@/types/workspace";
 import type { Environment, EnvironmentBinding } from "@/types/environment";
 import type { SyncTarget } from "@/types/sync-target";
+import type { Workspace } from "@/types/workspace";
 
 interface ProjectDetailProps {
   project: {
@@ -91,22 +92,26 @@ export const ProjectDetail = ({
     />
 
     {project.isGitRepo ? (
-      <div className="space-y-4 border-t border-border pt-6">
-        <div className="flex flex-col gap-4">
-          <h2 className="flex items-center gap-2 text-xl font-bold text-foreground/80">
-            <FileCode className="h-5 w-5" />
-            Workspace Config Sync
-          </h2>
-
-          <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-            <Info className="mt-0.5 h-4 w-4" />
-            <div className="space-y-1">
-              <p className="font-medium text-foreground">Sync your .env files</p>
-              <p className="text-xs">
-                Files and folders selected here will be automatically synced
-                from <code className="rounded bg-muted/50 px-1 font-mono">{project.path}</code> into every new workspace, replacing matching paths.
+      <div className="space-y-4 border-t border-border pt-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground">
+              <FileCode className="h-4 w-4" />
+            </span>
+            <div className="min-w-0">
+              <h2 className="truncate text-base font-semibold">Config sync</h2>
+              <p className="truncate text-xs text-muted-foreground">
+                Files copied from the repository root into new workspaces.
               </p>
             </div>
+          </div>
+
+          <div className="flex items-start gap-2 text-xs text-muted-foreground sm:max-w-md">
+            <Info className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>
+              Matching paths are replaced when a workspace is created, including selected
+              <code className="rounded bg-muted px-1 font-mono">.env</code> files.
+            </p>
           </div>
         </div>
 

@@ -47,7 +47,7 @@ export const WorkspaceIsolationServices = ({
                 </div>
                 <ChevronDown
                   className={cn(
-                    "h-4 w-4 shrink-0 text-muted-foreground/50 transition-all duration-200 group-hover:text-muted-foreground",
+                    "h-4 w-4 shrink-0 text-muted-foreground/50 transition-all duration-200 ease-out group-hover:text-muted-foreground",
                     open && "rotate-180 text-foreground"
                   )}
                 />

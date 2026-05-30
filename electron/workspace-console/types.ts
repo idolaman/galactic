@@ -4,6 +4,7 @@ export interface WorkspaceConsoleSessionSummary {
   sessionId: string;
   workspacePath: string;
   workspaceLabel: string;
+  projectName?: string;
   cwd: string;
   status: WorkspaceConsoleStatus;
   title: string;
@@ -15,6 +16,7 @@ export interface WorkspaceConsoleSessionSummary {
 export interface CreateWorkspaceConsoleSessionInput {
   workspacePath: string;
   workspaceLabel?: string;
+  projectName?: string;
   cwd?: string;
   cols?: number;
   rows?: number;

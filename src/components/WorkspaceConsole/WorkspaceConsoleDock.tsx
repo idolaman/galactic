@@ -1,13 +1,8 @@
-import { useState } from "react";
-import { WorkspaceConsoleCloseDialog } from "@/components/WorkspaceConsole/WorkspaceConsoleCloseDialog";
+import { SquareTerminal } from "lucide-react";
 import { useWorkspaceConsole } from "@/components/WorkspaceConsole/WorkspaceConsoleContext";
-import { WorkspaceConsoleDockHeader } from "@/components/WorkspaceConsole/WorkspaceConsoleDockHeader";
 import { WorkspaceConsoleTabRow } from "@/components/WorkspaceConsole/WorkspaceConsoleTabRow";
 import { WorkspaceConsoleTerminalView } from "@/components/WorkspaceConsole/WorkspaceConsoleTerminalView";
-import {
-  shouldConfirmWorkspaceConsoleClose,
-  type WorkspaceConsolePresentation,
-} from "@/lib/workspace-console";
+import type { WorkspaceConsolePresentation } from "@/lib/workspace-console";
 import { cn } from "@/lib/utils";
 import type { WorkspaceConsoleSession } from "@/types/workspace-console";
 
@@ -22,47 +17,39 @@ interface WorkspaceConsoleDockProps {
 
 export const WorkspaceConsoleDock = ({ presentation }: WorkspaceConsoleDockProps) => {
   const consoleState = useWorkspaceConsole();
-  const [pendingCloseSession, setPendingCloseSession] =
-    useState<WorkspaceConsoleSession | null>(null);
   const expanded = presentation === "expanded";
+  const handleToggleSize = expanded
+    ? consoleState.collapseConsole
+    : consoleState.expandConsole;
 
   const handleCloseSession = (session: WorkspaceConsoleSession) => {
-    if (shouldConfirmWorkspaceConsoleClose(session)) {
-      setPendingCloseSession(session);
-      return;
-    }
     void consoleState.closeSession(session.sessionId);
-  };
-
-  const handleConfirmClose = () => {
-    if (pendingCloseSession) {
-      void consoleState.closeSession(pendingCloseSession.sessionId);
-    }
-    setPendingCloseSession(null);
   };
 
   return (
     <section
       className={cn(
-        "flex flex-col overflow-hidden border-t border-border bg-background shadow-2xl",
+        "flex flex-col overflow-hidden border-t border-border bg-card",
         expanded
           ? "min-h-0 flex-1"
-          : "h-80 min-h-48 max-h-[60svh] shrink-0",
+          : "h-96 min-h-64 max-h-[60svh] shrink-0",
       )}
     >
-      <WorkspaceConsoleDockHeader expanded={expanded} />
-
       <WorkspaceConsoleTabRow
         activeSessionId={consoleState.activeSession?.sessionId ?? null}
+        expanded={expanded}
         onCloseSession={handleCloseSession}
         onFocusSession={consoleState.focusSession}
+        onHide={consoleState.hideDock}
+        onToggleSize={handleToggleSize}
         sessions={consoleState.sessions}
       />
 
-      <div className="min-h-0 flex-1 overflow-hidden bg-black">
+      <div className="min-h-0 flex-1 overflow-hidden bg-zinc-950">
         {consoleState.sessions.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-            No terminal sessions
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-zinc-400">
+            <SquareTerminal className="h-5 w-5 text-zinc-500" />
+            <span>No terminal sessions</span>
           </div>
         ) : (
           consoleState.sessions.map((session) => (
@@ -74,14 +61,6 @@ export const WorkspaceConsoleDock = ({ presentation }: WorkspaceConsoleDockProps
           ))
         )}
       </div>
-
-      <WorkspaceConsoleCloseDialog
-        session={pendingCloseSession}
-        onOpenChange={(open) => {
-          if (!open) setPendingCloseSession(null);
-        }}
-        onConfirm={handleConfirmClose}
-      />
     </section>
   );
 };

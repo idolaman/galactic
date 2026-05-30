@@ -1,19 +1,14 @@
-import { useRef, useState } from "react";
-import type { CreateWorkspaceRequest } from "@/lib/create-workspace-request";
+import { useState } from "react";
+import { useCreateWorkspaceBaseBranches } from "@/hooks/use-create-workspace-base-branches";
 import {
   resolveCreateWorkspaceDialogVisibilityChange,
   shouldClearSelectedBaseBranch,
+  shouldClearSelectedWorkspaceBranch,
 } from "@/lib/create-workspace-flow";
-import { listBranches } from "@/services/git";
-
-interface UseCreateWorkspaceDialogOptions {
-  projectPath: string;
-  isCreatingWorkspace: boolean;
-  onCreateWorkspace: (request: CreateWorkspaceRequest) => Promise<boolean>;
-  onLoadBranches?: () => void | Promise<void>;
-}
-
-type CreateWorkspaceStep = "branch" | "base";
+import type {
+  CreateWorkspaceStep,
+  UseCreateWorkspaceDialogOptions,
+} from "@/types/create-workspace-dialog";
 
 export const useCreateWorkspaceDialog = ({
   projectPath,
@@ -21,49 +16,34 @@ export const useCreateWorkspaceDialog = ({
   onCreateWorkspace,
   onLoadBranches,
 }: UseCreateWorkspaceDialogOptions) => {
-  const requestIdRef = useRef(0);
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState<CreateWorkspaceStep>("branch");
   const [branchInput, setBranchInput] = useState("");
+  const [selectedExistingBranch, setSelectedExistingBranch] = useState("");
   const [pendingNewBranch, setPendingNewBranch] = useState("");
   const [baseBranchInput, setBaseBranchInput] = useState("");
   const [selectedBaseBranch, setSelectedBaseBranch] = useState("");
-  const [baseBranches, setBaseBranches] = useState<string[]>([]);
-  const [isLoadingBaseBranches, setIsLoadingBaseBranches] = useState(false);
-
+  const [isClosingAfterCreate, setIsClosingAfterCreate] = useState(false);
+  const {
+    baseBranches,
+    isLoadingBaseBranches,
+    loadBaseBranches,
+    resetBaseBranches,
+  } = useCreateWorkspaceBaseBranches(projectPath);
   const resetDialog = () => {
-    requestIdRef.current += 1;
     setStep("branch");
     setBranchInput("");
+    setSelectedExistingBranch("");
     setPendingNewBranch("");
     setBaseBranchInput("");
     setSelectedBaseBranch("");
-    setBaseBranches([]);
-    setIsLoadingBaseBranches(false);
-  };
-
-  const loadBaseBranches = async () => {
-    const requestId = requestIdRef.current + 1;
-    requestIdRef.current = requestId;
-    setIsLoadingBaseBranches(true);
-    try {
-      const branches = await listBranches(projectPath, { scope: "local" });
-      if (requestIdRef.current === requestId) {
-        setBaseBranches(branches);
-      }
-    } finally {
-      if (requestIdRef.current === requestId) {
-        setIsLoadingBaseBranches(false);
-      }
-    }
+    resetBaseBranches();
   };
 
   const handleOpenChange = (open: boolean) => {
-    if (isCreatingWorkspace && !open) return;
+    if ((isCreatingWorkspace || isClosingAfterCreate) && !open) return;
     const visibilityChange = resolveCreateWorkspaceDialogVisibilityChange(open);
-    if (visibilityChange.shouldResetDialog) {
-      resetDialog();
-    }
+    if (visibilityChange.shouldResetDialog) resetDialog();
     setIsOpen(open);
     if (visibilityChange.shouldLoadBranches) {
       onLoadBranches?.();
@@ -71,20 +51,34 @@ export const useCreateWorkspaceDialog = ({
     }
   };
 
+  const closeAfterCreate = () => {
+    setIsClosingAfterCreate(true);
+    setIsOpen(false);
+  };
+
   const handleCreateFromExisting = async (branchName: string) => {
-    if (isCreatingWorkspace) return;
+    if (isCreatingWorkspace || isClosingAfterCreate) return;
     const success = await onCreateWorkspace({ branch: branchName });
-    if (success) setIsOpen(false);
+    if (success) closeAfterCreate();
   };
 
   const handleCreateFromNew = async () => {
-    if (isCreatingWorkspace || isLoadingBaseBranches || !pendingNewBranch) return;
+    const isBlocked =
+      isCreatingWorkspace ||
+      isClosingAfterCreate ||
+      isLoadingBaseBranches ||
+      !pendingNewBranch;
+    if (isBlocked) return;
     const success = await onCreateWorkspace({
       branch: pendingNewBranch,
       createBranch: true,
       startPoint: selectedBaseBranch,
     });
-    if (success) setIsOpen(false);
+    if (success) closeAfterCreate();
+  };
+
+  const handleDialogExitComplete = () => {
+    if (!isOpen) setIsClosingAfterCreate(false);
   };
 
   const handleBaseBranchInputChange = (value: string) => {
@@ -94,26 +88,43 @@ export const useCreateWorkspaceDialog = ({
     }
   };
 
+  const handleBranchInputChange = (value: string) => {
+    setBranchInput(value);
+    if (shouldClearSelectedWorkspaceBranch(value, selectedExistingBranch)) {
+      setSelectedExistingBranch("");
+    }
+  };
+
+  const handleSelectExistingBranch = (branch: string) => {
+    setSelectedExistingBranch(branch);
+    setBranchInput(branch);
+  };
+
   return {
     baseBranchInput,
     baseBranches,
     branchInput,
     handleBaseBranchInputChange,
+    handleBranchInputChange,
     handleCreateFromExisting,
     handleCreateFromNew,
+    handleDialogExitComplete,
     handleOpenChange,
+    isClosingAfterCreate,
     isLoadingBaseBranches,
     isOpen,
     pendingNewBranch,
+    selectedExistingBranch,
     selectedBaseBranch,
     setBaseBranchInput,
-    setBranchInput,
     setPendingNewBranch: (branch: string) => {
       setPendingNewBranch(branch);
+      setSelectedExistingBranch("");
       setBaseBranchInput("");
       setSelectedBaseBranch("");
       setStep("base");
     },
+    setSelectedExistingBranch: handleSelectExistingBranch,
     setSelectedBaseBranch: (branch: string) => {
       setSelectedBaseBranch(branch);
       setBaseBranchInput(branch);

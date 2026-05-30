@@ -26,7 +26,7 @@ export function WorkspaceIsolationSupportStatusRow({
 }: WorkspaceIsolationSupportStatusRowProps) {
   return (
     <TooltipProvider>
-      <div className="flex flex-col gap-4 rounded-lg border bg-background/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <Label htmlFor={labelFor} className="text-sm font-medium">{title}</Label>

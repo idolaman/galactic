@@ -1,12 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  canCreateWorkspaceFromExistingBranch,
   canCreateWorkspaceFromNewBranch,
   filterBranchesByQuery,
   normalizeBaseBranch,
+  orderBaseBranchCandidates,
   resolveCreateWorkspaceDialogVisibilityChange,
   resolveBranchSelection,
   shouldClearSelectedBaseBranch,
+  shouldClearSelectedWorkspaceBranch,
 } from "../../src/lib/create-workspace-flow.js";
 
 test("resolveBranchSelection returns existing branch for exact matches", () => {
@@ -46,6 +49,36 @@ test("filterBranchesByQuery returns no branches when nothing matches", () => {
   assert.deepEqual(filterBranchesByQuery(["main", "develop"], "release"), []);
 });
 
+test("orderBaseBranchCandidates promotes preferred branches in order", () => {
+  assert.deepEqual(
+    orderBaseBranchCandidates(["feature/a", "master", "dev", "release", "main"]),
+    ["dev", "main", "master", "feature/a", "release"],
+  );
+});
+
+test("orderBaseBranchCandidates skips missing preferred branches", () => {
+  assert.deepEqual(orderBaseBranchCandidates(["release", "master", "feature/a"]), [
+    "master",
+    "release",
+    "feature/a",
+  ]);
+});
+
+test("orderBaseBranchCandidates keeps non-preferred branches in git order", () => {
+  assert.deepEqual(orderBaseBranchCandidates(["feature/b", "release", "hotfix"]), [
+    "feature/b",
+    "release",
+    "hotfix",
+  ]);
+});
+
+test("orderBaseBranchCandidates only promotes exact case-sensitive matches", () => {
+  assert.deepEqual(
+    orderBaseBranchCandidates(["develop", "main-fix", "Dev", "feature/a", "main"]),
+    ["main", "develop", "main-fix", "Dev", "feature/a"],
+  );
+});
+
 test("shouldClearSelectedBaseBranch returns false for matching normalized values", () => {
   assert.equal(shouldClearSelectedBaseBranch("  develop  ", "develop"), false);
 });
@@ -58,6 +91,18 @@ test("canCreateWorkspaceFromNewBranch rejects missing base branches", () => {
   assert.equal(canCreateWorkspaceFromNewBranch("   ", false), false);
   assert.equal(canCreateWorkspaceFromNewBranch("main", true), false);
   assert.equal(canCreateWorkspaceFromNewBranch("main", false), true);
+});
+
+test("canCreateWorkspaceFromExistingBranch requires an armed branch", () => {
+  assert.equal(canCreateWorkspaceFromExistingBranch("", false), false);
+  assert.equal(canCreateWorkspaceFromExistingBranch("main", true), false);
+  assert.equal(canCreateWorkspaceFromExistingBranch("main", false), true);
+});
+
+test("shouldClearSelectedWorkspaceBranch follows normalized input", () => {
+  assert.equal(shouldClearSelectedWorkspaceBranch(" main ", "main"), false);
+  assert.equal(shouldClearSelectedWorkspaceBranch("develop", "main"), true);
+  assert.equal(shouldClearSelectedWorkspaceBranch("develop", ""), false);
 });
 
 test("resolveCreateWorkspaceDialogVisibilityChange keeps branch results during close", () => {
