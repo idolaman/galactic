@@ -9,7 +9,7 @@ import {
   setWorkspaceIsolationActiveUser,
 } from "@/services/workspace-isolation-user-scope";
 
-interface AuthUserScopeResult {
+export interface AuthUserScopeResult {
   success: boolean;
   error?: string;
 }

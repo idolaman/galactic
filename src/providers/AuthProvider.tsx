@@ -1,7 +1,16 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { AuthContext } from "@/hooks/use-auth";
-import { finishOAuthCallback, signOutOfSupabase, startOAuthSignIn } from "@/services/auth-flow";
+import {
+  createAuthSessionTransition,
+  emptyAuthSession,
+  getAuthCallbackFailureStatus,
+} from "@/lib/auth-session-transition";
+import {
+  finishOAuthCallback,
+  signOutOfSupabase,
+  startOAuthSignIn,
+} from "@/services/auth-flow";
 import { toAuthUser } from "@/services/auth-user";
 import {
   activateAuthenticatedUserScope,
@@ -14,42 +23,39 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-const emptySession: AuthSessionState = {
-  session: null,
-  user: null,
-};
-
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [authState, setAuthState] = useState<AuthSessionState>(emptySession);
+  const [authState, setAuthState] = useState<AuthSessionState>(emptyAuthSession);
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [error, setError] = useState<string | null>(null);
+  const authStateRef = useRef<AuthSessionState>(emptyAuthSession);
 
   const applySession = useCallback(async (session: AuthSessionState["session"]): Promise<boolean> => {
-    const userId = session?.user?.id;
-    if (userId) {
-      const scopeResult = await activateAuthenticatedUserScope(userId);
-      if (!scopeResult.success) {
-        setAuthState(emptySession);
-        setError(scopeResult.error ?? "Unable to activate signed-in storage.");
-        setStatus("unauthenticated");
-        return false;
+    const result = await createAuthSessionTransition(session, {
+      activate: activateAuthenticatedUserScope,
+      clear: clearAuthenticatedUserScope,
+      toUser: toAuthUser,
+    });
+
+    if (!result.success) {
+      if (result.authState) {
+        authStateRef.current = result.authState;
+        setAuthState(result.authState);
       }
-    } else {
-      await clearAuthenticatedUserScope();
+      setError(result.error);
+      if (result.status) setStatus(result.status);
+      return false;
     }
 
-    setAuthState({
-      session,
-      user: session?.user ? toAuthUser(session.user) : null,
-    });
-    setStatus(session?.user ? "authenticated" : "unauthenticated");
+    authStateRef.current = result.authState;
+    setAuthState(result.authState);
+    setStatus(result.status);
     return true;
   }, []);
 
   const handleCallbackUrl = useCallback(
     async (url: string | null | undefined) => {
       if (!url) return;
-      setStatus("loading");
+      if (!authStateRef.current.session?.user) setStatus("loading");
       const result = await finishOAuthCallback(url);
       if (result.success) {
         const applied = await applySession(result.session ?? null);
@@ -57,7 +63,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
       setError(result.error ?? "Authentication failed. Please try again.");
-      setStatus("unauthenticated");
+      setStatus(getAuthCallbackFailureStatus(authStateRef.current));
     },
     [applySession],
   );
