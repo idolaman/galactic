@@ -3,7 +3,7 @@ import { app } from "electron";
 import { getAnalyticsDistinctId } from "./analytics-identity.js";
 import { initPostHog, capturePostHogEvent, shutdownPostHog } from "./analytics-posthog.js";
 import { captureTelemetryDeckEvent, initTelemetryDeck } from "./analytics-telemetrydeck.js";
-import { type AnalyticsEvent, isAnalyticsEvent } from "./analytics-events.js";
+import type { AnalyticsEvent } from "./analytics-events.js";
 import type { AnalyticsPayload } from "./analytics-payloads.js";
 
 export { ANALYTICS_EVENTS, isAnalyticsEvent } from "./analytics-events.js";
@@ -28,6 +28,17 @@ export const trackEvent = (event: AnalyticsEvent, payload?: AnalyticsPayload): v
 // Convenience functions for each event type
 export const analytics = {
   appLaunched: () => trackEvent("App.launched"),
+
+  authCompleted: (provider?: string) =>
+    trackEvent("Auth.completed", provider ? { provider } : undefined),
+
+  authFailed: (provider?: string, reason?: string) =>
+    trackEvent("Auth.failed", { provider: provider ?? "unknown", reason: reason ?? "unknown" }),
+
+  authSignedOut: () => trackEvent("Auth.signedOut"),
+
+  authStarted: (provider: string) =>
+    trackEvent("Auth.started", { provider }),
 
   gitFailed: (operation: string, error: string) =>
     trackEvent("Error.gitFailed", { operation, error: error.slice(0, 200) }),

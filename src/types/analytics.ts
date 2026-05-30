@@ -1,5 +1,9 @@
 export type AnalyticsEvent =
   | "App.launched"
+  | "Auth.completed"
+  | "Auth.failed"
+  | "Auth.signedOut"
+  | "Auth.started"
   | "Error.gitFailed"
   | "Workspace.created"
   | "Workspace.deleted"

@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "outDir": ".mcp-build-cache/unit-tests",
@@ -19,6 +20,10 @@
   "include": [
     "tests/unit/**/*.ts",
     "src/lib/app-toast.ts",
+    "src/lib/auth-analytics.ts",
+    "src/lib/auth-callback.ts",
+    "src/lib/auth-sign-in-view-state.ts",
+    "src/lib/authenticated-app-view-state.ts",
     "src/lib/workspace-console.ts",
     "src/lib/create-workspace-toast.ts",
     "src/lib/create-workspace-flow.ts",
@@ -30,6 +35,10 @@
     "src/lib/mcp-installation.ts",
     "src/lib/mcp-installation-details.ts",
     "src/lib/workspace-session-display.ts",
+    "src/services/local-storage-keys.ts",
+    "src/services/local-storage-migration.ts",
+    "src/services/local-storage-scope.ts",
+    "src/types/auth.ts",
     "src/services/workspace-console.ts",
     "src/types/workspace-console.ts"
   ]

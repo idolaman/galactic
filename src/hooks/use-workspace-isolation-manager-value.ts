@@ -4,8 +4,7 @@ import { useWorkspaceIsolationReloadToast } from "@/hooks/use-workspace-isolatio
 import { normalizeWorkspaceRootPath } from "@/lib/workspace-isolation-helpers";
 import {
   deleteWorkspaceIsolationProjectTopology, disableWorkspaceIsolationForWorkspace, enableWorkspaceIsolationForWorkspace,
-  getInitialWorkspaceIsolationIntroSeen, getInitialWorkspaceIsolationProjectTopologies,
-  getInitialWorkspaceIsolationShellHookStatus, getInitialWorkspaceIsolationStacks,
+  getInitialWorkspaceIsolationIntroSeen, getInitialWorkspaceIsolationShellHookStatus,
   getWorkspaceIsolationProjectTopologies, getWorkspaceIsolationShellHookStatus, getWorkspaceIsolationStacks,
   markWorkspaceIsolationIntroSeen, saveWorkspaceIsolationProjectTopology, setWorkspaceIsolationShellHooksEnabled,
 } from "@/services/workspace-isolation";
@@ -13,9 +12,9 @@ import type { WorkspaceIsolationShellHookStatus } from "@/types/electron";
 import type { WorkspaceIsolationProjectTopology, WorkspaceIsolationStack } from "@/types/workspace-isolation";
 export const useWorkspaceIsolationManagerValue = (): WorkspaceIsolationManagerValue => {
   const [workspaceIsolationStacks, setWorkspaceIsolationStacks] =
-    useState<WorkspaceIsolationStack[]>(getInitialWorkspaceIsolationStacks);
+    useState<WorkspaceIsolationStack[]>([]);
   const [workspaceIsolationProjectTopologies, setWorkspaceIsolationProjectTopologies] =
-    useState<WorkspaceIsolationProjectTopology[]>(getInitialWorkspaceIsolationProjectTopologies);
+    useState<WorkspaceIsolationProjectTopology[]>([]);
   const [workspaceIsolationIntroSeen, setWorkspaceIsolationIntroSeen] =
     useState(getInitialWorkspaceIsolationIntroSeen);
   const [shellHookStatus, setShellHookStatus] =

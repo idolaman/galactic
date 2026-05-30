@@ -21,7 +21,12 @@ export const writeCodeWorkspace = async (
 
 export const getCodeWorkspacePath = async (
   targetPath: string,
-): Promise<{ exists: boolean; workspacePath: string } | null> => {
+): Promise<{
+  success?: boolean;
+  exists: boolean;
+  workspacePath: string;
+  error?: string;
+} | null> => {
   if (typeof window === "undefined") {
     return null;
   }
@@ -51,4 +56,3 @@ export const deleteCodeWorkspace = async (
     };
   }
 };
-

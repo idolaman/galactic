@@ -1,3 +1,4 @@
+import { AsyncToggleSettingCard } from "@/components/Settings/AsyncToggleSettingCard";
 import { EventNotificationsSettingCard } from "@/components/Settings/EventNotificationsSettingCard";
 import { McpConfigDetailsDialog } from "@/components/Settings/McpConfigDetailsDialog";
 import { McpIntegrationsSettings } from "@/components/Settings/McpIntegrationsSettings";
@@ -5,7 +6,6 @@ import { PreferredEditorSettings } from "@/components/Settings/PreferredEditorSe
 import { SettingsPageShell } from "@/components/Settings/SettingsPageShell";
 import { UpdatesSettingSection } from "@/components/Settings/UpdatesSettingSection";
 import { WorkspaceIsolationShellHooksSettingCard } from "@/components/Settings/WorkspaceIsolationShellHooksSettingCard";
-import { AsyncToggleSettingCard } from "@/components/Settings/AsyncToggleSettingCard";
 import { useSettingsEditorPreference } from "@/hooks/use-settings-editor-preference";
 import { useSettingsHotkeyHighlight } from "@/hooks/use-settings-hotkey-highlight";
 import { useSettingsMcpInstallation } from "@/hooks/use-settings-mcp-installation";

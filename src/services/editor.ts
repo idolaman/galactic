@@ -1,10 +1,13 @@
+import { GLOBAL_LOCAL_STORAGE_KEYS } from "@/services/local-storage-keys";
+import { getLocalStorage } from "@/services/local-storage-scope";
+
 export type EditorName = "Cursor" | "VSCode";
 
 export interface OpenEditorResult {
-  success: boolean;
   error?: string;
-  usedEditor?: EditorName;
   fallbackApplied?: boolean;
+  success: boolean;
+  usedEditor?: EditorName;
 }
 
 const isEditorName = (value: string): value is EditorName => {
@@ -12,19 +15,24 @@ const isEditorName = (value: string): value is EditorName => {
 };
 
 export const getPreferredEditor = (): EditorName => {
-  if (typeof window === "undefined") return "Cursor";
+  const storage = getLocalStorage();
+  if (!storage) return "Cursor";
+
   try {
-    const stored = window.localStorage.getItem("preferredEditor");
-    return stored === "VSCode" ? "VSCode" : "Cursor";
-  } catch (_caughtError) {
+    return storage.getItem(GLOBAL_LOCAL_STORAGE_KEYS.preferredEditor) === "VSCode"
+      ? "VSCode"
+      : "Cursor";
+  } catch {
     return "Cursor";
   }
 };
 
 export const setPreferredEditorPreference = (editor: EditorName): void => {
-  if (typeof window === "undefined") return;
+  const storage = getLocalStorage();
+  if (!storage) return;
+
   try {
-    window.localStorage.setItem("preferredEditor", editor);
+    storage.setItem(GLOBAL_LOCAL_STORAGE_KEYS.preferredEditor, editor);
   } catch (error) {
     console.warn("Failed to persist editor preference:", error);
   }
@@ -32,7 +40,7 @@ export const setPreferredEditorPreference = (editor: EditorName): void => {
 
 export const openProjectInEditor = async (
   editor: EditorName,
-  projectPath: string
+  projectPath: string,
 ): Promise<OpenEditorResult> => {
   if (typeof window === "undefined") {
     return { success: false, error: "Renderer is not available." };
@@ -42,11 +50,7 @@ export const openProjectInEditor = async (
     const result =
       (await window.electronAPI?.openProjectInEditor?.(editor, projectPath)) ?? null;
     if (result?.success && result.fallbackApplied && result.usedEditor && isEditorName(result.usedEditor)) {
-      try {
-        window.localStorage.setItem("preferredEditor", result.usedEditor);
-      } catch (error) {
-        console.warn("Failed to persist fallback editor preference:", error);
-      }
+      setPreferredEditorPreference(result.usedEditor);
     }
     return result ?? { success: false, error: "Open in editor is unavailable." };
   } catch (error) {

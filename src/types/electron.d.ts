@@ -76,6 +76,25 @@ export interface WorkspaceIsolationProxyStatus {
   message?: string;
 }
 
+export interface WorkspaceIsolationStacksResult {
+  success: boolean;
+  stacks?: unknown[];
+  error?: string;
+}
+
+export interface WorkspaceIsolationTopologiesResult {
+  success: boolean;
+  topologies?: unknown[];
+  error?: string;
+}
+
+export interface CodeWorkspacePathResult {
+  success: boolean;
+  exists: boolean;
+  workspacePath: string;
+  error?: string;
+}
+
 export interface OpenProjectInEditorResult {
   success: boolean;
   error?: string;
@@ -134,12 +153,10 @@ export interface ElectronAPI {
     input: ProjectConfigFileExportInput
   ) => Promise<ProjectConfigFileExportResult>;
   importProjectConfigFile: () => Promise<ProjectConfigFileImportResult>;
-  initialWorkspaceIsolationStacks?: unknown[];
-  initialWorkspaceIsolationProjectTopologies?: unknown[];
   initialWorkspaceIsolationIntroSeen?: boolean;
   initialWorkspaceIsolationShellHookStatus?: unknown;
-  getWorkspaceIsolationStacks: () => Promise<unknown[]>;
-  getWorkspaceIsolationProjectTopologies: () => Promise<unknown[]>;
+  getWorkspaceIsolationStacks: () => Promise<WorkspaceIsolationStacksResult>;
+  getWorkspaceIsolationProjectTopologies: () => Promise<WorkspaceIsolationTopologiesResult>;
   saveWorkspaceIsolationProjectTopology: (
     input: unknown
   ) => Promise<{ success: boolean; error?: string; topology?: unknown }>;
@@ -154,6 +171,10 @@ export interface ElectronAPI {
   ) => Promise<{ success: boolean; error?: string }>;
   markWorkspaceIsolationIntroSeen: () => Promise<{ success: boolean; seen: boolean; error?: string }>;
   getWorkspaceIsolationProxyStatus: () => Promise<WorkspaceIsolationProxyStatus>;
+  setWorkspaceIsolationActiveUser: (
+    userId: string
+  ) => Promise<{ success: boolean; error?: string }>;
+  clearWorkspaceIsolationActiveUser: () => Promise<{ success: boolean; error?: string }>;
   configureEnvironmentInterface: (
     action: "add" | "remove",
     address: string
@@ -162,7 +183,7 @@ export interface ElectronAPI {
     targetPath: string,
     envConfig: WorkspaceEnvConfig | null
   ) => Promise<{ success: boolean; workspacePath?: string; error?: string }>;
-  getCodeWorkspacePath: (targetPath: string) => Promise<{ exists: boolean; workspacePath: string }>;
+  getCodeWorkspacePath: (targetPath: string) => Promise<CodeWorkspacePathResult>;
   deleteCodeWorkspace: (targetPath: string) => Promise<{ success: boolean; error?: string }>;
   createWorkspaceConsoleSession: (
     input: CreateWorkspaceConsoleSessionInput
@@ -198,6 +219,14 @@ export interface ElectronAPI {
   onUpdateEvent: (
     callback: (status: string, payload: Record<string, unknown>) => void
   ) => () => void;
+  // Auth
+  getAuthCallbackUrl: () => Promise<string>;
+  consumeAuthCallbackUrl: () => Promise<string | null>;
+  onAuthCallbackUrl: (callback: (url: string) => void) => () => void;
+  openExternalAuthUrl: (url: string) => Promise<{ success: boolean; error?: string }>;
+  getAuthStorageItem: (key: string) => Promise<string | null>;
+  setAuthStorageItem: (key: string, value: string) => Promise<{ success: boolean; error?: string }>;
+  removeAuthStorageItem: (key: string) => Promise<{ success: boolean; error?: string }>;
   // Session sync between windows
   initialSessionCache?: unknown[];
   initialDismissedSessions?: Array<[string, string]>;

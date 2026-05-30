@@ -1,4 +1,10 @@
 import type { AnalyticsEvent, AnalyticsPayload } from "../types/analytics.js";
+import {
+  buildAuthAnalyticsPayload,
+  type AuthAnalyticsPayload,
+} from "../lib/auth-analytics.js";
+import type { AuthCallbackFailureReason } from "../lib/auth-callback.js";
+import type { AuthProviderName } from "../types/auth.js";
 
 const cleanPayload = (
   payload?: AnalyticsPayload,
@@ -21,6 +27,26 @@ export const trackAnalyticsEvent = (event: AnalyticsEvent, payload?: AnalyticsPa
 
 export const trackProjectAdded = (isGitRepo: boolean, worktrees: number): void => {
   trackAnalyticsEvent("Project.added", { isGitRepo, worktrees });
+};
+
+export const trackAuthStarted = (provider: AuthProviderName): void => {
+  trackAnalyticsEvent("Auth.started", buildAuthAnalyticsPayload(provider));
+};
+
+export const trackAuthCompleted = (provider?: AuthProviderName): void => {
+  trackAnalyticsEvent("Auth.completed", buildAuthAnalyticsPayload(provider));
+};
+
+export const trackAuthFailed = (
+  provider: AuthProviderName | undefined,
+  reason: AuthCallbackFailureReason,
+): void => {
+  const payload: AuthAnalyticsPayload = buildAuthAnalyticsPayload(provider, reason);
+  trackAnalyticsEvent("Auth.failed", payload);
+};
+
+export const trackAuthSignedOut = (): void => {
+  trackAnalyticsEvent("Auth.signedOut");
 };
 
 export const trackProjectRemoved = (worktrees: number, configCount: number): void => {

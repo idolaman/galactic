@@ -8,10 +8,6 @@ import type {
 
 const initialSessionCache = ipcRenderer.sendSync("session/get-cache-sync");
 const initialDismissedSessions = ipcRenderer.sendSync("session/get-dismissed-sync");
-const initialWorkspaceIsolationStacks = ipcRenderer.sendSync("workspace-isolation/get-sync");
-const initialWorkspaceIsolationProjectTopologies = ipcRenderer.sendSync(
-  "workspace-isolation/get-topologies-sync",
-);
 const initialWorkspaceIsolationIntroSeen = ipcRenderer.sendSync(
   "workspace-isolation/get-intro-seen-sync",
 );
@@ -64,14 +60,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   importProjectConfigFile: () => ipcRenderer.invoke("project-config/import-file"),
   configureEnvironmentInterface: (action: "add" | "remove", address: string) =>
     ipcRenderer.invoke("network/configure-environment-interface", action, address),
-  initialWorkspaceIsolationStacks: Array.isArray(initialWorkspaceIsolationStacks)
-    ? initialWorkspaceIsolationStacks
-    : [],
-  initialWorkspaceIsolationProjectTopologies: Array.isArray(
-    initialWorkspaceIsolationProjectTopologies,
-  )
-    ? initialWorkspaceIsolationProjectTopologies
-    : [],
   initialWorkspaceIsolationIntroSeen:
     typeof initialWorkspaceIsolationIntroSeen === "boolean"
       ? initialWorkspaceIsolationIntroSeen
@@ -96,6 +84,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("workspace-isolation/mark-intro-seen"),
   getWorkspaceIsolationProxyStatus: () =>
     ipcRenderer.invoke("workspace-isolation/proxy-status"),
+  setWorkspaceIsolationActiveUser: (userId: string) =>
+    ipcRenderer.invoke("workspace-isolation/set-active-user", userId),
+  clearWorkspaceIsolationActiveUser: () =>
+    ipcRenderer.invoke("workspace-isolation/clear-active-user"),
   writeCodeWorkspace: (
     targetPath: string,
     envConfig: { address?: string; envVars?: Record<string, string> } | null,
@@ -168,6 +160,20 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("update/event", handler);
     return () => ipcRenderer.removeListener("update/event", handler);
   },
+  getAuthCallbackUrl: () => ipcRenderer.invoke("auth/get-callback-url"),
+  consumeAuthCallbackUrl: () => ipcRenderer.invoke("auth/consume-callback-url"),
+  onAuthCallbackUrl: (callback: (url: string) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, url: string) => {
+      callback(url);
+    };
+    ipcRenderer.on("auth/callback-url", handler);
+    return () => ipcRenderer.removeListener("auth/callback-url", handler);
+  },
+  openExternalAuthUrl: (url: string) => ipcRenderer.invoke("auth/open-external-url", url),
+  getAuthStorageItem: (key: string) => ipcRenderer.invoke("auth/storage-get", key),
+  setAuthStorageItem: (key: string, value: string) =>
+    ipcRenderer.invoke("auth/storage-set", key, value),
+  removeAuthStorageItem: (key: string) => ipcRenderer.invoke("auth/storage-remove", key),
   // Session sync between windows
   initialSessionCache: Array.isArray(initialSessionCache) ? initialSessionCache : [],
   initialDismissedSessions: Array.isArray(initialDismissedSessions) ? initialDismissedSessions : [],
